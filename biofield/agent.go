@@ -95,7 +95,7 @@ func (a *Agent) UpdateContext() {
 	})
 
 	density := float64(neighborCount) / 20.0 // Assume 20 max neighbors
-	stability := 1.0 / (1.0 + phaseVarSum)  // Inverse variance
+	stability := 1.0 / (1.0 + phaseVarSum)   // Inverse variance
 
 	// Calculate local coherence (Kuramoto order parameter)
 	localCoherence := a.calculateLocalCoherence()

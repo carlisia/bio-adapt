@@ -154,4 +154,3 @@ func Benchmark() {
 		cancel()
 	}
 }
-

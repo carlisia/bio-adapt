@@ -46,7 +46,7 @@ func main() {
 		coherence := swarm.MeasureCoherence()
 		elapsed := time.Since(start).Seconds()
 		fmt.Printf("  %.1fs: Coherence = %.3f", elapsed, coherence)
-		
+
 		if coherence >= goal.Coherence {
 			fmt.Printf(" ✓ [Target reached!]\n")
 		} else {
@@ -57,7 +57,7 @@ func main() {
 	// Final statistics
 	finalCoherence := swarm.MeasureCoherence()
 	improvement := (finalCoherence - initialCoherence) * 100
-	
+
 	fmt.Println("\n" + string(make([]byte, 61)))
 	fmt.Println("Summary:")
 	fmt.Printf("  Initial coherence: %.3f\n", initialCoherence)
@@ -70,7 +70,7 @@ func main() {
 	swarm.DisruptAgents(0.2) // Disrupt 20% of agents
 	disruptedCoherence := swarm.MeasureCoherence()
 	fmt.Printf("  After disruption (20%% agents): %.3f\n", disruptedCoherence)
-	
+
 	// Let it recover
 	time.Sleep(2 * time.Second)
 	recoveredCoherence := swarm.MeasureCoherence()

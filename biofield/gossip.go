@@ -146,4 +146,3 @@ func (ga *GossipAgent) Stop() {
 		ga.list.Shutdown()
 	}
 }
-
