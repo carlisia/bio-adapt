@@ -22,7 +22,11 @@ func main() {
 	// Create swarm of autonomous agents
 	swarmSize := 50
 	fmt.Printf("\nCreating swarm of %d autonomous agents...\n", swarmSize)
-	swarm := biofield.NewSwarm(swarmSize, goal)
+	swarm, err := biofield.NewSwarm(swarmSize, goal)
+	if err != nil {
+		fmt.Printf("Error creating swarm: %v\n", err)
+		return
+	}
 
 	// Measure initial coherence
 	initialCoherence := swarm.MeasureCoherence()
@@ -34,7 +38,12 @@ func main() {
 	defer cancel()
 
 	// Start swarm
-	go swarm.Run(ctx)
+	errChan := make(chan error, 1)
+	go func() {
+		if err := swarm.Run(ctx); err != nil {
+			errChan <- err
+		}
+	}()
 
 	// Monitor progress
 	ticker := time.NewTicker(500 * time.Millisecond)
@@ -42,15 +51,20 @@ func main() {
 
 	start := time.Now()
 	for range 6 {
-		<-ticker.C
-		coherence := swarm.MeasureCoherence()
-		elapsed := time.Since(start).Seconds()
-		fmt.Printf("  %.1fs: Coherence = %.3f", elapsed, coherence)
+		select {
+		case <-ticker.C:
+			coherence := swarm.MeasureCoherence()
+			elapsed := time.Since(start).Seconds()
+			fmt.Printf("  %.1fs: Coherence = %.3f", elapsed, coherence)
 
-		if coherence >= goal.Coherence {
-			fmt.Printf(" ✓ [Target reached!]\n")
-		} else {
-			fmt.Println()
+			if coherence >= goal.Coherence {
+				fmt.Printf(" ✓ [Target reached!]\n")
+			} else {
+				fmt.Println()
+			}
+		case err := <-errChan:
+			fmt.Printf("\nError running swarm: %v\n", err)
+			return
 		}
 	}
 
