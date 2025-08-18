@@ -45,6 +45,7 @@ type Agent struct {
 	decider     DecisionMaker
 	goalManager GoalManager
 	resources   ResourceManager
+	strategy    SyncStrategy // Synchronization strategy
 }
 
 // NewAgent creates an autonomous agent with random initial state and goals.
@@ -59,6 +60,7 @@ func NewAgent(id string) *Agent {
 		decider:     &SimpleDecisionMaker{},
 		goalManager: &WeightedGoalManager{},
 		resources:   NewTokenResourceManager(100),
+		strategy:    NewPhaseNudgeStrategy(0.3), // Default strategy
 	}
 
 	// Random initialization for diversity
@@ -67,7 +69,7 @@ func NewAgent(id string) *Agent {
 	a.frequency.Store(time.Duration(50+rand.Intn(100)) * time.Millisecond)
 	a.energy.Store(100.0)
 	a.influence.Store(0.3 + rand.Float64()*0.4) // 0.3-0.7 range
-	a.stubbornness.Store(rand.Float64() * 0.3)  // 0-0.3 range
+	a.stubbornness.Store(rand.Float64() * 0.2)  // 0-0.2 range (less stubborn)
 
 	// Initialize context
 	a.context.Store(Context{})
@@ -143,21 +145,44 @@ func (a *Agent) ProposeAdjustment(globalGoal State) (Action, bool) {
 	a.UpdateContext()
 	ctx := a.context.Load().(Context)
 
-	// Blend local and global goals based on influence
-	localState := State{
+	// Current state of the agent
+	currentState := State{
+		Phase:     a.phase.Load(),
+		Frequency: a.frequency.Load(),
+		Coherence: ctx.LocalCoherence,
+	}
+
+	// Local goal (what the agent individually wants)
+	localGoal := State{
 		Phase:     a.LocalGoal.Load(),
 		Frequency: a.frequency.Load(),
 		Coherence: ctx.LocalCoherence,
 	}
 
+	// Blend local and global goals based on influence
 	influence := a.influence.Load()
-	blendedGoal := a.goalManager.Blend(localState, globalGoal, influence)
+	blendedGoal := a.goalManager.Blend(localGoal, globalGoal, influence)
 
-	// Generate possible actions
-	options := a.generateActions(blendedGoal)
+	// Use strategy to generate action from current state toward blended goal
+	proposedAction, strategyConfidence := a.strategy.Propose(currentState, blendedGoal, ctx)
+
+	// Generate additional options for decision maker
+	// Include maintain option as alternative
+	maintainAction := Action{
+		Type:    "maintain",
+		Value:   0,
+		Cost:    0.1,
+		Benefit: ctx.Stability,
+	}
+
+	options := []Action{proposedAction, maintainAction}
 
 	// Make autonomous decision
-	chosen, confidence := a.decider.Decide(localState, options)
+	chosen, confidence := a.decider.Decide(currentState, options)
+	// Use maximum confidence rather than product to avoid being too conservative
+	if strategyConfidence > confidence {
+		confidence = strategyConfidence
+	}
 
 	// Check energy availability
 	available := a.resources.Request(chosen.Cost)
@@ -181,48 +206,22 @@ func (a *Agent) ProposeAdjustment(globalGoal State) (Action, bool) {
 	return Action{Type: "maintain"}, false
 }
 
-// generateActions creates possible actions for current situation.
-// Actions have costs proportional to change magnitude.
-func (a *Agent) generateActions(goal State) []Action {
-	current := a.phase.Load()
-	target := goal.Phase
+// SetSyncStrategy sets the agent's synchronization strategy.
+func (a *Agent) SetSyncStrategy(strategy SyncStrategy) {
+	a.strategy = strategy
+}
 
-	// Calculate phase difference
-	diff := target - current
-	for diff > math.Pi {
-		diff -= 2 * math.Pi
-	}
-	for diff < -math.Pi {
-		diff += 2 * math.Pi
-	}
-
-	return []Action{
-		{
-			Type:    "adjust_phase",
-			Value:   diff * 0.1, // Small adjustment
-			Cost:    math.Abs(diff) * 2.0,
-			Benefit: 1.0 - math.Abs(diff)/math.Pi,
-		},
-		{
-			Type:    "adjust_phase",
-			Value:   diff * 0.3, // Medium adjustment
-			Cost:    math.Abs(diff) * 5.0,
-			Benefit: 1.5 - math.Abs(diff)/math.Pi,
-		},
-		{
-			Type:    "maintain",
-			Value:   0,
-			Cost:    0.1, // Small cost to maintain
-			Benefit: a.context.Load().(Context).Stability,
-		},
-	}
+// GetSyncStrategy returns the agent's current sync strategy.
+func (a *Agent) GetSyncStrategy() SyncStrategy {
+	return a.strategy
 }
 
 // ApplyAction executes a chosen action, consuming resources.
 // Returns success status and energy consumed.
 func (a *Agent) ApplyAction(action Action) (bool, float64) {
 	switch action.Type {
-	case "adjust_phase":
+	case "adjust_phase", "phase_nudge", "frequency_lock", "energy_save", "pulse":
+		// All these involve phase adjustment
 		newPhase := math.Mod(a.phase.Load()+action.Value, 2*math.Pi)
 		if newPhase < 0 {
 			newPhase += 2 * math.Pi
@@ -252,6 +251,49 @@ func (a *Agent) SetPhase(phase float64) {
 // GetEnergy returns the current energy level.
 func (a *Agent) GetEnergy() float64 {
 	return a.resources.Available()
+}
+
+// SetEnergy sets the agent's energy level (for testing).
+func (a *Agent) SetEnergy(energy float64) {
+	if rm, ok := a.resources.(*TokenResourceManager); ok {
+		// Reset to new energy level
+		rm.tokens.Store(energy)
+	}
+}
+
+// GetInfluence returns the agent's influence parameter.
+func (a *Agent) GetInfluence() float64 {
+	return a.influence.Load()
+}
+
+// SetInfluence sets the agent's influence parameter.
+func (a *Agent) SetInfluence(influence float64) {
+	a.influence.Store(influence)
+}
+
+// GetStubbornness returns the agent's stubbornness parameter.
+func (a *Agent) GetStubbornness() float64 {
+	return a.stubbornness.Load()
+}
+
+// SetStubbornness sets the agent's stubbornness parameter.
+func (a *Agent) SetStubbornness(stubbornness float64) {
+	a.stubbornness.Store(stubbornness)
+}
+
+// Neighbors returns the agent's neighbors map for direct access.
+func (a *Agent) Neighbors() *sync.Map {
+	return &a.neighbors
+}
+
+// DecisionMaker returns the agent's decision maker.
+func (a *Agent) DecisionMaker() DecisionMaker {
+	return a.decider
+}
+
+// SetDecisionMaker sets a custom decision maker for the agent.
+func (a *Agent) SetDecisionMaker(dm DecisionMaker) {
+	a.decider = dm
 }
 
 // StateUpdate carries synchronization information between agents.
