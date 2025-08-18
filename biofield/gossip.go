@@ -139,10 +139,15 @@ func (ga *GossipAgent) regenerateEnergy(rate float64) {
 }
 
 // Stop shuts down the gossip agent.
-func (ga *GossipAgent) Stop() {
+func (ga *GossipAgent) Stop() error {
 	close(ga.shutdown)
 	if ga.list != nil {
-		ga.list.Leave(time.Second)
-		ga.list.Shutdown()
+		if err := ga.list.Leave(time.Second); err != nil {
+			return fmt.Errorf("failed to leave gossip network: %w", err)
+		}
+		if err := ga.list.Shutdown(); err != nil {
+			return fmt.Errorf("failed to shutdown gossip network: %w", err)
+		}
 	}
+	return nil
 }

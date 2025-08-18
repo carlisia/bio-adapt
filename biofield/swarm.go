@@ -16,14 +16,28 @@ type Swarm struct {
 	goalState State
 
 	// Monitoring (read-only, doesn't control)
-	monitor *Monitor
+	monitor     *Monitor
+	basin       *AttractorBasin
+	convergence *ConvergenceMonitor
 }
 
 // NewSwarm creates a distributed swarm with autonomous agents.
-func NewSwarm(size int, goal State) *Swarm {
+func NewSwarm(size int, goal State) (*Swarm, error) {
+	if size <= 0 {
+		return nil, fmt.Errorf("swarm size must be positive, got %d", size)
+	}
+	if goal.Frequency <= 0 {
+		return nil, fmt.Errorf("goal frequency must be positive, got %v", goal.Frequency)
+	}
+	if goal.Coherence < 0 || goal.Coherence > 1 {
+		return nil, fmt.Errorf("goal coherence must be in [0, 1], got %f", goal.Coherence)
+	}
+
 	s := &Swarm{
-		goalState: goal,
-		monitor:   NewMonitor(),
+		goalState:   goal,
+		monitor:     NewMonitor(),
+		basin:       NewAttractorBasin(goal, 0.8, math.Pi),
+		convergence: NewConvergenceMonitor(goal, goal.Coherence),
 	}
 
 	// Create autonomous agents
@@ -35,7 +49,7 @@ func NewSwarm(size int, goal State) *Swarm {
 		s.connectToNeighbors(agent, 5)
 	}
 
-	return s
+	return s, nil
 }
 
 // connectToNeighbors creates local connections for emergent behavior.
@@ -84,7 +98,17 @@ func (s *Swarm) Run(ctx context.Context) error {
 					action, accepted := a.ProposeAdjustment(s.goalState)
 
 					if accepted {
-						a.ApplyAction(action)
+						success, energyCost := a.ApplyAction(action)
+						if !success {
+							// Action failed - agent may be out of energy or action type unknown
+							// This is expected behavior in autonomous systems where agents
+							// can fail to execute actions due to resource constraints
+							continue
+						}
+						// Successfully applied action with energy cost
+						// The energy is already deducted from the agent's resource manager
+						// We could use energyCost for monitoring/metrics here if needed
+						_ = energyCost // Intentionally unused - energy tracking is internal
 					}
 
 					// Small delay to prevent CPU spinning
@@ -115,10 +139,7 @@ func (s *Swarm) monitorConvergence(ctx context.Context) {
 		case <-ticker.C:
 			coherence := s.MeasureCoherence()
 			s.monitor.RecordSample(coherence)
-
-			if coherence > s.goalState.Coherence {
-				fmt.Printf("Achieved target coherence: %.3f\n", coherence)
-			}
+			s.convergence.Record(coherence)
 		}
 	}
 }
@@ -126,23 +147,15 @@ func (s *Swarm) monitorConvergence(ctx context.Context) {
 // MeasureCoherence calculates global synchronization level.
 // This is for monitoring only - agents don't have access to this.
 func (s *Swarm) MeasureCoherence() float64 {
-	var sumCos, sumSin float64
-	var count int
+	var phases []float64
 
 	s.agents.Range(func(key, value any) bool {
 		agent := value.(*Agent)
-		phase := agent.GetPhase()
-		sumCos += math.Cos(phase)
-		sumSin += math.Sin(phase)
-		count++
+		phases = append(phases, agent.GetPhase())
 		return true
 	})
 
-	if count == 0 {
-		return 0
-	}
-
-	return math.Sqrt(sumCos*sumCos+sumSin*sumSin) / float64(count)
+	return MeasureCoherence(phases)
 }
 
 // GetAgent retrieves an agent by ID.
@@ -184,4 +197,19 @@ func (s *Swarm) DisruptAgents(percentage float64) {
 		disrupted++
 		return true
 	})
+}
+
+// Agents returns the internal agents map for direct access.
+func (s *Swarm) Agents() *sync.Map {
+	return &s.agents
+}
+
+// GetBasin returns the swarm's attractor basin.
+func (s *Swarm) GetBasin() *AttractorBasin {
+	return s.basin
+}
+
+// GetConvergenceMonitor returns the convergence monitor.
+func (s *Swarm) GetConvergenceMonitor() *ConvergenceMonitor {
+	return s.convergence
 }
