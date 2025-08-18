@@ -1,0 +1,160 @@
+# https://taskfile.dev
+
+version: "3"
+
+vars:
+  BINARY: bio-adapt
+  BIN_DIR: ./bin
+  GO_FLAGS: -v
+  LDFLAGS: -s -w
+
+tasks:
+  # Default task
+  default:
+    desc: Build and run the demo
+    cmds:
+      - task: build
+      - task: run
+
+  # Build the binary
+  build:
+    desc: Build the bio-adapt binary
+    cmds:
+      - mkdir -p {{.BIN_DIR}}
+      - go build {{.GO_FLAGS}} -ldflags="{{.LDFLAGS}}" -o {{.BIN_DIR}}/{{.BINARY}} .
+    sources:
+      - ./**/*.go
+      - go.mod
+      - go.sum
+    generates:
+      - "{{.BIN_DIR}}/{{.BINARY}}"
+
+  # Run the demo
+  run:
+    desc: Run the bio-adapt demo
+    deps: [build]
+    cmds:
+      - "{{.BIN_DIR}}/{{.BINARY}}"
+
+  # Run tests
+  test:
+    desc: Run all tests
+    cmds:
+      - go test -v -shuffle=on ./...
+
+  # Run tests with coverage
+  test:coverage:
+    desc: Run tests with coverage report
+    cmds:
+      - go test -v -shuffle=on -coverprofile=coverage.out ./...
+      - go tool cover -html=coverage.out -o coverage.html
+      - echo "Coverage report generated at coverage.html"
+
+  # Run tests in short mode
+  test:short:
+    desc: Run tests in short mode
+    cmds:
+      - go test -v -short ./...
+
+  # Run benchmarks
+  bench:
+    desc: Run all benchmarks
+    cmds:
+      - go test -bench=. -benchmem ./...
+
+  # Run biofield benchmarks
+  bench:biofield:
+    desc: Run biofield package benchmarks
+    cmds:
+      - go test -bench=. -benchmem ./biofield
+
+  # Format code
+  fmt:
+    desc: Format Go code
+    cmds:
+      - go fmt ./...
+
+  # Run go vet
+  vet:
+    desc: Run go vet
+    cmds:
+      - go vet ./...
+
+  # Run linter (if installed)
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run ./...
+    preconditions:
+      - sh: command -v golangci-lint
+        msg: "Install golangci-lint from https://golangci-lint.run/usage/install/"
+
+  # Run all checks
+  check:
+    desc: Run all checks (fmt, vet, test)
+    cmds:
+      - task: fmt
+      - task: vet
+      - task: test
+
+  # Clean build artifacts
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf {{.BIN_DIR}}
+      - rm -f coverage.out coverage.html
+      - go clean -cache
+
+  # Update dependencies
+  deps:
+    desc: Download and tidy dependencies
+    cmds:
+      - go mod download
+      - go mod tidy
+
+  # Update dependencies to latest
+  deps:update:
+    desc: Update all dependencies to latest versions
+    cmds:
+      - go get -u ./...
+      - go mod tidy
+
+  # Check for vulnerabilities
+  vuln:
+    desc: Check for known vulnerabilities
+    cmds:
+      - govulncheck ./...
+    preconditions:
+      - sh: command -v govulncheck
+        msg: "Install with: go install golang.org/x/vuln/cmd/govulncheck@latest"
+
+  # Install binary to GOPATH
+  install:
+    desc: Install binary to GOPATH/bin
+    deps: [build]
+    cmds:
+      - cp {{.BIN_DIR}}/{{.BINARY}} $(go env GOPATH)/bin/
+
+  # Uninstall binary from GOPATH
+  uninstall:
+    desc: Remove binary from GOPATH/bin
+    cmds:
+      - rm -f $(go env GOPATH)/bin/{{.BINARY}}
+
+  # Development mode with file watching
+  dev:
+    desc: Development mode - rebuild on file changes (requires entr)
+    cmds:
+      - find . -name "*.go" | entr -r task run
+    preconditions:
+      - sh: command -v entr
+        msg: "Install entr for file watching"
+
+  # Watch and run tests
+  watch:test:
+    desc: Watch and run tests on file changes (requires entr)
+    cmds:
+      - find . -name "*.go" | entr -c go test -v ./...
+    preconditions:
+      - sh: command -v entr
+        msg: "Install entr for file watching"
