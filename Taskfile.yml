@@ -16,7 +16,7 @@ tasks:
       - task: build
       - task: run
 
-  # Build the binary
+  # Build the main binary
   build:
     desc: Build the bio-adapt binary
     cmds:
@@ -29,12 +29,64 @@ tasks:
     generates:
       - "{{.BIN_DIR}}/{{.BINARY}}"
 
-  # Run the demo
+  # Build all binaries (main + examples)
+  build:all:
+    desc: Build all binaries including examples
+    cmds:
+      - task: build
+      - task: build:examples
+
+  # Build example binaries
+  build:examples:
+    desc: Build all example binaries
+    cmds:
+      - mkdir -p {{.BIN_DIR}}/examples
+      - |
+        for dir in examples/*/; do
+          if [ -f "$dir/main.go" ]; then
+            name=$(basename "$dir")
+            echo "Building example: $name"
+            go build {{.GO_FLAGS}} -ldflags="{{.LDFLAGS}}" -o {{.BIN_DIR}}/examples/$name ./$dir
+          fi
+        done
+    sources:
+      - examples/**/*.go
+      - biofield/**/*.go
+      - go.mod
+      - go.sum
+
+  # Run the main demo
   run:
     desc: Run the bio-adapt demo
     deps: [build]
     cmds:
       - "{{.BIN_DIR}}/{{.BINARY}}"
+
+  # Run a specific example
+  run:example:
+    desc: Run a specific example (use EXAMPLE=name)
+    deps: [build:examples]
+    cmds:
+      - |
+        if [ -z "$EXAMPLE" ]; then
+          echo "Available examples:"
+          ls -1 {{.BIN_DIR}}/examples/ 2>/dev/null || echo "No examples built yet"
+          echo ""
+          echo "Usage: EXAMPLE=basic_sync task run:example"
+        else
+          {{.BIN_DIR}}/examples/$EXAMPLE
+        fi
+
+  # List all available binaries
+  list:binaries:
+    desc: List all built binaries
+    cmds:
+      - |
+        echo "Main binary:"
+        ls -lh {{.BIN_DIR}}/{{.BINARY}} 2>/dev/null || echo "  Not built yet"
+        echo ""
+        echo "Example binaries:"
+        ls -lh {{.BIN_DIR}}/examples/ 2>/dev/null || echo "  No examples built yet"
 
   # Run tests
   test:
@@ -89,6 +141,12 @@ tasks:
       - sh: command -v golangci-lint
         msg: "Install golangci-lint from https://golangci-lint.run/usage/install/"
 
+  # Run linters and automatically fix issues where possible
+  lint:fix:
+    desc: Run linter, apply fixes.
+    cmds:
+      - golangci-lint run --fix ./...
+
   # Run all checks
   check:
     desc: Run all checks (fmt, vet, test)
@@ -104,6 +162,7 @@ tasks:
       - rm -rf {{.BIN_DIR}}
       - rm -f coverage.out coverage.html
       - go clean -cache
+      - go clean -testcache
 
   # Update dependencies
   deps:
