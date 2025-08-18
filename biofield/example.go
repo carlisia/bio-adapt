@@ -8,7 +8,7 @@ import (
 )
 
 // Example demonstrates distributed biological synchronization.
-func Example() {
+func Example() error {
 	// Create target pattern
 	goal := State{
 		Phase:     0,
@@ -17,7 +17,10 @@ func Example() {
 	}
 
 	// Create swarm of autonomous agents
-	swarm := NewSwarm(100, goal) // Smaller for simplicity
+	swarm, err := NewSwarm(100, goal) // Smaller for simplicity
+	if err != nil {
+		return fmt.Errorf("failed to create swarm: %w", err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -38,7 +41,11 @@ func Example() {
 	}()
 
 	// Let the swarm run autonomously
-	go swarm.Run(ctx)
+	go func() {
+		if err := swarm.Run(ctx); err != nil {
+			fmt.Printf("Error running swarm: %v\n", err)
+		}
+	}()
 
 	// Observe emergent synchronization
 	time.Sleep(3 * time.Second)
@@ -57,9 +64,13 @@ func Example() {
 	})
 
 	fmt.Printf("Average energy: %.1f/100\n", totalEnergy/float64(count))
+	return nil
 }
 
 // DemonstrateAutonomy shows how agents make independent decisions.
+// Note: In this demonstration, we intentionally ignore ApplyAction return values
+// because we're showing autonomous behavior where actions may fail due to
+// stubbornness or energy constraints - this is expected and part of the demo.
 func DemonstrateAutonomy() {
 	// Create two agents with different preferences
 	agent1 := NewAgent("stubborn")
@@ -89,12 +100,14 @@ func DemonstrateAutonomy() {
 	for range 20 {
 		action1, accepted1 := agent1.ProposeAdjustment(globalGoal)
 		if accepted1 {
-			agent1.ApplyAction(action1)
+			// Apply action - success and energy cost are not critical for this demo
+			_, _ = agent1.ApplyAction(action1)
 		}
 
 		action2, accepted2 := agent2.ProposeAdjustment(globalGoal)
 		if accepted2 {
-			agent2.ApplyAction(action2)
+			// Apply action - success and energy cost are not critical for this demo
+			_, _ = agent2.ApplyAction(action2)
 		}
 	}
 
@@ -104,7 +117,7 @@ func DemonstrateAutonomy() {
 }
 
 // Benchmark measures convergence time for different swarm sizes.
-func Benchmark() {
+func Benchmark() error {
 	sizes := []int{10, 50, 100, 500}
 
 	for _, size := range sizes {
@@ -114,7 +127,10 @@ func Benchmark() {
 			Coherence: 0.8,
 		}
 
-		swarm := NewSwarm(size, goal)
+		swarm, err := NewSwarm(size, goal)
+		if err != nil {
+			return fmt.Errorf("failed to create swarm of size %d: %w", size, err)
+		}
 
 		// Random initial phases
 		swarm.agents.Range(func(key, value any) bool {
@@ -130,7 +146,11 @@ func Benchmark() {
 		initialCoherence := swarm.MeasureCoherence()
 
 		// Run until convergence
-		go swarm.Run(ctx)
+		go func() {
+			if err := swarm.Run(ctx); err != nil {
+				fmt.Printf("Error running swarm %d: %v\n", size, err)
+			}
+		}()
 
 		// Monitor convergence
 		converged := false
@@ -153,4 +173,5 @@ func Benchmark() {
 
 		cancel()
 	}
+	return nil
 }
