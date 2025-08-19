@@ -9,10 +9,12 @@ See [attractor/README.md](attractor/README.md) for detailed information about ea
 task build:examples
 
 # Run specific example
-EXAMPLE=basic_sync task run:example
+task run:example -- basic_sync
+task run:example -- llm_batching
 
-# Or run directly
+# Or run directly with go run
 go run ./examples/attractor/basic_sync
+go run ./examples/attractor/llm_batching
 ```
 
 ## Available Examples
@@ -26,4 +28,3 @@ go run ./examples/attractor/basic_sync
 - **monitoring_metrics** - Real-time monitoring
 
 For detailed descriptions, see [attractor/README.md](attractor/README.md).
-

@@ -15,7 +15,7 @@ Demonstrates fundamental bioelectric attractor basin synchronization with a smal
 **Run:**
 
 ```bash
-go run ./examples/attractor/basic_sync
+task run:example -- basic_sync
 ```
 
 ### 2. Distributed Swarm (`distributed_swarm/`)
@@ -32,7 +32,7 @@ Shows how multiple sub-swarms can operate independently yet achieve global coher
 **Run:**
 
 ```bash
-go run ./examples/attractor/distributed_swarm
+task run:example -- distributed_swarm
 ```
 
 ### 3. Energy Management (`energy_management/`)
@@ -49,7 +49,7 @@ Demonstrates how agents manage their energy resources and how energy constraints
 **Run:**
 
 ```bash
-go run ./examples/attractor/energy_management
+task run:example -- energy_management
 ```
 
 ### 4. Custom Decision Makers (`custom_decision/`)
@@ -67,7 +67,7 @@ Shows how to implement custom decision-making strategies for agents, including r
 **Run:**
 
 ```bash
-go run ./examples/attractor/custom_decision
+task run:example -- custom_decision
 ```
 
 ### 5. Disruption Recovery (`disruption_recovery/`)
@@ -86,7 +86,7 @@ Demonstrates the system's resilience to various disruptions and its ability to r
 **Run:**
 
 ```bash
-go run ./examples/attractor/disruption_recovery
+task run:example -- disruption_recovery
 ```
 
 ### 6. LLM Request Batching (`llm_batching/`)
@@ -104,7 +104,7 @@ Demonstrates how bio-inspired synchronization can efficiently batch LLM API requ
 **Run:**
 
 ```bash
-go run ./examples/attractor/llm_batching
+task run:example -- llm_batching
 ```
 
 ### 7. Monitoring and Metrics (`monitoring_metrics/`)
@@ -123,7 +123,7 @@ Comprehensive monitoring of swarm behavior, including real-time metrics, perform
 **Run:**
 
 ```bash
-go run ./examples/attractor/monitoring_metrics
+task run:example -- monitoring_metrics
 ```
 
 ## Key Attractor Concepts
@@ -137,11 +137,41 @@ All examples demonstrate these core principles:
 5. **Resilience**: The system recovers from disruptions and maintains functionality
 6. **Hierarchical Goal Blending**: Agents balance local preferences with global objectives
 
-## Running All Examples
+## Running Examples
 
-To run all examples sequentially:
+### Using Task (Recommended for quick runs)
 
 ```bash
+# Build all examples first
+task build:examples
+
+# Run specific example using CLI args (simple syntax)
+task run:example -- basic_sync
+task run:example -- llm_batching
+task run:example -- distributed_swarm
+```
+
+### Using Go Run (Alternative method)
+
+```bash
+# Run any example directly with go run
+go run ./examples/attractor/basic_sync
+go run ./examples/attractor/llm_batching
+go run ./examples/attractor/distributed_swarm
+```
+
+### Running All Examples Sequentially
+
+```bash
+# Using task
+for example in basic_sync llm_batching distributed_swarm disruption_recovery energy_management custom_decision monitoring_metrics; do
+    echo "Running $example..."
+    task run:example -- $example
+    echo "---"
+    sleep 2
+done
+
+# Or using go run
 for dir in examples/attractor/*/; do
     if [ -f "$dir/main.go" ]; then
         echo "Running $dir..."
