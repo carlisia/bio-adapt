@@ -1,7 +1,9 @@
 package emerge
 
 import (
+	"fmt"
 	"math"
+	"strings"
 	"time"
 )
 
@@ -29,6 +31,17 @@ type SwarmConfig struct {
 	BaseConfidence   float64 // Base confidence level for decisions (0-1)
 	InfluenceDefault float64 // Default influence level (0-1)
 
+	// Scalability and Concurrency
+	MaxSwarmSize             int           // Maximum allowed swarm size (0 = unlimited)
+	MaxConcurrentAgents      int           // Maximum concurrent goroutines for agents (0 = no limit)
+	UseBatchProcessing       bool          // Enable batch processing for large swarms
+	BatchSize                int           // Number of agents per batch (0 = auto-calculate)
+	WorkerPoolSize           int           // Number of worker goroutines (0 = auto-calculate)
+	AgentUpdateInterval      time.Duration // Interval between agent updates
+	MonitoringInterval       time.Duration // Interval between monitoring samples
+	ConnectionOptimThreshold int           // Swarm size above which to use optimized connections
+	EnableConnectionOptim    bool          // Use simplified connection establishment for large swarms
+
 	// Auto-scaling
 	AutoScale bool // Automatically adjust parameters based on swarm size
 }
@@ -36,54 +49,81 @@ type SwarmConfig struct {
 // DefaultConfig returns the default configuration for large swarms (100+ agents)
 func DefaultConfig() SwarmConfig {
 	return SwarmConfig{
-		ConnectionProbability: 0.3,
-		MaxNeighbors:          5,
-		MinNeighbors:          2,
-		CouplingStrength:      0.5,
-		Stubbornness:          0.2,
-		InitialEnergy:         100.0,
-		AssumedMaxNeighbors:   20,
-		BasinStrength:         0.8,
-		BasinWidth:            math.Pi,
-		BaseConfidence:        0.6,
-		InfluenceDefault:      0.5,
-		AutoScale:             false,
+		ConnectionProbability:    0.3,
+		MaxNeighbors:             5,
+		MinNeighbors:             2,
+		CouplingStrength:         0.5,
+		Stubbornness:             0.2,
+		InitialEnergy:            100.0,
+		AssumedMaxNeighbors:      20,
+		BasinStrength:            0.8,
+		BasinWidth:               math.Pi,
+		BaseConfidence:           0.6,
+		InfluenceDefault:         0.5,
+		MaxSwarmSize:             1000000,                // 1M agent limit
+		MaxConcurrentAgents:      1000,                   // Limit concurrent goroutines
+		UseBatchProcessing:       true,                   // Enable batching for large swarms
+		BatchSize:                0,                      // Auto-calculate
+		WorkerPoolSize:           0,                      // Auto-calculate
+		AgentUpdateInterval:      50 * time.Millisecond,  // Default update rate
+		MonitoringInterval:       100 * time.Millisecond, // Default monitoring rate
+		ConnectionOptimThreshold: 50000,                  // Optimize connections above 50K
+		EnableConnectionOptim:    true,                   // Use optimized connections
+		AutoScale:                false,
 	}
 }
 
 // SmallSwarmConfig returns optimized configuration for small swarms (< 20 agents)
 func SmallSwarmConfig() SwarmConfig {
 	return SwarmConfig{
-		ConnectionProbability: 0.9,  // Almost fully connected
-		MaxNeighbors:          10,   // Can connect to most agents
-		MinNeighbors:          2,    // Ensure some connectivity
-		CouplingStrength:      0.8,  // Strong coupling for faster sync
-		Stubbornness:          0.05, // Low resistance to change
-		InitialEnergy:         100.0,
-		AssumedMaxNeighbors:   0,           // Use actual swarm size
-		BasinStrength:         0.9,         // Strong attractor
-		BasinWidth:            2 * math.Pi, // Wider basin
-		BaseConfidence:        0.8,         // Higher confidence
-		InfluenceDefault:      0.7,         // Higher influence
-		AutoScale:             false,
+		ConnectionProbability:    0.9,  // Almost fully connected
+		MaxNeighbors:             10,   // Can connect to most agents
+		MinNeighbors:             2,    // Ensure some connectivity
+		CouplingStrength:         0.8,  // Strong coupling for faster sync
+		Stubbornness:             0.05, // Low resistance to change
+		InitialEnergy:            100.0,
+		AssumedMaxNeighbors:      0,           // Use actual swarm size
+		BasinStrength:            0.9,         // Strong attractor
+		BasinWidth:               2 * math.Pi, // Wider basin
+		BaseConfidence:           0.8,         // Higher confidence
+		InfluenceDefault:         0.7,         // Higher influence
+		MaxSwarmSize:             100,         // Small swarm limit
+		MaxConcurrentAgents:      0,           // No limit for small swarms
+		UseBatchProcessing:       false,       // No batching needed
+		BatchSize:                0,
+		WorkerPoolSize:           0,
+		AgentUpdateInterval:      25 * time.Millisecond, // Faster updates for small swarms
+		MonitoringInterval:       50 * time.Millisecond, // More frequent monitoring
+		ConnectionOptimThreshold: 1000,                  // No optimization for small swarms
+		EnableConnectionOptim:    false,                 // Full connections for small swarms
+		AutoScale:                false,
 	}
 }
 
 // MediumSwarmConfig returns configuration for medium swarms (20-100 agents)
 func MediumSwarmConfig() SwarmConfig {
 	return SwarmConfig{
-		ConnectionProbability: 0.5,
-		MaxNeighbors:          8,
-		MinNeighbors:          3,
-		CouplingStrength:      0.6,
-		Stubbornness:          0.1,
-		InitialEnergy:         100.0,
-		AssumedMaxNeighbors:   0, // Use actual swarm size
-		BasinStrength:         0.85,
-		BasinWidth:            1.5 * math.Pi,
-		BaseConfidence:        0.7,
-		InfluenceDefault:      0.6,
-		AutoScale:             false,
+		ConnectionProbability:    0.5,
+		MaxNeighbors:             8,
+		MinNeighbors:             3,
+		CouplingStrength:         0.6,
+		Stubbornness:             0.1,
+		InitialEnergy:            100.0,
+		AssumedMaxNeighbors:      0, // Use actual swarm size
+		BasinStrength:            0.85,
+		BasinWidth:               1.5 * math.Pi,
+		BaseConfidence:           0.7,
+		InfluenceDefault:         0.6,
+		MaxSwarmSize:             1000,  // Medium swarm limit
+		MaxConcurrentAgents:      100,   // Moderate concurrency limit
+		UseBatchProcessing:       false, // No batching for medium swarms
+		BatchSize:                0,
+		WorkerPoolSize:           0,
+		AgentUpdateInterval:      40 * time.Millisecond, // Balanced update rate
+		MonitoringInterval:       75 * time.Millisecond, // Balanced monitoring rate
+		ConnectionOptimThreshold: 5000,                  // Optimize at 5K+ agents
+		EnableConnectionOptim:    false,                 // Full connections for medium swarms
+		AutoScale:                false,
 	}
 }
 
@@ -106,6 +146,14 @@ func AutoScaleConfig(swarmSize int) SwarmConfig {
 		config.BasinWidth = 2.5 * math.Pi
 		config.BaseConfidence = 0.9
 		config.InfluenceDefault = 0.8
+		// Concurrency settings for very small swarms
+		config.MaxSwarmSize = 50
+		config.MaxConcurrentAgents = 0 // No limit
+		config.UseBatchProcessing = false
+		config.AgentUpdateInterval = 20 * time.Millisecond
+		config.MonitoringInterval = 25 * time.Millisecond
+		config.ConnectionOptimThreshold = 1000
+		config.EnableConnectionOptim = false
 	} else if swarmSize < 20 {
 		// Small swarm
 		config = SmallSwarmConfig()
@@ -116,11 +164,30 @@ func AutoScaleConfig(swarmSize int) SwarmConfig {
 		config = MediumSwarmConfig()
 		config.MaxNeighbors = minInt(15, swarmSize/5)
 		config.AutoScale = true
-	} else {
+	} else if swarmSize < 1000 {
 		// Large swarm
 		config = DefaultConfig()
 		config.MaxNeighbors = minInt(20, swarmSize/10)
 		config.AutoScale = true
+		// Scale concurrency for large swarms
+		config.MaxConcurrentAgents = minInt(500, swarmSize/2)
+		config.UseBatchProcessing = swarmSize > 200
+		config.BatchSize = maxInt(10, swarmSize/50)
+		config.WorkerPoolSize = minInt(50, swarmSize/20)
+	} else {
+		// Very large swarm (1000+)
+		config = DefaultConfig()
+		config.MaxNeighbors = minInt(10, swarmSize/100) // Fewer neighbors for very large swarms
+		config.AutoScale = true
+		// Heavy optimization for very large swarms
+		config.MaxConcurrentAgents = 1000 // Fixed limit
+		config.UseBatchProcessing = true
+		config.BatchSize = maxInt(50, swarmSize/100)
+		config.WorkerPoolSize = 100                         // Fixed worker pool
+		config.AgentUpdateInterval = 100 * time.Millisecond // Slower updates
+		config.MonitoringInterval = 250 * time.Millisecond  // Less frequent monitoring
+		config.ConnectionOptimThreshold = 1000              // Always use optimized connections
+		config.EnableConnectionOptim = true
 	}
 
 	// Always use actual swarm size for density when auto-scaling
@@ -180,24 +247,236 @@ func ConfigForBatching(workloadCount int, batchWindow time.Duration) SwarmConfig
 	return config
 }
 
-// Validate checks if the configuration is valid and adjusts if needed
-func (c *SwarmConfig) Validate(swarmSize int) {
-	// Ensure connection probability is valid
-	if c.ConnectionProbability < 0 {
-		c.ConnectionProbability = 0
-	} else if c.ConnectionProbability > 1 {
-		c.ConnectionProbability = 1
+// ValidationError represents a configuration validation error
+type ValidationError struct {
+	Field   string
+	Value   interface{}
+	Message string
+}
+
+func (e ValidationError) Error() string {
+	return fmt.Sprintf("validation error for field %s (value: %v): %s", e.Field, e.Value, e.Message)
+}
+
+// ValidationErrors represents multiple validation errors
+type ValidationErrors []ValidationError
+
+func (errs ValidationErrors) Error() string {
+	if len(errs) == 0 {
+		return "no validation errors"
+	}
+	if len(errs) == 1 {
+		return errs[0].Error()
 	}
 
-	// Ensure max neighbors doesn't exceed swarm size
-	if c.MaxNeighbors > swarmSize-1 {
-		c.MaxNeighbors = swarmSize - 1
+	var msgs []string
+	for _, err := range errs {
+		msgs = append(msgs, err.Error())
 	}
-	if c.MaxNeighbors < 1 {
-		c.MaxNeighbors = 1
+	return fmt.Sprintf("multiple validation errors: [%s]", strings.Join(msgs, "; "))
+}
+
+// Validate performs comprehensive validation and returns errors instead of modifying the config
+func (c *SwarmConfig) Validate(swarmSize int) error {
+	var errors ValidationErrors
+
+	// Validate swarm size constraints
+	if swarmSize <= 0 {
+		errors = append(errors, ValidationError{
+			Field: "swarmSize", Value: swarmSize, Message: "must be positive",
+		})
 	}
 
-	// Ensure min neighbors is reasonable
+	if c.MaxSwarmSize > 0 && swarmSize > c.MaxSwarmSize {
+		errors = append(errors, ValidationError{
+			Field: "MaxSwarmSize", Value: fmt.Sprintf("swarmSize=%d, MaxSwarmSize=%d", swarmSize, c.MaxSwarmSize),
+			Message: "swarm size exceeds configured maximum",
+		})
+	}
+
+	// Validate probability parameters (must be in [0,1])
+	if c.ConnectionProbability < 0 || c.ConnectionProbability > 1 {
+		errors = append(errors, ValidationError{
+			Field: "ConnectionProbability", Value: c.ConnectionProbability, Message: "must be between 0 and 1",
+		})
+	}
+
+	if c.CouplingStrength < 0 || c.CouplingStrength > 1 {
+		errors = append(errors, ValidationError{
+			Field: "CouplingStrength", Value: c.CouplingStrength, Message: "must be between 0 and 1",
+		})
+	}
+
+	if c.Stubbornness < 0 || c.Stubbornness > 1 {
+		errors = append(errors, ValidationError{
+			Field: "Stubbornness", Value: c.Stubbornness, Message: "must be between 0 and 1",
+		})
+	}
+
+	if c.BasinStrength < 0 || c.BasinStrength > 1 {
+		errors = append(errors, ValidationError{
+			Field: "BasinStrength", Value: c.BasinStrength, Message: "must be between 0 and 1",
+		})
+	}
+
+	if c.BaseConfidence < 0 || c.BaseConfidence > 1 {
+		errors = append(errors, ValidationError{
+			Field: "BaseConfidence", Value: c.BaseConfidence, Message: "must be between 0 and 1",
+		})
+	}
+
+	if c.InfluenceDefault < 0 || c.InfluenceDefault > 1 {
+		errors = append(errors, ValidationError{
+			Field: "InfluenceDefault", Value: c.InfluenceDefault, Message: "must be between 0 and 1",
+		})
+	}
+
+	// Validate neighbor constraints
+	maxPossibleNeighbors := swarmSize - 1
+	if swarmSize > 0 && maxPossibleNeighbors <= 0 {
+		// Single agent swarm - MaxNeighbors must be 0
+		if c.MaxNeighbors != 0 {
+			errors = append(errors, ValidationError{
+				Field: "MaxNeighbors", Value: c.MaxNeighbors, Message: "must be 0 for single agent swarm",
+			})
+		}
+	} else {
+		// Multi-agent swarm - MaxNeighbors must be at least 1
+		if c.MaxNeighbors < 1 {
+			errors = append(errors, ValidationError{
+				Field: "MaxNeighbors", Value: c.MaxNeighbors, Message: "must be at least 1",
+			})
+		}
+	}
+
+	if swarmSize > 0 && c.MaxNeighbors > swarmSize-1 {
+		errors = append(errors, ValidationError{
+			Field: "MaxNeighbors", Value: fmt.Sprintf("MaxNeighbors=%d, swarmSize=%d", c.MaxNeighbors, swarmSize),
+			Message: "cannot exceed swarm size - 1",
+		})
+	}
+
+	if c.MinNeighbors < 0 {
+		errors = append(errors, ValidationError{
+			Field: "MinNeighbors", Value: c.MinNeighbors, Message: "cannot be negative",
+		})
+	}
+
+	if c.MinNeighbors > c.MaxNeighbors {
+		errors = append(errors, ValidationError{
+			Field: "MinNeighbors", Value: fmt.Sprintf("MinNeighbors=%d, MaxNeighbors=%d", c.MinNeighbors, c.MaxNeighbors),
+			Message: "cannot exceed MaxNeighbors",
+		})
+	}
+
+	// Validate energy and time parameters
+	if c.InitialEnergy <= 0 {
+		errors = append(errors, ValidationError{
+			Field: "InitialEnergy", Value: c.InitialEnergy, Message: "must be positive",
+		})
+	}
+
+	if c.BasinWidth <= 0 {
+		errors = append(errors, ValidationError{
+			Field: "BasinWidth", Value: c.BasinWidth, Message: "must be positive",
+		})
+	}
+
+	if c.AgentUpdateInterval <= 0 {
+		errors = append(errors, ValidationError{
+			Field: "AgentUpdateInterval", Value: c.AgentUpdateInterval, Message: "must be positive",
+		})
+	}
+
+	if c.MonitoringInterval <= 0 {
+		errors = append(errors, ValidationError{
+			Field: "MonitoringInterval", Value: c.MonitoringInterval, Message: "must be positive",
+		})
+	}
+
+	// Validate concurrency parameters
+	if c.MaxConcurrentAgents < 0 {
+		errors = append(errors, ValidationError{
+			Field: "MaxConcurrentAgents", Value: c.MaxConcurrentAgents, Message: "cannot be negative",
+		})
+	}
+
+	if c.BatchSize < 0 {
+		errors = append(errors, ValidationError{
+			Field: "BatchSize", Value: c.BatchSize, Message: "cannot be negative",
+		})
+	}
+
+	if c.WorkerPoolSize < 0 {
+		errors = append(errors, ValidationError{
+			Field: "WorkerPoolSize", Value: c.WorkerPoolSize, Message: "cannot be negative",
+		})
+	}
+
+	if c.ConnectionOptimThreshold < 0 {
+		errors = append(errors, ValidationError{
+			Field: "ConnectionOptimThreshold", Value: c.ConnectionOptimThreshold, Message: "cannot be negative",
+		})
+	}
+
+	// Return errors if any
+	if len(errors) > 0 {
+		return errors
+	}
+
+	return nil
+}
+
+// NormalizeAndValidate performs validation and auto-corrects values where possible
+func (c *SwarmConfig) NormalizeAndValidate(swarmSize int) error {
+	// First validate and get errors
+	if err := c.Validate(swarmSize); err != nil {
+		// Try to auto-correct correctable issues
+		c.normalize(swarmSize)
+
+		// Validate again after normalization
+		if err := c.Validate(swarmSize); err != nil {
+			return fmt.Errorf("configuration validation failed even after normalization: %w", err)
+		}
+	} else {
+		// Even if valid, apply normalization for consistency
+		c.normalize(swarmSize)
+	}
+
+	return nil
+}
+
+// normalize applies auto-corrections and auto-calculations
+func (c *SwarmConfig) normalize(swarmSize int) {
+	// Clamp probability values to [0,1]
+	c.ConnectionProbability = clamp(c.ConnectionProbability, 0, 1)
+	c.CouplingStrength = clamp(c.CouplingStrength, 0, 1)
+	c.Stubbornness = clamp(c.Stubbornness, 0, 1)
+	c.BasinStrength = clamp(c.BasinStrength, 0, 1)
+	c.BaseConfidence = clamp(c.BaseConfidence, 0, 1)
+	c.InfluenceDefault = clamp(c.InfluenceDefault, 0, 1)
+
+	// Fix neighbor constraints
+	if swarmSize > 0 {
+		maxPossibleNeighbors := swarmSize - 1
+		if maxPossibleNeighbors <= 0 {
+			// Single agent swarm - no neighbors possible
+			c.MaxNeighbors = 0
+			c.MinNeighbors = 0
+		} else {
+			if c.MaxNeighbors > maxPossibleNeighbors {
+				c.MaxNeighbors = maxPossibleNeighbors
+			}
+			if c.MaxNeighbors < 1 {
+				c.MaxNeighbors = 1
+			}
+		}
+	} else {
+		// If swarmSize is invalid, set minimal neighbors
+		if c.MaxNeighbors < 1 {
+			c.MaxNeighbors = 1
+		}
+	}
 	if c.MinNeighbors > c.MaxNeighbors {
 		c.MinNeighbors = c.MaxNeighbors
 	}
@@ -205,19 +484,42 @@ func (c *SwarmConfig) Validate(swarmSize int) {
 		c.MinNeighbors = 0
 	}
 
-	// Validate other parameters
-	c.CouplingStrength = clamp(c.CouplingStrength, 0, 1)
-	c.Stubbornness = clamp(c.Stubbornness, 0, 1)
-	c.BasinStrength = clamp(c.BasinStrength, 0, 1)
-	c.BaseConfidence = clamp(c.BaseConfidence, 0, 1)
-	c.InfluenceDefault = clamp(c.InfluenceDefault, 0, 1)
-
+	// Fix energy and time parameters
 	if c.InitialEnergy <= 0 {
 		c.InitialEnergy = 100.0
 	}
-
 	if c.BasinWidth <= 0 {
 		c.BasinWidth = math.Pi
+	}
+	if c.AgentUpdateInterval <= 0 {
+		c.AgentUpdateInterval = 50 * time.Millisecond
+	}
+	if c.MonitoringInterval <= 0 {
+		c.MonitoringInterval = 100 * time.Millisecond
+	}
+
+	// Fix concurrency parameters
+	if c.MaxConcurrentAgents < 0 {
+		c.MaxConcurrentAgents = 0
+	}
+	if c.BatchSize < 0 {
+		c.BatchSize = 0
+	}
+	if c.WorkerPoolSize < 0 {
+		c.WorkerPoolSize = 0
+	}
+	if c.ConnectionOptimThreshold < 0 {
+		c.ConnectionOptimThreshold = 0
+	}
+
+	// Auto-calculate batch size if needed
+	if c.UseBatchProcessing && c.BatchSize == 0 {
+		c.BatchSize = maxInt(10, swarmSize/50)
+	}
+
+	// Auto-calculate worker pool size if needed
+	if c.UseBatchProcessing && c.WorkerPoolSize == 0 {
+		c.WorkerPoolSize = maxInt(4, minInt(100, swarmSize/20))
 	}
 }
 
@@ -243,6 +545,14 @@ func minInt(a, b int) int {
 // minFloat returns the minimum of two floats
 func minFloat(a, b float64) float64 {
 	if a < b {
+		return a
+	}
+	return b
+}
+
+// maxInt returns the maximum of two integers
+func maxInt(a, b int) int {
+	if a > b {
 		return a
 	}
 	return b
