@@ -1,6 +1,7 @@
 package emerge
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"sync"
@@ -252,13 +253,16 @@ func (a *Agent) ProposeAdjustment(globalGoal State) (Action, bool) {
 	return Action{Type: "maintain"}, false
 }
 
-// ApplyAction executes an action
-func (a *Agent) ApplyAction(action Action) (bool, float64) {
+// ApplyAction executes an action and returns success status, energy cost, and any error.
+// The error provides detailed context about why the action failed.
+func (a *Agent) ApplyAction(action Action) (bool, float64, error) {
 	energyCost := action.Cost
+	available := a.energy.Load()
 
 	// Check energy
-	if energyCost > a.energy.Load() {
-		return false, 0
+	if energyCost > available {
+		return false, 0, fmt.Errorf("%w: required %.2f, available %.2f",
+			ErrInsufficientEnergy, energyCost, available)
 	}
 
 	// Apply based on action type
@@ -267,14 +271,17 @@ func (a *Agent) ApplyAction(action Action) (bool, float64) {
 		a.adjustPhase(action.Value)
 	case "maintain":
 		// No change needed
+	case "phase_nudge", "frequency_lock", "energy_save", "pulse":
+		// Strategy-specific actions
+		a.adjustPhase(action.Value)
 	default:
-		return false, 0
+		return false, 0, fmt.Errorf("%w: %s", ErrUnknownActionType, action.Type)
 	}
 
 	// Consume energy
 	a.consumeEnergy(energyCost)
 
-	return true, energyCost
+	return true, energyCost, nil
 }
 
 // UpdateContext updates the agent's perception of its environment

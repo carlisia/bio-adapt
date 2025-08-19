@@ -294,7 +294,7 @@ func TestAgentProposeAdjustment(t *testing.T) {
 				agent := emerge.NewAgent("test")
 				// Deplete energy
 				for range 20 {
-					agent.ApplyAction(emerge.Action{
+					_, _, _ = agent.ApplyAction(emerge.Action{
 						Type:  "adjust_phase",
 						Value: 0.1,
 						Cost:  5.0,
@@ -334,6 +334,7 @@ func TestAgentApplyAction(t *testing.T) {
 		action      emerge.Action
 		wantSuccess bool
 		wantCost    float64
+		wantErr     bool
 		validateFn  func(t *testing.T, agent *emerge.Agent, beforePhase float64)
 	}{
 		{
@@ -350,6 +351,7 @@ func TestAgentApplyAction(t *testing.T) {
 			},
 			wantSuccess: true,
 			wantCost:    1.0,
+			wantErr:     false,
 			validateFn: func(t *testing.T, agent *emerge.Agent, beforePhase float64) {
 				expectedPhase := math.Mod(beforePhase+0.5, 2*math.Pi)
 				if math.Abs(agent.Phase()-expectedPhase) > 0.01 {
@@ -371,6 +373,7 @@ func TestAgentApplyAction(t *testing.T) {
 			},
 			wantSuccess: true,
 			wantCost:    1.0,
+			wantErr:     false,
 			validateFn: func(t *testing.T, agent *emerge.Agent, beforePhase float64) {
 				expectedPhase := beforePhase - 0.5
 				if expectedPhase < 0 {
@@ -416,6 +419,7 @@ func TestAgentApplyAction(t *testing.T) {
 			},
 			wantSuccess: true,
 			wantCost:    0.1,
+			wantErr:     false,
 			validateFn: func(t *testing.T, agent *emerge.Agent, beforePhase float64) {
 				if agent.Phase() != beforePhase {
 					t.Errorf("Phase = %f, want %f (unchanged)", agent.Phase(), beforePhase)
@@ -433,6 +437,7 @@ func TestAgentApplyAction(t *testing.T) {
 			},
 			wantSuccess: false,
 			wantCost:    0,
+			wantErr:     true,
 			validateFn: func(t *testing.T, agent *emerge.Agent, beforePhase float64) {
 				if agent.Phase() != beforePhase {
 					t.Error("Invalid action should not change phase")
@@ -450,6 +455,7 @@ func TestAgentApplyAction(t *testing.T) {
 			},
 			wantSuccess: false,
 			wantCost:    0,
+			wantErr:     true,
 			validateFn: func(t *testing.T, agent *emerge.Agent, beforePhase float64) {
 				if agent.Phase() != beforePhase {
 					t.Error("Empty action should not change phase")
@@ -467,6 +473,7 @@ func TestAgentApplyAction(t *testing.T) {
 			},
 			wantSuccess: true,
 			wantCost:    0,
+			wantErr:     false,
 			validateFn: func(t *testing.T, agent *emerge.Agent, beforePhase float64) {
 				if agent.Energy() != 100.0 {
 					t.Error("Zero cost action should not consume energy")
@@ -485,6 +492,7 @@ func TestAgentApplyAction(t *testing.T) {
 			},
 			wantSuccess: true,
 			wantCost:    -5.0, // Negative cost might add energy
+			wantErr:     false,
 			validateFn: func(t *testing.T, agent *emerge.Agent, beforePhase float64) {
 				// Implementation specific - negative cost might add energy
 				if agent.Energy() < 100.0 {
@@ -498,7 +506,7 @@ func TestAgentApplyAction(t *testing.T) {
 				agent := emerge.NewAgent("test")
 				// Deplete energy
 				for range 19 {
-					agent.ApplyAction(emerge.Action{
+					_, _, _ = agent.ApplyAction(emerge.Action{
 						Type:  "adjust_phase",
 						Value: 0.01,
 						Cost:  5.0,
@@ -513,6 +521,7 @@ func TestAgentApplyAction(t *testing.T) {
 			},
 			wantSuccess: false,
 			wantCost:    0,
+			wantErr:     true,
 			validateFn: func(t *testing.T, agent *emerge.Agent, beforePhase float64) {
 				if agent.Phase() != beforePhase {
 					t.Error("Action with insufficient energy should not change phase")
@@ -526,13 +535,16 @@ func TestAgentApplyAction(t *testing.T) {
 			agent := tt.setupFn()
 			beforePhase := agent.Phase()
 
-			success, cost := agent.ApplyAction(tt.action)
+			success, cost, err := agent.ApplyAction(tt.action)
 
 			if success != tt.wantSuccess {
 				t.Errorf("ApplyAction() success = %v, want %v", success, tt.wantSuccess)
 			}
 			if cost != tt.wantCost {
 				t.Errorf("ApplyAction() cost = %f, want %f", cost, tt.wantCost)
+			}
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ApplyAction() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			tt.validateFn(t, agent, beforePhase)
@@ -613,7 +625,7 @@ func TestAgentEnergyManagement(t *testing.T) {
 			agent := emerge.NewAgent("test")
 
 			for _, action := range tt.actions {
-				agent.ApplyAction(action)
+				_, _, _ = agent.ApplyAction(action)
 			}
 
 			energy := agent.Energy()
@@ -870,7 +882,7 @@ func TestAgentConcurrency(t *testing.T) {
 				Value: 0.01,
 				Cost:  0.1,
 			}
-			agent.ApplyAction(action)
+			_, _, _ = agent.ApplyAction(action)
 			done <- true
 		}()
 	}
