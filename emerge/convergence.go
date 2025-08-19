@@ -158,7 +158,10 @@ func (m *ConvergenceMonitor) Stability() float64 {
 	}
 	variance /= float64(samples)
 
-	return math.Sqrt(variance)
+	// Convert to stability score (1 = stable, 0 = unstable)
+	// Use exponential decay for smooth transition
+	stdDev := math.Sqrt(variance)
+	return math.Exp(-stdDev * 10) // High stability for low variance
 }
 
 // PredictConvergenceTime estimates time to convergence based on current rate.
@@ -212,8 +215,8 @@ func (m *ConvergenceMonitor) GetStatistics() map[string]any {
 
 	stats["samples"] = len(m.history)
 	stats["current_coherence"] = m.CurrentCoherence()
-	stats["max_coherence"] = m.maxCoherence
-	stats["min_coherence"] = m.minCoherence
+	stats["max"] = m.maxCoherence
+	stats["min"] = m.minCoherence
 	stats["converged"] = m.convergedTime != nil
 	stats["target_coherence"] = m.convergenceAt
 
@@ -228,7 +231,7 @@ func (m *ConvergenceMonitor) GetStatistics() map[string]any {
 			sum += v
 		}
 		mean := sum / float64(len(m.history))
-		stats["mean_coherence"] = mean
+		stats["mean"] = mean
 
 		// Calculate std dev
 		var variance float64

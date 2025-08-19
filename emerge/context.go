@@ -3,6 +3,7 @@ package emerge
 // Context represents environmental awareness for decision-making.
 // Agents sense their local environment and adapt strategies accordingly.
 type Context struct {
+	Neighbors      int     // Number of connected neighbors
 	Density        float64 // Neighbor count / max neighbors
 	Stability      float64 // Inverse of recent phase variance
 	Progress       float64 // Convergence rate

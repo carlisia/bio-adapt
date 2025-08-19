@@ -58,7 +58,7 @@ func Example() error {
 	var count int
 	swarm.agents.Range(func(key, value any) bool {
 		agent := value.(*Agent)
-		totalEnergy += agent.GetEnergy()
+		totalEnergy += agent.Energy()
 		count++
 		return true
 	})
@@ -75,11 +75,11 @@ func DemonstrateAutonomy() {
 	// Create two agents with different preferences
 	agent1 := NewAgent("stubborn")
 	agent1.stubbornness.Store(0.8) // Very stubborn
-	agent1.LocalGoal.Store(0)      // Wants phase 0
+	agent1.SetLocalGoal(0)         // Wants phase 0
 
 	agent2 := NewAgent("flexible")
-	agent2.stubbornness.Store(0.1)  // Flexible
-	agent2.LocalGoal.Store(3.14159) // Wants phase π
+	agent2.stubbornness.Store(0.1) // Flexible
+	agent2.SetLocalGoal(3.14159)   // Wants phase π
 
 	// Connect them as neighbors
 	agent1.neighbors.Store(agent2.ID, agent2)
@@ -93,8 +93,8 @@ func DemonstrateAutonomy() {
 	}
 
 	fmt.Println("Agent autonomy demonstration:")
-	fmt.Printf("Stubborn agent (wants 0): phase=%.2f\n", agent1.GetPhase())
-	fmt.Printf("Flexible agent (wants π): phase=%.2f\n", agent2.GetPhase())
+	fmt.Printf("Stubborn agent (wants 0): phase=%.2f\n", agent1.Phase())
+	fmt.Printf("Flexible agent (wants π): phase=%.2f\n", agent2.Phase())
 
 	// Let them negotiate
 	for range 20 {
@@ -112,8 +112,8 @@ func DemonstrateAutonomy() {
 	}
 
 	fmt.Println("\nAfter negotiation:")
-	fmt.Printf("Stubborn agent: phase=%.2f (resisted global goal)\n", agent1.GetPhase())
-	fmt.Printf("Flexible agent: phase=%.2f (moved toward goal)\n", agent2.GetPhase())
+	fmt.Printf("Stubborn agent: phase=%.2f (resisted global goal)\n", agent1.Phase())
+	fmt.Printf("Flexible agent: phase=%.2f (moved toward goal)\n", agent2.Phase())
 }
 
 // Benchmark measures convergence time for different swarm sizes.

@@ -221,7 +221,7 @@ func TestSwarmDisruptAgents(t *testing.T) {
 	disrupted := 0
 	swarm.agents.Range(func(key, value any) bool {
 		agent := value.(*Agent)
-		if math.Abs(agent.GetPhase()) > 0.01 {
+		if math.Abs(agent.Phase()) > 0.01 {
 			disrupted++
 		}
 		return true
@@ -295,7 +295,7 @@ func TestSwarmConvergence(t *testing.T) {
 		// Distribute phases widely to ensure low initial coherence
 		agent.SetPhase(rand.Float64() * 2 * math.Pi)
 		// Align local goals with global goal for convergence
-		agent.LocalGoal.Store(goal.Phase)
+		agent.SetLocalGoal(goal.Phase)
 		// Reduce stubbornness for reliable testing
 		agent.SetStubbornness(0.05)
 		// Increase influence for stronger convergence
@@ -369,7 +369,7 @@ done:
 	swarm.agents.Range(func(key, value any) bool {
 		agent := value.(*Agent)
 		// Check if phase is different from initial random value
-		if agent.GetPhase() != 0 {
+		if agent.Phase() != 0 {
 			phaseChanges++
 		}
 		return true

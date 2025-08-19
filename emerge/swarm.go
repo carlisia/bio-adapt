@@ -277,7 +277,7 @@ func (s *Swarm) MeasureCoherence() float64 {
 
 	s.agents.Range(func(key, value any) bool {
 		agent := value.(*Agent)
-		phases = append(phases, agent.GetPhase())
+		phases = append(phases, agent.Phase())
 		return true
 	})
 

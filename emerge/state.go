@@ -9,3 +9,13 @@ type State struct {
 	Frequency time.Duration // Target oscillation period
 	Coherence float64       // Target synchronization level [0, 1]
 }
+
+// StateUpdate represents a change in agent state for gossip protocol.
+type StateUpdate struct {
+	AgentID   string
+	FromID    string // ID of the agent who sent the update
+	Phase     float64
+	Frequency time.Duration
+	Energy    float64 // Energy level of the agent
+	Timestamp time.Time
+}

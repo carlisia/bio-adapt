@@ -1,22 +1,24 @@
-package emerge
+package emerge_test
 
 import (
 	"math"
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/carlisia/bio-adapt/emerge"
 )
 
 func TestWeightedGoalManager(t *testing.T) {
-	gm := &WeightedGoalManager{}
+	gm := &emerge.WeightedGoalManager{}
 
-	local := State{
+	local := emerge.State{
 		Phase:     0,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.3,
 	}
 
-	global := State{
+	global := emerge.State{
 		Phase:     math.Pi,
 		Frequency: 200 * time.Millisecond,
 		Coherence: 0.9,
@@ -60,16 +62,16 @@ func TestWeightedGoalManager(t *testing.T) {
 }
 
 func TestWeightedGoalManagerPhaseWrapping(t *testing.T) {
-	gm := &WeightedGoalManager{}
+	gm := &emerge.WeightedGoalManager{}
 
 	// Test phase wrapping across 0/2π boundary
-	local := State{
+	local := emerge.State{
 		Phase:     0.1,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.5,
 	}
 
-	global := State{
+	global := emerge.State{
 		Phase:     2*math.Pi - 0.1,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.5,
@@ -86,15 +88,15 @@ func TestWeightedGoalManagerPhaseWrapping(t *testing.T) {
 }
 
 func TestWeightedGoalManagerWeightClamping(t *testing.T) {
-	gm := &WeightedGoalManager{}
+	gm := &emerge.WeightedGoalManager{}
 
-	local := State{
+	local := emerge.State{
 		Phase:     0,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.5,
 	}
 
-	global := State{
+	global := emerge.State{
 		Phase:     math.Pi,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.5,
@@ -114,16 +116,16 @@ func TestWeightedGoalManagerWeightClamping(t *testing.T) {
 }
 
 func TestWeightedGoalManagerSymmetry(t *testing.T) {
-	gm := &WeightedGoalManager{}
+	gm := &emerge.WeightedGoalManager{}
 
 	// Test that blending is symmetric
-	state1 := State{
+	state1 := emerge.State{
 		Phase:     math.Pi / 4,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.4,
 	}
 
-	state2 := State{
+	state2 := emerge.State{
 		Phase:     3 * math.Pi / 4,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.6,
@@ -146,15 +148,15 @@ func TestWeightedGoalManagerSymmetry(t *testing.T) {
 }
 
 func BenchmarkWeightedGoalManager(b *testing.B) {
-	gm := &WeightedGoalManager{}
+	gm := &emerge.WeightedGoalManager{}
 
-	local := State{
+	local := emerge.State{
 		Phase:     rand.Float64() * 2 * math.Pi,
 		Frequency: 100 * time.Millisecond,
 		Coherence: rand.Float64(),
 	}
 
-	global := State{
+	global := emerge.State{
 		Phase:     rand.Float64() * 2 * math.Pi,
 		Frequency: 100 * time.Millisecond,
 		Coherence: rand.Float64(),
