@@ -19,7 +19,7 @@ Inspired by Dr. Michael Levin's bioelectric research showing how cellular networ
 
 ### 🧲 Attractor Basin Synchronization
 
-**Package:** `attractor`
+**Package:** `emerge`
 **Use Case:** Coordinate timing across distributed workloads
 **Example:** Batch LLM API calls naturally without central control
 
@@ -65,33 +65,33 @@ task run:example -- llm_batching
 
 ```go
 // Synchronize workloads naturally
-import "github.com/carlisia/bio-adapt/attractor"
+import "github.com/carlisia/bio-adapt/emerge"
 
 // Define target state
-goal := attractor.State{
+goal := emerge.State{
     Phase:     0,                      // Alignment point
     Frequency: 200 * time.Millisecond, // Batch window
     Coherence: 0.9,                    // 90% sync target
 }
 
 // Create self-organizing swarm
-swarm, _ := attractor.NewSwarm(20, goal)
+swarm, _ := emerge.NewSwarm(20, goal)
 swarm.Run(ctx)
 ```
 
 ## Examples
 
-🔄 **[Basic Synchronization](examples/attractor/basic_sync)** - Learn the fundamentals
-📦 **[LLM Batching](examples/attractor/llm_batching)** - Reduce API calls by 80%
-🌐 **[Distributed Swarm](examples/attractor/distributed_swarm)** - Multi-region coordination
-💪 **[Disruption Recovery](examples/attractor/disruption_recovery)** - Self-healing demos
+🔄 **[Basic Synchronization](examples/emerge/basic_sync)** - Learn the fundamentals
+📦 **[LLM Batching](examples/emerge/llm_batching)** - Reduce API calls by 80%
+🌐 **[Distributed Swarm](examples/emerge/distributed_swarm)** - Multi-region coordination
+💪 **[Disruption Recovery](examples/emerge/disruption_recovery)** - Self-healing demos
 
 See [examples/](examples/) for all available examples.
 
 ## Documentation
 
-- [Attractor Package Guide](attractor/README.md) - Deep dive into synchronization
-- [Examples Overview](examples/attractor/README.md) - Hands-on tutorials
+- [Emerge Package Guide](emerge/README.md) - Deep dive into synchronization
+- [Examples Overview](examples/emerge/README.md) - Hands-on tutorials
 - [API Reference](https://pkg.go.dev/github.com/carlisia/bio-adapt) - Complete API docs
 
 ## Development
@@ -140,4 +140,3 @@ Based on groundbreaking research:
 ## License
 
 MIT - See [LICENSE](LICENSE) file
-

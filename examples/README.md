@@ -1,6 +1,6 @@
 # Examples
 
-See [attractor/README.md](attractor/README.md) for detailed information about each example.
+See [emerge/README.md](emerge/README.md) for detailed information about each example.
 
 ## Quick Start
 
@@ -13,8 +13,8 @@ task run:example -- basic_sync
 task run:example -- llm_batching
 
 # Or run directly with go run
-go run ./examples/attractor/basic_sync
-go run ./examples/attractor/llm_batching
+go run ./examples/emerge/basic_sync
+go run ./examples/emerge/llm_batching
 ```
 
 ## Available Examples
@@ -27,4 +27,4 @@ go run ./examples/attractor/llm_batching
 - **custom_decision** - Custom decision strategies
 - **monitoring_metrics** - Real-time monitoring
 
-For detailed descriptions, see [attractor/README.md](attractor/README.md).
+For detailed descriptions, see [emerge/README.md](emerge/README.md).

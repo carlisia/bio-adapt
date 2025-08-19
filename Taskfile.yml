@@ -42,7 +42,7 @@ tasks:
     cmds:
       - mkdir -p {{.BIN_DIR}}/examples
       - |
-        for dir in examples/attractor/*/; do
+        for dir in examples/emerge/*/; do
           if [ -f "$dir/main.go" ]; then
             name=$(basename "$dir")
             echo "Building example: $name"
@@ -51,7 +51,7 @@ tasks:
         done
     sources:
       - examples/**/*.go
-      - attractor/**/*.go
+      - emerge/**/*.go
       - go.mod
       - go.sum
 
@@ -115,11 +115,11 @@ tasks:
     cmds:
       - go test -bench=. -benchmem ./...
 
-  # Run attractor benchmarks
-  bench:attractor:
-    desc: Run attractor package benchmarks
+  # Run emerge benchmarks
+  bench:emerge:
+    desc: Run emerge package benchmarks
     cmds:
-      - go test -bench=. -benchmem ./attractor
+      - go test -bench=. -benchmem ./emerge
 
   # Format code
   fmt:
