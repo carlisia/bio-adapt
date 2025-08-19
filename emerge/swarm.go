@@ -34,10 +34,13 @@ func NewSwarm(size int, goal State, opts ...SwarmOption) (*Swarm, error) {
 	if size <= 0 {
 		return nil, fmt.Errorf("swarm size must be positive, got %d", size)
 	}
+	if size > 1000000 { // Reasonable limit to prevent infinite loops
+		return nil, fmt.Errorf("swarm size too large, got %d (max 1,000,000)", size)
+	}
 	if goal.Frequency <= 0 {
 		return nil, fmt.Errorf("goal frequency must be positive, got %v", goal.Frequency)
 	}
-	if goal.Coherence < 0 || goal.Coherence > 1 {
+	if math.IsNaN(goal.Coherence) || goal.Coherence < 0 || goal.Coherence > 1 {
 		return nil, fmt.Errorf("goal coherence must be in [0, 1], got %f", goal.Coherence)
 	}
 
@@ -148,7 +151,22 @@ func (s *Swarm) establishConnections() {
 		return true
 	})
 
-	// Connect agents based on configuration
+	// For very large swarms, skip full connection establishment to avoid O(n²) performance
+	if len(agents) > 50000 {
+		// Just establish minimal random connections for large swarms
+		for _, agent := range agents {
+			for i := 0; i < s.config.MinNeighbors && i < len(agents)-1; i++ {
+				idx := rand.Intn(len(agents))
+				if agents[idx].ID != agent.ID {
+					agent.neighbors.Store(agents[idx].ID, agents[idx])
+					agents[idx].neighbors.Store(agent.ID, agent)
+				}
+			}
+		}
+		return
+	}
+
+	// Connect agents based on configuration for smaller swarms
 	for i, agent := range agents {
 		connected := 0
 
