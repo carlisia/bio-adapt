@@ -78,7 +78,7 @@ func main() {
 - **Distributed Consensus**: Achieve agreement without central authority
 - **Resource Scheduling**: Synchronize access to shared resources
 - **IoT Coordination**: Align sensor readings and device actions
-- **Microservice Orchestration**: Coordinate service interactions
+- **Workload Orchestration**: Coordinate distributed workload interactions
 
 ## Testing
 

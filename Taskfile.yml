@@ -42,7 +42,7 @@ tasks:
     cmds:
       - mkdir -p {{.BIN_DIR}}/examples
       - |
-        for dir in examples/*/; do
+        for dir in examples/attractor/*/; do
           if [ -f "$dir/main.go" ]; then
             name=$(basename "$dir")
             echo "Building example: $name"
