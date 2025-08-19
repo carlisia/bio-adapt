@@ -26,7 +26,7 @@ func TestNewSwarmErrors(t *testing.T) {
 				Coherence: 0.9,
 			},
 			wantError:   true,
-			errorMsg:    "swarm size must be positive",
+			errorMsg:    "invalid swarm size",
 			description: "Negative size should return error",
 		},
 		{
@@ -38,7 +38,7 @@ func TestNewSwarmErrors(t *testing.T) {
 				Coherence: 0.9,
 			},
 			wantError:   true,
-			errorMsg:    "swarm size must be positive",
+			errorMsg:    "invalid swarm size",
 			description: "Zero size should return error",
 		},
 		{
@@ -50,7 +50,7 @@ func TestNewSwarmErrors(t *testing.T) {
 				Coherence: 0.9,
 			},
 			wantError:   true,
-			errorMsg:    "swarm size must be positive",
+			errorMsg:    "invalid swarm size",
 			description: "Very large negative size should return error",
 		},
 		// Frequency validation
@@ -63,7 +63,7 @@ func TestNewSwarmErrors(t *testing.T) {
 				Coherence: 0.9,
 			},
 			wantError:   true,
-			errorMsg:    "goal frequency must be positive",
+			errorMsg:    "must be positive",
 			description: "Negative frequency should return error",
 		},
 		{
@@ -75,7 +75,7 @@ func TestNewSwarmErrors(t *testing.T) {
 				Coherence: 0.9,
 			},
 			wantError:   true,
-			errorMsg:    "goal frequency must be positive",
+			errorMsg:    "must be positive",
 			description: "Zero frequency should return error",
 		},
 		{
@@ -87,7 +87,7 @@ func TestNewSwarmErrors(t *testing.T) {
 				Coherence: 0.9,
 			},
 			wantError:   true,
-			errorMsg:    "goal frequency must be positive",
+			errorMsg:    "must be positive",
 			description: "Very large negative frequency should return error",
 		},
 		// Coherence validation
@@ -100,7 +100,7 @@ func TestNewSwarmErrors(t *testing.T) {
 				Coherence: -0.1,
 			},
 			wantError:   true,
-			errorMsg:    "goal coherence must be in [0, 1]",
+			errorMsg:    "must be between 0 and 1",
 			description: "Negative coherence should return error",
 		},
 		{
@@ -112,7 +112,7 @@ func TestNewSwarmErrors(t *testing.T) {
 				Coherence: 1.1,
 			},
 			wantError:   true,
-			errorMsg:    "goal coherence must be in [0, 1]",
+			errorMsg:    "must be between 0 and 1",
 			description: "Coherence > 1 should return error",
 		},
 		{
@@ -124,7 +124,7 @@ func TestNewSwarmErrors(t *testing.T) {
 				Coherence: -100,
 			},
 			wantError:   true,
-			errorMsg:    "goal coherence must be in [0, 1]",
+			errorMsg:    "must be between 0 and 1",
 			description: "Very negative coherence should return error",
 		},
 		{
@@ -136,7 +136,7 @@ func TestNewSwarmErrors(t *testing.T) {
 				Coherence: 100,
 			},
 			wantError:   true,
-			errorMsg:    "goal coherence must be in [0, 1]",
+			errorMsg:    "must be between 0 and 1",
 			description: "Very large coherence should return error",
 		},
 		// Valid parameters
@@ -205,7 +205,7 @@ func TestNewSwarmErrors(t *testing.T) {
 				Coherence: math.NaN(),
 			},
 			wantError:   true,
-			errorMsg:    "goal coherence must be in [0, 1]",
+			errorMsg:    "cannot be NaN",
 			description: "NaN coherence should return error",
 		},
 		{
@@ -217,7 +217,7 @@ func TestNewSwarmErrors(t *testing.T) {
 				Coherence: math.Inf(1),
 			},
 			wantError:   true,
-			errorMsg:    "goal coherence must be in [0, 1]",
+			errorMsg:    "must be between 0 and 1",
 			description: "Infinity coherence should return error",
 		},
 		{
@@ -229,7 +229,7 @@ func TestNewSwarmErrors(t *testing.T) {
 				Coherence: math.Inf(-1),
 			},
 			wantError:   true,
-			errorMsg:    "goal coherence must be in [0, 1]",
+			errorMsg:    "must be between 0 and 1",
 			description: "Negative infinity coherence should return error",
 		},
 		// Phase edge cases (phase can be any value)
@@ -263,8 +263,9 @@ func TestNewSwarmErrors(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.9,
 			},
-			wantError:   false, // Phase might not be validated
-			description: "NaN phase handling",
+			wantError:   true,
+			errorMsg:    "cannot be NaN",
+			description: "NaN phase should return error",
 		},
 		// Frequency edge cases
 		{

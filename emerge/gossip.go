@@ -45,7 +45,7 @@ func NewGossipAgent(id string, bindPort int) (*GossipAgent, error) {
 	// Create gossip network
 	list, err := memberlist.Create(config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create memberlist: %w", err)
+		return nil, fmt.Errorf("network failure - failed to create memberlist: %w", err)
 	}
 
 	ga.config = config
@@ -86,7 +86,7 @@ func (ga *GossipAgent) Run(ctx context.Context, globalGoal State) {
 			action, accepted := ga.ProposeAdjustment(globalGoal)
 
 			if accepted {
-				success, _ := ga.ApplyAction(action)
+				success, _, _ := ga.ApplyAction(action)
 				if success {
 					// Gossip new state to neighbors
 					ga.broadcastState()

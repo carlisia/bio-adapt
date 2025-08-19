@@ -32,21 +32,19 @@ type SwarmOption func(*Swarm) error
 // NewSwarm creates a swarm with the provided options.
 func NewSwarm(size int, goal State, opts ...SwarmOption) (*Swarm, error) {
 	if size <= 0 {
-		return nil, fmt.Errorf("swarm size must be positive, got %d", size)
+		return nil, fmt.Errorf("%w: got %d", ErrInvalidSwarmSize, size)
 	}
-	if size > 1000000 { // Reasonable limit to prevent infinite loops
-		return nil, fmt.Errorf("swarm size too large, got %d (max 1,000,000)", size)
-	}
-	if goal.Frequency <= 0 {
-		return nil, fmt.Errorf("goal frequency must be positive, got %v", goal.Frequency)
-	}
-	if math.IsNaN(goal.Coherence) || goal.Coherence < 0 || goal.Coherence > 1 {
-		return nil, fmt.Errorf("goal coherence must be in [0, 1], got %f", goal.Coherence)
+
+	// Validate goal state using centralized validation
+	if err := goal.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid goal state: %w", err)
 	}
 
 	// Start with auto-scaled config as default
 	config := AutoScaleConfig(size)
-	config.Validate(size)
+	if err := config.NormalizeAndValidate(size); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
 
 	s := &Swarm{
 		goalState:   goal,
@@ -60,8 +58,18 @@ func NewSwarm(size int, goal State, opts ...SwarmOption) (*Swarm, error) {
 	// Apply options
 	for _, opt := range opts {
 		if err := opt(s); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to apply swarm option: %w", err)
 		}
+	}
+
+	// Re-validate config after options are applied
+	if err := s.config.NormalizeAndValidate(size); err != nil {
+		return nil, fmt.Errorf("config validation failed after options: %w", err)
+	}
+
+	// Check configurable size limit after options are applied
+	if s.config.MaxSwarmSize > 0 && size > s.config.MaxSwarmSize {
+		return nil, fmt.Errorf("swarm size %d exceeds configured maximum %d", size, s.config.MaxSwarmSize)
 	}
 
 	// Create agents if not already created by options
@@ -82,6 +90,41 @@ func NewSwarm(size int, goal State, opts ...SwarmOption) (*Swarm, error) {
 	return s, nil
 }
 
+// NewSwarmFromConfig creates a swarm using a configuration struct.
+// This provides an alternative to the functional options pattern.
+func NewSwarmFromConfig(size int, goal State, config SwarmConfig) (*Swarm, error) {
+	if size <= 0 {
+		return nil, fmt.Errorf("%w: got %d", ErrInvalidSwarmSize, size)
+	}
+
+	// Validate goal state using centralized validation
+	if err := goal.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid goal state: %w", err)
+	}
+
+	// Validate and normalize config using centralized validation
+	if err := config.NormalizeAndValidate(size); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+
+	s := &Swarm{
+		goalState:   goal,
+		config:      config,
+		size:        size,
+		monitor:     NewMonitor(),
+		basin:       NewAttractorBasin(goal, config.BasinStrength, config.BasinWidth),
+		convergence: NewConvergenceMonitor(goal, goal.Coherence),
+	}
+
+	// Create agents
+	s.createDefaultAgents()
+
+	// Establish connections
+	s.establishConnections()
+
+	return s, nil
+}
+
 // createDefaultAgents creates agents with config-based settings
 func (s *Swarm) createDefaultAgents() {
 	agentConfig := AgentConfigFromSwarmConfig(s.config)
@@ -96,7 +139,9 @@ func (s *Swarm) createDefaultAgents() {
 // WithConfig sets a custom configuration
 func WithConfig(config SwarmConfig) SwarmOption {
 	return func(s *Swarm) error {
-		config.Validate(s.size)
+		if err := config.NormalizeAndValidate(s.size); err != nil {
+			return fmt.Errorf("config validation failed: %w", err)
+		}
 		s.config = config
 		// Update basin and convergence with new config
 		s.basin = NewAttractorBasin(s.goalState, config.BasinStrength, config.BasinWidth)
@@ -135,7 +180,7 @@ func WithAgentBuilder(builder func(id string, swarmSize int, config SwarmConfig)
 func WithTopology(builder func(*Swarm) error) SwarmOption {
 	return func(s *Swarm) error {
 		if err := builder(s); err != nil {
-			return fmt.Errorf("topology builder failed: %w", err)
+			return fmt.Errorf("topology build failed: %w", err)
 		}
 		s.connectionsEstablished = true
 		return nil
@@ -151,8 +196,8 @@ func (s *Swarm) establishConnections() {
 		return true
 	})
 
-	// For very large swarms, skip full connection establishment to avoid O(n²) performance
-	if len(agents) > 50000 {
+	// Use configurable threshold for connection optimization
+	if s.config.EnableConnectionOptim && len(agents) > s.config.ConnectionOptimThreshold {
 		// Just establish minimal random connections for large swarms
 		for _, agent := range agents {
 			for i := 0; i < s.config.MinNeighbors && i < len(agents)-1; i++ {
@@ -219,50 +264,47 @@ func (s *Swarm) establishConnections() {
 // Run starts all agents autonomously - no central orchestration.
 // Synchronization emerges from local interactions and gossip.
 func (s *Swarm) Run(ctx context.Context) error {
+	if s.config.UseBatchProcessing {
+		if err := s.runWithBatchProcessing(ctx); err != nil {
+			return fmt.Errorf("batch processing failed: %w", err)
+		}
+		return nil
+	}
+	if err := s.runWithDirectProcessing(ctx); err != nil {
+		return fmt.Errorf("direct processing failed: %w", err)
+	}
+	return nil
+}
+
+// runWithDirectProcessing runs each agent in its own goroutine (original behavior)
+func (s *Swarm) runWithDirectProcessing(ctx context.Context) error {
 	var wg sync.WaitGroup
 
-	// Start each agent independently
+	// Collect all agents
+	var agents []*Agent
 	s.agents.Range(func(key, value any) bool {
-		agent := value.(*Agent)
+		agents = append(agents, value.(*Agent))
+		return true
+	})
 
+	// Apply concurrency limit if configured
+	concurrencyLimit := s.config.MaxConcurrentAgents
+	if concurrencyLimit > 0 && len(agents) > concurrencyLimit {
+		// Use worker pool with limited goroutines
+		if err := s.runWithWorkerPool(ctx, agents); err != nil {
+			return fmt.Errorf("worker pool execution failed: %w", err)
+		}
+		return nil
+	}
+
+	// Start each agent independently
+	for _, agent := range agents {
 		wg.Add(1)
 		go func(a *Agent) {
 			defer wg.Done()
-
-			// Each agent runs autonomously
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					// Update context from local observations
-					a.UpdateContext()
-
-					// Make autonomous decision
-					action, accepted := a.ProposeAdjustment(s.goalState)
-
-					if accepted {
-						success, energyCost := a.ApplyAction(action)
-						if !success {
-							// Action failed - agent may be out of energy or action type unknown
-							// This is expected behavior in autonomous systems where agents
-							// can fail to execute actions due to resource constraints
-							continue
-						}
-						// Successfully applied action with energy cost
-						// The energy is already deducted from the agent's resource manager
-						// We could use energyCost for monitoring/metrics here if needed
-						_ = energyCost // Intentionally unused - energy tracking is internal
-					}
-
-					// Small delay to prevent CPU spinning
-					time.Sleep(50 * time.Millisecond)
-				}
-			}
+			s.runAgentLoop(ctx, a)
 		}(agent)
-
-		return true
-	})
+	}
 
 	// Monitor convergence (observation only, no control)
 	go s.monitorConvergence(ctx)
@@ -271,9 +313,162 @@ func (s *Swarm) Run(ctx context.Context) error {
 	return nil
 }
 
+// runWithWorkerPool runs agents using a limited worker pool
+func (s *Swarm) runWithWorkerPool(ctx context.Context, agents []*Agent) error {
+	workerCount := s.config.WorkerPoolSize
+	if workerCount == 0 {
+		workerCount = s.config.MaxConcurrentAgents
+	}
+
+	agentChan := make(chan *Agent, len(agents))
+	var wg sync.WaitGroup
+
+	// Start workers
+	for range workerCount {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for agent := range agentChan {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					s.runAgentCycle(agent)
+				}
+			}
+		}()
+	}
+
+	// Monitor convergence
+	go s.monitorConvergence(ctx)
+
+	// Continuously feed agents to workers
+	go func() {
+		defer close(agentChan)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				for _, agent := range agents {
+					select {
+					case agentChan <- agent:
+					case <-ctx.Done():
+						return
+					}
+				}
+				// Small delay between cycles
+				time.Sleep(s.config.AgentUpdateInterval)
+			}
+		}
+	}()
+
+	wg.Wait()
+	return nil
+}
+
+// runWithBatchProcessing processes agents in batches
+func (s *Swarm) runWithBatchProcessing(ctx context.Context) error {
+	// Collect all agents
+	var agents []*Agent
+	s.agents.Range(func(key, value any) bool {
+		agents = append(agents, value.(*Agent))
+		return true
+	})
+
+	batchSize := s.config.BatchSize
+	if batchSize == 0 {
+		batchSize = len(agents) / 10 // Default to 10 batches
+		if batchSize < 1 {
+			batchSize = 1
+		}
+	}
+
+	// Monitor convergence
+	go s.monitorConvergence(ctx)
+
+	// Process agents in batches continuously
+	ticker := time.NewTicker(s.config.AgentUpdateInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+			s.processBatch(agents, batchSize)
+		}
+	}
+}
+
+// processBatch processes a batch of agents concurrently
+func (s *Swarm) processBatch(agents []*Agent, batchSize int) {
+	var wg sync.WaitGroup
+
+	for i := 0; i < len(agents); i += batchSize {
+		end := i + batchSize
+		if end > len(agents) {
+			end = len(agents)
+		}
+
+		batch := agents[i:end]
+		wg.Add(1)
+		go func(agentBatch []*Agent) {
+			defer wg.Done()
+			for _, agent := range agentBatch {
+				s.runAgentCycle(agent)
+			}
+		}(batch)
+	}
+
+	wg.Wait()
+}
+
+// runAgentLoop runs a single agent continuously
+func (s *Swarm) runAgentLoop(ctx context.Context, agent *Agent) {
+	ticker := time.NewTicker(s.config.AgentUpdateInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.runAgentCycle(agent)
+		}
+	}
+}
+
+// runAgentCycle runs a single cycle of agent processing
+func (s *Swarm) runAgentCycle(agent *Agent) {
+	// Update context from local observations
+	agent.UpdateContext()
+
+	// Make autonomous decision
+	action, accepted := agent.ProposeAdjustment(s.goalState)
+
+	if accepted {
+		success, energyCost, err := agent.ApplyAction(action)
+		if !success {
+			// Action failed - log the detailed error for debugging while maintaining autonomous behavior
+			// This is expected behavior in autonomous systems where agents can fail due to resource constraints
+			if err != nil {
+				// In a production system, this could be logged to monitoring systems
+				// For now, we silently handle the failure as part of autonomous behavior
+				_ = err // err contains detailed context like "insufficient energy: required 5.20, available 3.40"
+			}
+			return
+		}
+		// Successfully applied action with energy cost
+		// The energy is already deducted from the agent's resource manager
+		// We could use energyCost for monitoring/metrics here if needed
+		_ = energyCost // Intentionally unused - energy tracking is internal
+	}
+}
+
 // monitorConvergence observes emergent behavior without controlling it.
 func (s *Swarm) monitorConvergence(ctx context.Context) {
-	ticker := time.NewTicker(100 * time.Millisecond)
+	ticker := time.NewTicker(s.config.MonitoringInterval)
 	defer ticker.Stop()
 
 	for {
