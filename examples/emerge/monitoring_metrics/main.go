@@ -169,8 +169,8 @@ func main() {
 
 			swarm.Agents().Range(func(key, value any) bool {
 				agent := value.(*emerge.Agent)
-				totalEnergy += agent.GetEnergy()
-				phases = append(phases, agent.GetPhase())
+				totalEnergy += agent.Energy()
+				phases = append(phases, agent.Phase())
 				agentCount++
 				return true
 			})
@@ -352,9 +352,9 @@ func sampleDecisions(swarm *emerge.Swarm, metrics *MetricsCollector) {
 		agent := value.(*emerge.Agent)
 
 		// Simulate decision tracking
-		if agent.GetEnergy() < 20 {
+		if agent.Energy() < 20 {
 			metrics.IncrementDecision("energy_conserve")
-		} else if agent.GetInfluence() > 0.7 {
+		} else if agent.Influence() > 0.7 {
 			metrics.IncrementDecision("high_influence")
 		} else {
 			metrics.IncrementDecision("normal")
@@ -402,10 +402,10 @@ func analyzeAgentBehavior(swarm *emerge.Swarm) {
 
 		agents = append(agents, agentStats{
 			id:           agent.ID[:8],
-			phase:        agent.GetPhase(),
-			energy:       agent.GetEnergy(),
-			influence:    agent.GetInfluence(),
-			stubbornness: agent.GetStubbornness(),
+			phase:        agent.Phase(),
+			energy:       agent.Energy(),
+			influence:    agent.Influence(),
+			stubbornness: agent.Stubbornness(),
 			neighbors:    neighborCount,
 		})
 

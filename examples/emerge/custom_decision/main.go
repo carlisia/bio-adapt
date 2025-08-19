@@ -274,8 +274,8 @@ func main() {
 		// Occasionally replenish energy
 		if cycle%20 == 0 {
 			for _, agent := range agents {
-				agent.SetEnergy(agent.GetEnergy() + 20)
-				if agent.GetEnergy() > 100 {
+				agent.SetEnergy(agent.Energy() + 20)
+				if agent.Energy() > 100 {
 					agent.SetEnergy(100)
 				}
 			}
@@ -299,8 +299,8 @@ func main() {
 		fmt.Printf("  Avg Cost per action: %.2f\n", avgCost)
 		fmt.Printf("  Avg Benefit per action: %.2f\n", avgBenefit)
 		fmt.Printf("  Net Value: %.2f\n", netValue)
-		fmt.Printf("  Final Energy: %.1f\n", agents[i].GetEnergy())
-		fmt.Printf("  Final Phase: %.3f\n", agents[i].GetPhase())
+		fmt.Printf("  Final Energy: %.1f\n", agents[i].Energy())
+		fmt.Printf("  Final Phase: %.3f\n", agents[i].Phase())
 	}
 
 	// Special reporting for aggressive strategy
@@ -310,7 +310,7 @@ func main() {
 	// Calculate final coherence
 	var sumCos, sumSin float64
 	for _, agent := range agents {
-		phase := agent.GetPhase()
+		phase := agent.Phase()
 		sumCos += math.Cos(phase)
 		sumSin += math.Sin(phase)
 	}

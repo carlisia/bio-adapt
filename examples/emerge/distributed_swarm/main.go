@@ -151,7 +151,7 @@ func measureGlobalCoherence(swarms []*emerge.Swarm) float64 {
 	for _, swarm := range swarms {
 		swarm.Agents().Range(func(key, value any) bool {
 			agent := value.(*emerge.Agent)
-			phases = append(phases, agent.GetPhase())
+			phases = append(phases, agent.Phase())
 			return true
 		})
 	}

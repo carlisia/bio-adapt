@@ -95,7 +95,7 @@ func main() {
 
 			swarm.Agents().Range(func(key, value any) bool {
 				agent := value.(*emerge.Agent)
-				energy := agent.GetEnergy()
+				energy := agent.Energy()
 
 				totalEnergy += energy
 				if energy < minEnergy {
@@ -157,7 +157,7 @@ done:
 
 	swarm.Agents().Range(func(key, value any) bool {
 		agent := value.(*emerge.Agent)
-		energy := agent.GetEnergy()
+		energy := agent.Energy()
 
 		switch {
 		case energy >= 70:
@@ -193,10 +193,10 @@ func replenishEnergy(swarm *emerge.Swarm, fraction float64) {
 	swarm.Agents().Range(func(key, value any) bool {
 		if rand.Float64() < fraction {
 			agent := value.(*emerge.Agent)
-			currentEnergy := agent.GetEnergy()
+			currentEnergy := agent.Energy()
 			// Replenish up to 30 energy units
 			agent.SetEnergy(currentEnergy + 30)
-			if agent.GetEnergy() > 100 {
+			if agent.Energy() > 100 {
 				agent.SetEnergy(100)
 			}
 			count++
@@ -244,6 +244,6 @@ func demonstrateEnergyDecisions() {
 	}
 
 	fmt.Printf("\nFinal energy levels:\n")
-	fmt.Printf("  Rich agent: %.1f\n", richAgent.GetEnergy())
-	fmt.Printf("  Poor agent: %.1f\n", poorAgent.GetEnergy())
+	fmt.Printf("  Rich agent: %.1f\n", richAgent.Energy())
+	fmt.Printf("  Poor agent: %.1f\n", poorAgent.Energy())
 }

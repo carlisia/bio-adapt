@@ -446,7 +446,7 @@ results:
 	fmt.Println("workloads, _ := emerge.NewSwarm(50, batchConfig)")
 	fmt.Println()
 	fmt.Println("// In each workload, check phase before API call:")
-	fmt.Println("if agent.GetPhase() < 0.1 { // Near batch window")
+	fmt.Println("if agent.Phase() < 0.1 { // Near batch window")
 	fmt.Println("    // Add request to batch queue")
 	fmt.Println("    batchQueue.Add(request)")
 	fmt.Println("}")
@@ -532,7 +532,7 @@ func visualizeRequestTimeline(swarm *emerge.Swarm) {
 	phases := make([]float64, 0, swarm.Size())
 	swarm.Agents().Range(func(key, value any) bool {
 		agent := value.(*emerge.Agent)
-		phases = append(phases, agent.GetPhase())
+		phases = append(phases, agent.Phase())
 		return true
 	})
 
@@ -657,7 +657,7 @@ func estimateBatches(swarm *emerge.Swarm) int {
 	phases := make([]float64, 0, swarm.Size())
 	swarm.Agents().Range(func(key, value any) bool {
 		agent := value.(*emerge.Agent)
-		phases = append(phases, agent.GetPhase())
+		phases = append(phases, agent.Phase())
 		return true
 	})
 

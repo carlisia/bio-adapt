@@ -421,7 +421,7 @@ func visualizeAgents(swarm *emerge.Swarm) {
 	phases := make([]float64, 0, swarm.Size())
 	swarm.Agents().Range(func(key, value any) bool {
 		agent := value.(*emerge.Agent)
-		phases = append(phases, agent.GetPhase())
+		phases = append(phases, agent.Phase())
 		return true
 	})
 

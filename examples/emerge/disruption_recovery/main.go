@@ -302,7 +302,7 @@ func stubbornAgentDisruption(swarm *emerge.Swarm, fraction float64) {
 			// Make agent very stubborn
 			agent.SetStubbornness(0.9 + rand.Float64()*0.1)
 			// Give them different local goals
-			agent.LocalGoal.Store(rand.Float64() * 2 * 3.14159)
+			agent.SetLocalGoal(rand.Float64() * 2 * 3.14159)
 			count++
 		}
 		return true
@@ -337,15 +337,15 @@ func cascadeFailureDisruption(swarm *emerge.Swarm) {
 	seedAgent.Neighbors().Range(func(key, value any) bool {
 		neighbor := value.(*emerge.Agent)
 		// Neighbors are partially affected
-		neighbor.SetPhase(neighbor.GetPhase() + (rand.Float64()-0.5)*2)
-		neighbor.SetEnergy(neighbor.GetEnergy() * 0.5)
+		neighbor.SetPhase(neighbor.Phase() + (rand.Float64()-0.5)*2)
+		neighbor.SetEnergy(neighbor.Energy() * 0.5)
 		affected++
 
 		// Secondary cascade (with lower probability)
 		if rand.Float64() < 0.3 {
 			neighbor.Neighbors().Range(func(k2, v2 any) bool {
 				secondary := v2.(*emerge.Agent)
-				secondary.SetEnergy(secondary.GetEnergy() * 0.7)
+				secondary.SetEnergy(secondary.Energy() * 0.7)
 				affected++
 				return rand.Float64() < 0.5 // Continue with 50% probability
 			})
