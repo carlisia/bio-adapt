@@ -87,7 +87,7 @@ func RingTopology(s *Swarm) error {
 
 	n := len(agents)
 	if n < 2 {
-		return fmt.Errorf("ring topology requires at least 2 agents, got %d", n)
+		return fmt.Errorf("%w for ring topology: got %d, need at least 2", ErrInsufficientAgents, n)
 	}
 
 	for i, agent := range agents {
@@ -113,7 +113,7 @@ func StarTopology(s *Swarm) error {
 	})
 
 	if len(agents) < 2 {
-		return fmt.Errorf("star topology requires at least 2 agents, got %d", len(agents))
+		return fmt.Errorf("%w for star topology: got %d, need at least 2", ErrInsufficientAgents, len(agents))
 	}
 
 	hub := agents[0]
