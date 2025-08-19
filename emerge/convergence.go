@@ -56,6 +56,9 @@ func (m *ConvergenceMonitor) Record(coherence float64) {
 	// Check for convergence
 	if coherence >= m.convergenceAt && m.convergedTime == nil {
 		m.convergedTime = &now
+	} else if coherence < m.convergenceAt && m.convergedTime != nil {
+		// Reset convergence if we drop below threshold
+		m.convergedTime = nil
 	}
 }
 
