@@ -41,7 +41,7 @@ type PatternGap struct {
 
 // Detect finds gaps in the pattern that need completion.
 func (p *RhythmicPattern) Detect() []PatternGap {
-	var gaps []PatternGap
+	gaps := make([]PatternGap, 0)
 
 	// Simple gap detection: look for sudden phase jumps
 	for i := 1; i < len(p.Phases); i++ {
@@ -63,7 +63,7 @@ func (p *RhythmicPattern) Detect() []PatternGap {
 
 // Complete fills in missing parts of a pattern.
 func (p *RhythmicPattern) Complete(gap PatternGap) []float64 {
-	if gap.StartIdx < 0 || gap.EndIdx >= len(p.Phases) {
+	if gap.StartIdx < 0 || gap.EndIdx >= len(p.Phases) || gap.StartIdx >= gap.EndIdx {
 		return nil
 	}
 
@@ -103,8 +103,24 @@ func (p *RhythmicPattern) Similarity(other *RhythmicPattern) float64 {
 	maxPeriod := max(p.Period, other.Period)
 	periodSim := 1.0 - math.Min(periodDiff/float64(maxPeriod), 1.0)
 
+	// Check for massively different scales before normalization
+	scaleFactor := 1.0
+	if len(p.Phases) == len(other.Phases) && len(p.Phases) > 0 {
+		var maxP, maxO float64
+		for i := range p.Phases {
+			maxP = math.Max(maxP, math.Abs(p.Phases[i]))
+			maxO = math.Max(maxO, math.Abs(other.Phases[i]))
+		}
+		if maxP > 0 && maxO > 0 {
+			ratio := math.Max(maxP/maxO, maxO/maxP)
+			if ratio > 100 { // If scales differ by more than 100x
+				scaleFactor = 1.0 / math.Min(ratio/100, 10) // Reduce similarity significantly
+			}
+		}
+	}
+
 	// Compare phase patterns (using correlation)
-	phaseSim := phaseCorrelation(p.Phases, other.Phases)
+	phaseSim := phaseCorrelation(p.Phases, other.Phases) * scaleFactor
 
 	// Weighted average
 	return (ampSim*0.3 + periodSim*0.3 + phaseSim*0.4)
@@ -177,19 +193,25 @@ func calculateAmplitude(phases []float64) float64 {
 		return 0
 	}
 
+	// Normalize phases to [0, 2π] for circular data
+	normalizedPhases := make([]float64, len(phases))
+	for i, p := range phases {
+		normalizedPhases[i] = WrapPhase(p)
+	}
+
 	// Calculate variance as measure of amplitude
 	mean := 0.0
-	for _, p := range phases {
+	for _, p := range normalizedPhases {
 		mean += p
 	}
-	mean /= float64(len(phases))
+	mean /= float64(len(normalizedPhases))
 
 	variance := 0.0
-	for _, p := range phases {
+	for _, p := range normalizedPhases {
 		diff := p - mean
 		variance += diff * diff
 	}
-	variance /= float64(len(phases))
+	variance /= float64(len(normalizedPhases))
 
 	return math.Sqrt(variance)
 }
@@ -209,21 +231,21 @@ func calculatePeriod(frequencies []time.Duration) time.Duration {
 }
 
 func phaseCorrelation(phases1, phases2 []float64) float64 {
-	minLen := len(phases1)
-	if len(phases2) < minLen {
-		minLen = len(phases2)
+	// Return 0 if arrays have different lengths
+	if len(phases1) != len(phases2) {
+		return 0
 	}
-
-	if minLen == 0 {
+	
+	if len(phases1) == 0 {
 		return 0
 	}
 
 	// Calculate correlation coefficient
 	var sum float64
-	for i := range minLen {
+	for i := range len(phases1) {
 		diff := math.Abs(PhaseDifference(phases1[i], phases2[i]))
 		sum += 1.0 - (diff / math.Pi) // Normalize to [0, 1]
 	}
 
-	return sum / float64(minLen)
+	return sum / float64(len(phases1))
 }
