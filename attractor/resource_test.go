@@ -1,4 +1,4 @@
-package biofield
+package attractor
 
 import (
 	"sync"

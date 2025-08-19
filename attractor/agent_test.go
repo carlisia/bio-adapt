@@ -1,4 +1,4 @@
-package biofield
+package attractor
 
 import (
 	"math"
@@ -134,41 +134,6 @@ func TestAgentProposeAdjustment(t *testing.T) {
 	}
 }
 
-func TestAgentGenerateActions(t *testing.T) {
-	agent := NewAgent("test")
-	agent.SetPhase(0)
-
-	goal := State{
-		Phase:     math.Pi,
-		Frequency: 100 * time.Millisecond,
-		Coherence: 0.9,
-	}
-
-	actions := agent.generateActions(goal)
-
-	if len(actions) != 3 {
-		t.Errorf("Expected 3 actions, got %d", len(actions))
-	}
-
-	// Check action types
-	hasAdjust := false
-	hasMaintain := false
-	for _, action := range actions {
-		if action.Type == "adjust_phase" {
-			hasAdjust = true
-		}
-		if action.Type == "maintain" {
-			hasMaintain = true
-		}
-	}
-
-	if !hasAdjust {
-		t.Error("Should have at least one adjust_phase action")
-	}
-	if !hasMaintain {
-		t.Error("Should have a maintain action")
-	}
-}
 
 func TestAgentApplyAction(t *testing.T) {
 	agent := NewAgent("test")

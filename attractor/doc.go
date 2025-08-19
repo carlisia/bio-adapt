@@ -1,4 +1,4 @@
-// Package biofield implements distributed agent synchronization inspired by
+// Package attractor implements distributed agent synchronization inspired by
 // biological goal-directedness. Unlike traditional consensus algorithms, this pattern
 // achieves synchronization through autonomous agents with local goals that contribute
 // to emergent global behavior - no central orchestrator required.
@@ -19,4 +19,4 @@
 // This implementation prioritizes biological authenticity and code simplicity
 // over raw performance. The modular design allows upgrading to more sophisticated
 // biological behaviors without architectural changes.
-package biofield
+package attractor

@@ -1,7 +1,7 @@
 //go:build !nogossip
 // +build !nogossip
 
-package biofield
+package attractor
 
 import (
 	"context"

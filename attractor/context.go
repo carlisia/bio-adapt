@@ -1,4 +1,4 @@
-package biofield
+package attractor
 
 // Context represents environmental awareness for decision-making.
 // Agents sense their local environment and adapt strategies accordingly.

@@ -1,4 +1,4 @@
-package biofield
+package attractor
 
 import (
 	"context"
@@ -116,16 +116,20 @@ func TestSwarmMeasureCoherence(t *testing.T) {
 		t.Errorf("Expected coherence 1.0 for aligned agents, got %f", coherence)
 	}
 
-	// Set agents to random phases (low coherence)
+	// Set agents to evenly distributed phases (moderate coherence)
+	// Use deterministic distribution to avoid flaky tests
+	j := 0
 	swarm.agents.Range(func(key, value any) bool {
 		agent := value.(*Agent)
-		agent.SetPhase(rand.Float64() * 2 * math.Pi)
+		// Distribute phases evenly around the circle
+		agent.SetPhase(float64(j) * 2 * math.Pi / 10)
+		j++
 		return true
 	})
 
 	coherence = swarm.MeasureCoherence()
-	if coherence > 0.5 {
-		t.Errorf("Expected low coherence for random phases, got %f", coherence)
+	if coherence > 0.2 {
+		t.Errorf("Expected low coherence for distributed phases, got %f", coherence)
 	}
 
 	// Set half to 0, half to π (zero coherence)
