@@ -38,6 +38,10 @@ type Agent struct {
 	// Social network
 	neighbors sync.Map // map[string]*Agent - local connections
 
+	// Swarm configuration
+	swarmSize           int // Total size of swarm (for density calculations)
+	assumedMaxNeighbors int // Assumed max neighbors (0 = use swarm size)
+
 	// Context awareness
 	context atomic.Value // stores Context
 
@@ -48,33 +52,143 @@ type Agent struct {
 	strategy    SyncStrategy // Synchronization strategy
 }
 
-// NewAgent creates an autonomous agent with random initial state and goals.
-// Each agent starts with:
-//   - Random phase (creates initial disorder)
-//   - Random local goal (creates tension with global goal)
-//   - Full energy (depletes through actions)
-//   - Moderate influence (balances local/global)
-func NewAgent(id string) *Agent {
+// AgentOption configures an Agent
+type AgentOption func(*Agent)
+
+// NewAgent creates an agent with the provided options.
+// If no options are provided, sensible defaults are used.
+func NewAgent(id string, opts ...AgentOption) *Agent {
 	a := &Agent{
-		ID:          id,
-		decider:     &SimpleDecisionMaker{},
-		goalManager: &WeightedGoalManager{},
-		resources:   NewTokenResourceManager(100),
-		strategy:    NewPhaseNudgeStrategy(0.3), // Default strategy
+		ID: id,
 	}
 
-	// Random initialization for diversity
-	a.phase.Store(rand.Float64() * 2 * math.Pi)
-	a.LocalGoal.Store(rand.Float64() * 2 * math.Pi)
-	a.frequency.Store(time.Duration(50+rand.Intn(100)) * time.Millisecond)
-	a.energy.Store(100.0)
-	a.influence.Store(0.3 + rand.Float64()*0.4) // 0.3-0.7 range
-	a.stubbornness.Store(rand.Float64() * 0.2)  // 0-0.2 range (less stubborn)
+	// Apply defaults
+	defaults := []AgentOption{
+		WithDecisionMaker(&SimpleDecisionMaker{}),
+		WithGoalManager(&WeightedGoalManager{}),
+		WithResourceManager(NewTokenResourceManager(100)),
+		WithStrategy(NewPhaseNudgeStrategy(0.3)),
+		WithRandomPhase(),
+		WithRandomLocalGoal(),
+		WithRandomFrequency(),
+		WithEnergy(100.0),
+		WithInfluence(0.5),
+		WithStubbornness(0.2),
+	}
+
+	// Apply defaults first
+	for _, opt := range defaults {
+		opt(a)
+	}
+
+	// Apply user options (can override defaults)
+	for _, opt := range opts {
+		opt(a)
+	}
 
 	// Initialize context
 	a.context.Store(Context{})
 
 	return a
+}
+
+// WithDecisionMaker sets the agent's decision maker
+func WithDecisionMaker(dm DecisionMaker) AgentOption {
+	return func(a *Agent) {
+		a.decider = dm
+	}
+}
+
+// WithGoalManager sets the agent's goal manager
+func WithGoalManager(gm GoalManager) AgentOption {
+	return func(a *Agent) {
+		a.goalManager = gm
+	}
+}
+
+// WithResourceManager sets the agent's resource manager
+func WithResourceManager(rm ResourceManager) AgentOption {
+	return func(a *Agent) {
+		a.resources = rm
+	}
+}
+
+// WithStrategy sets the agent's synchronization strategy
+func WithStrategy(s SyncStrategy) AgentOption {
+	return func(a *Agent) {
+		a.strategy = s
+	}
+}
+
+// WithPhase sets the agent's initial phase
+func WithPhase(phase float64) AgentOption {
+	return func(a *Agent) {
+		a.phase.Store(phase)
+	}
+}
+
+// WithRandomPhase sets a random initial phase
+func WithRandomPhase() AgentOption {
+	return func(a *Agent) {
+		a.phase.Store(rand.Float64() * 2 * math.Pi)
+	}
+}
+
+// WithLocalGoal sets the agent's local goal
+func WithLocalGoal(goal float64) AgentOption {
+	return func(a *Agent) {
+		a.LocalGoal.Store(goal)
+	}
+}
+
+// WithRandomLocalGoal sets a random local goal
+func WithRandomLocalGoal() AgentOption {
+	return func(a *Agent) {
+		a.LocalGoal.Store(rand.Float64() * 2 * math.Pi)
+	}
+}
+
+// WithFrequency sets the agent's frequency
+func WithFrequency(freq time.Duration) AgentOption {
+	return func(a *Agent) {
+		a.frequency.Store(freq)
+	}
+}
+
+// WithRandomFrequency sets a random frequency between 50-150ms
+func WithRandomFrequency() AgentOption {
+	return func(a *Agent) {
+		a.frequency.Store(time.Duration(50+rand.Intn(100)) * time.Millisecond)
+	}
+}
+
+// WithEnergy sets the agent's initial energy
+func WithEnergy(energy float64) AgentOption {
+	return func(a *Agent) {
+		a.energy.Store(energy)
+	}
+}
+
+// WithInfluence sets the agent's influence parameter
+func WithInfluence(influence float64) AgentOption {
+	return func(a *Agent) {
+		a.influence.Store(influence)
+	}
+}
+
+// WithStubbornness sets the agent's stubbornness parameter
+func WithStubbornness(stubbornness float64) AgentOption {
+	return func(a *Agent) {
+		a.stubbornness.Store(stubbornness)
+	}
+}
+
+// WithSwarmInfo sets the swarm size information for density calculations
+func WithSwarmInfo(swarmSize, assumedMaxNeighbors int) AgentOption {
+	return func(a *Agent) {
+		a.swarmSize = swarmSize
+		a.assumedMaxNeighbors = assumedMaxNeighbors
+	}
 }
 
 // UpdateContext recalculates environmental context from local observations.
@@ -96,8 +210,18 @@ func (a *Agent) UpdateContext() {
 		return true
 	})
 
-	density := float64(neighborCount) / 20.0 // Assume 20 max neighbors
-	stability := 1.0 / (1.0 + phaseVarSum)   // Inverse variance
+	// Calculate density based on actual swarm size or assumed max
+	maxNeighbors := a.assumedMaxNeighbors
+	if maxNeighbors == 0 && a.swarmSize > 0 {
+		// Use actual swarm size minus self
+		maxNeighbors = a.swarmSize - 1
+	} else if maxNeighbors == 0 {
+		// Fallback to old default if not configured
+		maxNeighbors = 20
+	}
+
+	density := float64(neighborCount) / float64(maxNeighbors)
+	stability := 1.0 / (1.0 + phaseVarSum) // Inverse variance
 
 	// Calculate local coherence (Kuramoto order parameter)
 	localCoherence := a.calculateLocalCoherence()

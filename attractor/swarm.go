@@ -14,15 +14,23 @@ import (
 type Swarm struct {
 	agents    sync.Map // map[string]*Agent
 	goalState State
+	config    SwarmConfig
+	size      int
 
 	// Monitoring (read-only, doesn't control)
 	monitor     *Monitor
 	basin       *AttractorBasin
 	convergence *ConvergenceMonitor
+
+	// Track initialization state
+	connectionsEstablished bool
 }
 
-// NewSwarm creates a distributed swarm with autonomous agents.
-func NewSwarm(size int, goal State) (*Swarm, error) {
+// SwarmOption configures a Swarm
+type SwarmOption func(*Swarm) error
+
+// NewSwarm creates a swarm with the provided options.
+func NewSwarm(size int, goal State, opts ...SwarmOption) (*Swarm, error) {
 	if size <= 0 {
 		return nil, fmt.Errorf("swarm size must be positive, got %d", size)
 	}
@@ -33,43 +41,161 @@ func NewSwarm(size int, goal State) (*Swarm, error) {
 		return nil, fmt.Errorf("goal coherence must be in [0, 1], got %f", goal.Coherence)
 	}
 
+	// Start with auto-scaled config as default
+	config := AutoScaleConfig(size)
+	config.Validate(size)
+
 	s := &Swarm{
 		goalState:   goal,
+		config:      config,
+		size:        size,
 		monitor:     NewMonitor(),
-		basin:       NewAttractorBasin(goal, 0.8, math.Pi),
+		basin:       NewAttractorBasin(goal, config.BasinStrength, config.BasinWidth),
 		convergence: NewConvergenceMonitor(goal, goal.Coherence),
 	}
 
-	// Create autonomous agents
-	for i := range size {
-		agent := NewAgent(fmt.Sprintf("agent-%d", i))
-		s.agents.Store(agent.ID, agent)
+	// Apply options
+	for _, opt := range opts {
+		if err := opt(s); err != nil {
+			return nil, err
+		}
+	}
 
-		// Establish random neighbor connections (small-world network)
-		s.connectToNeighbors(agent, 5)
+	// Create agents if not already created by options
+	agentCount := 0
+	s.agents.Range(func(key, value any) bool {
+		agentCount++
+		return false // Just need to check if any exist
+	})
+	if agentCount == 0 {
+		s.createDefaultAgents()
+	}
+
+	// Establish connections if not already done
+	if !s.connectionsEstablished {
+		s.establishConnections()
 	}
 
 	return s, nil
 }
 
-// connectToNeighbors creates local connections for emergent behavior.
-func (s *Swarm) connectToNeighbors(agent *Agent, count int) {
-	connected := 0
+// createDefaultAgents creates agents with config-based settings
+func (s *Swarm) createDefaultAgents() {
+	agentConfig := AgentConfigFromSwarmConfig(s.config)
+	agentConfig.SwarmSize = s.size
 
+	for i := range s.size {
+		agent := NewAgentFromConfig(fmt.Sprintf("agent-%d", i), agentConfig)
+		s.agents.Store(agent.ID, agent)
+	}
+}
+
+// WithConfig sets a custom configuration
+func WithConfig(config SwarmConfig) SwarmOption {
+	return func(s *Swarm) error {
+		config.Validate(s.size)
+		s.config = config
+		// Update basin and convergence with new config
+		s.basin = NewAttractorBasin(s.goalState, config.BasinStrength, config.BasinWidth)
+		return nil
+	}
+}
+
+// WithMonitor sets a custom monitor
+func WithMonitor(monitor *Monitor) SwarmOption {
+	return func(s *Swarm) error {
+		s.monitor = monitor
+		return nil
+	}
+}
+
+// WithConvergenceMonitor sets a custom convergence monitor
+func WithConvergenceMonitor(cm *ConvergenceMonitor) SwarmOption {
+	return func(s *Swarm) error {
+		s.convergence = cm
+		return nil
+	}
+}
+
+// WithAgentBuilder uses a custom function to create agents
+func WithAgentBuilder(builder func(id string, swarmSize int, config SwarmConfig) *Agent) SwarmOption {
+	return func(s *Swarm) error {
+		for i := range s.size {
+			agent := builder(fmt.Sprintf("agent-%d", i), s.size, s.config)
+			s.agents.Store(agent.ID, agent)
+		}
+		return nil
+	}
+}
+
+// WithTopology uses a custom topology builder
+func WithTopology(builder func(*Swarm) error) SwarmOption {
+	return func(s *Swarm) error {
+		if err := builder(s); err != nil {
+			return fmt.Errorf("topology builder failed: %w", err)
+		}
+		s.connectionsEstablished = true
+		return nil
+	}
+}
+
+// establishConnections creates network topology based on configuration.
+func (s *Swarm) establishConnections() {
+	// Collect all agents first
+	var agents []*Agent
 	s.agents.Range(func(key, value any) bool {
-		if connected >= count {
-			return false
-		}
-
-		neighbor := value.(*Agent)
-		if neighbor.ID != agent.ID && rand.Float64() < 0.3 {
-			agent.neighbors.Store(neighbor.ID, neighbor)
-			neighbor.neighbors.Store(agent.ID, agent)
-			connected++
-		}
-
+		agents = append(agents, value.(*Agent))
 		return true
 	})
+
+	// Connect agents based on configuration
+	for i, agent := range agents {
+		connected := 0
+
+		// Try to connect to other agents
+		for j, neighbor := range agents {
+			if i == j {
+				continue
+			}
+
+			// Check if we've reached max neighbors
+			if connected >= s.config.MaxNeighbors {
+				break
+			}
+
+			// Check if already connected
+			if _, exists := agent.neighbors.Load(neighbor.ID); exists {
+				connected++
+				continue
+			}
+
+			// Connect based on probability
+			if rand.Float64() < s.config.ConnectionProbability {
+				agent.neighbors.Store(neighbor.ID, neighbor)
+				neighbor.neighbors.Store(agent.ID, agent)
+				connected++
+			}
+		}
+
+		// Ensure minimum connectivity
+		if connected < s.config.MinNeighbors && len(agents) > s.config.MinNeighbors {
+			// Force connect to random neighbors
+			for connected < s.config.MinNeighbors {
+				idx := rand.Intn(len(agents))
+				neighbor := agents[idx]
+
+				if neighbor.ID == agent.ID {
+					continue
+				}
+
+				if _, exists := agent.neighbors.Load(neighbor.ID); !exists {
+					agent.neighbors.Store(neighbor.ID, neighbor)
+					neighbor.neighbors.Store(agent.ID, agent)
+					connected++
+				}
+			}
+		}
+	}
 }
 
 // Run starts all agents autonomously - no central orchestration.
@@ -169,12 +295,12 @@ func (s *Swarm) GetAgent(id string) (*Agent, bool) {
 
 // Size returns the number of agents in the swarm.
 func (s *Swarm) Size() int {
-	count := 0
-	s.agents.Range(func(key, value any) bool {
-		count++
-		return true
-	})
-	return count
+	return s.size
+}
+
+// Config returns the swarm configuration.
+func (s *Swarm) Config() SwarmConfig {
+	return s.config
 }
 
 // GetMonitor returns the swarm's monitor.
