@@ -51,7 +51,7 @@ tasks:
         done
     sources:
       - examples/**/*.go
-      - biofield/**/*.go
+      - attractor/**/*.go
       - go.mod
       - go.sum
 
@@ -114,11 +114,11 @@ tasks:
     cmds:
       - go test -bench=. -benchmem ./...
 
-  # Run biofield benchmarks
-  bench:biofield:
-    desc: Run biofield package benchmarks
+  # Run attractor benchmarks
+  bench:attractor:
+    desc: Run attractor package benchmarks
     cmds:
-      - go test -bench=. -benchmem ./biofield
+      - go test -bench=. -benchmem ./attractor
 
   # Format code
   fmt:
