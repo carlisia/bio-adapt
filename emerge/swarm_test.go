@@ -160,9 +160,9 @@ func TestNewSwarm(t *testing.T) {
 
 func TestSwarmConnectToNeighbors(t *testing.T) {
 	tests := []struct {
-		name         string
-		size         int
-		validateFn   func(t *testing.T, swarm *Swarm)
+		name       string
+		size       int
+		validateFn func(t *testing.T, swarm *Swarm)
 	}{
 		{
 			name: "small swarm connectivity",
@@ -178,7 +178,7 @@ func TestSwarmConnectToNeighbors(t *testing.T) {
 					})
 					return true
 				})
-				
+
 				if totalConnections == 0 {
 					t.Error("No connections established in small swarm")
 				}
@@ -200,16 +200,16 @@ func TestSwarmConnectToNeighbors(t *testing.T) {
 					})
 					return true
 				})
-				
+
 				// Each connection is counted twice (bidirectional)
 				actualConnections := totalConnections / 2
-				
+
 				// With connection probability 0.3, we expect sparse connectivity
 				maxPossible := (agentCount * (agentCount - 1)) / 2
 				if actualConnections >= maxPossible {
 					t.Error("Too many connections (should be sparse)")
 				}
-				
+
 				if actualConnections == 0 {
 					t.Error("No connections established")
 				}
@@ -228,7 +228,7 @@ func TestSwarmConnectToNeighbors(t *testing.T) {
 					})
 					return true
 				})
-				
+
 				if connectionCount != 0 {
 					t.Error("Single agent should have no neighbors")
 				}
@@ -248,7 +248,7 @@ func TestSwarmConnectToNeighbors(t *testing.T) {
 					})
 					return true
 				})
-				
+
 				// Either 0 or 2 connections (bidirectional)
 				if connectionCount != 0 && connectionCount != 2 {
 					t.Errorf("Two agents should have 0 or 2 connections, got %d", connectionCount)
@@ -281,7 +281,7 @@ func TestSwarmConnectToNeighbors(t *testing.T) {
 					})
 					return true
 				})
-				
+
 				if violations > 0 {
 					t.Errorf("Found %d non-bidirectional connections", violations)
 				}
@@ -296,12 +296,12 @@ func TestSwarmConnectToNeighbors(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.9,
 			}
-			
+
 			swarm, err := NewSwarm(tt.size, goal)
 			if err != nil {
 				t.Fatalf("Failed to create swarm: %v", err)
 			}
-			
+
 			tt.validateFn(t, swarm)
 		})
 	}
@@ -309,12 +309,12 @@ func TestSwarmConnectToNeighbors(t *testing.T) {
 
 func TestSwarmMeasureCoherence(t *testing.T) {
 	tests := []struct {
-		name            string
-		size            int
-		setupFn         func(swarm *Swarm)
-		expectedMin     float64
-		expectedMax     float64
-		description     string
+		name        string
+		size        int
+		setupFn     func(swarm *Swarm)
+		expectedMin float64
+		expectedMax float64
+		description string
 	}{
 		{
 			name: "perfectly aligned agents",
@@ -456,14 +456,14 @@ func TestSwarmMeasureCoherence(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.9,
 			}
-			
+
 			swarm, err := NewSwarm(tt.size, goal)
 			if err != nil {
 				t.Fatalf("Failed to create swarm: %v", err)
 			}
-			
+
 			tt.setupFn(swarm)
-			
+
 			coherence := swarm.MeasureCoherence()
 			if coherence < tt.expectedMin || coherence > tt.expectedMax {
 				t.Errorf("%s: coherence = %f, expected [%f, %f]",
@@ -570,12 +570,12 @@ func TestSwarmGetAgent(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.9,
 			}
-			
+
 			swarm, err := NewSwarm(tt.swarmSize, goal)
 			if err != nil {
 				t.Fatalf("Failed to create swarm: %v", err)
 			}
-			
+
 			agent, exists := swarm.GetAgent(tt.agentID)
 			if exists != tt.wantExists {
 				t.Errorf("GetAgent() exists = %v, want %v", exists, tt.wantExists)
@@ -608,7 +608,7 @@ func TestSwarmDisruptAgents(t *testing.T) {
 				if finalCoherence >= initialCoherence {
 					t.Error("Coherence should decrease after disruption")
 				}
-				
+
 				// Count disrupted agents
 				disrupted := 0
 				swarm.agents.Range(func(key, value any) bool {
@@ -618,7 +618,7 @@ func TestSwarmDisruptAgents(t *testing.T) {
 					}
 					return true
 				})
-				
+
 				// Should be approximately 5 agents (50% of 10)
 				if disrupted < 3 || disrupted > 7 {
 					t.Errorf("Expected ~5 disrupted agents, got %d", disrupted)
@@ -640,7 +640,7 @@ func TestSwarmDisruptAgents(t *testing.T) {
 				if math.Abs(finalCoherence-initialCoherence) > 0.01 {
 					t.Error("Coherence should not change with 0% disruption")
 				}
-				
+
 				// No agents should be disrupted
 				disrupted := 0
 				swarm.agents.Range(func(key, value any) bool {
@@ -650,7 +650,7 @@ func TestSwarmDisruptAgents(t *testing.T) {
 					}
 					return true
 				})
-				
+
 				if disrupted != 0 {
 					t.Errorf("No agents should be disrupted, but %d were", disrupted)
 				}
@@ -671,7 +671,7 @@ func TestSwarmDisruptAgents(t *testing.T) {
 				if finalCoherence >= initialCoherence {
 					t.Error("Coherence should decrease after 100% disruption")
 				}
-				
+
 				// All agents should be disrupted
 				disrupted := 0
 				swarm.agents.Range(func(key, value any) bool {
@@ -681,7 +681,7 @@ func TestSwarmDisruptAgents(t *testing.T) {
 					}
 					return true
 				})
-				
+
 				if disrupted != 10 {
 					t.Errorf("All agents should be disrupted, but only %d were", disrupted)
 				}
@@ -728,7 +728,7 @@ func TestSwarmDisruptAgents(t *testing.T) {
 					}
 					return true
 				})
-				
+
 				if disrupted < 8 {
 					t.Errorf("Most agents should be disrupted with factor > 1, but only %d were", disrupted)
 				}
@@ -761,17 +761,17 @@ func TestSwarmDisruptAgents(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.9,
 			}
-			
+
 			swarm, err := NewSwarm(tt.size, goal)
 			if err != nil {
 				t.Fatalf("Failed to create swarm: %v", err)
 			}
-			
+
 			tt.setupFn(swarm)
 			initialCoherence := swarm.MeasureCoherence()
-			
+
 			swarm.DisruptAgents(tt.disruptionFactor)
-			
+
 			finalCoherence := swarm.MeasureCoherence()
 			tt.validateFn(t, swarm, initialCoherence, finalCoherence)
 		})
@@ -796,13 +796,13 @@ func TestSwarmMonitor(t *testing.T) {
 				if latest != 0.7 {
 					t.Errorf("Expected latest 0.7, got %f", latest)
 				}
-				
+
 				avg := monitor.GetAverage()
 				expectedAvg := (0.5 + 0.6 + 0.7) / 3
 				if math.Abs(avg-expectedAvg) > 0.01 {
 					t.Errorf("Expected average %f, got %f", expectedAvg, avg)
 				}
-				
+
 				history := monitor.GetHistory()
 				if len(history) != 3 {
 					t.Errorf("Expected 3 samples in history, got %d", len(history))
@@ -819,12 +819,12 @@ func TestSwarmMonitor(t *testing.T) {
 				if latest != 0 {
 					t.Errorf("Empty monitor should have latest 0, got %f", latest)
 				}
-				
+
 				avg := monitor.GetAverage()
 				if avg != 0 {
 					t.Errorf("Empty monitor should have average 0, got %f", avg)
 				}
-				
+
 				history := monitor.GetHistory()
 				if len(history) != 0 {
 					t.Errorf("Empty monitor should have empty history, got %d", len(history))
@@ -841,7 +841,7 @@ func TestSwarmMonitor(t *testing.T) {
 				if latest != 0.42 {
 					t.Errorf("Expected latest 0.42, got %f", latest)
 				}
-				
+
 				avg := monitor.GetAverage()
 				if avg != 0.42 {
 					t.Errorf("Single sample average should be 0.42, got %f", avg)
@@ -860,12 +860,12 @@ func TestSwarmMonitor(t *testing.T) {
 				if latest != 0.99 {
 					t.Errorf("Expected latest 0.99, got %f", latest)
 				}
-				
+
 				history := monitor.GetHistory()
 				if len(history) != 100 {
 					t.Errorf("Expected 100 samples in history, got %d", len(history))
 				}
-				
+
 				// Average should be close to 0.495
 				avg := monitor.GetAverage()
 				if math.Abs(avg-0.495) > 0.01 {
@@ -908,17 +908,17 @@ func TestSwarmMonitor(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.9,
 			}
-			
+
 			swarm, err := NewSwarm(10, goal)
 			if err != nil {
 				t.Fatalf("Failed to create swarm: %v", err)
 			}
-			
+
 			monitor := swarm.GetMonitor()
 			if monitor == nil {
 				t.Fatal("Monitor should not be nil")
 			}
-			
+
 			tt.setupFn(monitor)
 			tt.validateFn(t, monitor)
 		})
@@ -1027,13 +1027,13 @@ func TestSwarmConvergence(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create swarm: %v", err)
 			}
-			
+
 			tt.setupFn(swarm)
 			initialCoherence := swarm.MeasureCoherence()
-			
+
 			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
 			defer cancel()
-			
+
 			// Run swarm
 			errChan := make(chan error, 1)
 			go func() {
@@ -1041,13 +1041,13 @@ func TestSwarmConvergence(t *testing.T) {
 					errChan <- err
 				}
 			}()
-			
+
 			// Wait for convergence or timeout
 			time.Sleep(tt.timeout - 100*time.Millisecond)
-			
+
 			finalCoherence := swarm.MeasureCoherence()
 			tt.validateFn(t, swarm, initialCoherence, finalCoherence)
-			
+
 			// Check monitor recorded samples
 			if swarm.GetMonitor() != nil {
 				history := swarm.GetMonitor().GetHistory()
@@ -1065,15 +1065,15 @@ func TestSwarmConcurrency(t *testing.T) {
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.9,
 	}
-	
+
 	swarm, err := NewSwarm(50, goal)
 	if err != nil {
 		t.Fatalf("Failed to create swarm: %v", err)
 	}
-	
+
 	// Concurrent operations
 	var wg sync.WaitGroup
-	
+
 	// Measure coherence concurrently
 	wg.Add(10)
 	for i := 0; i < 10; i++ {
@@ -1082,7 +1082,7 @@ func TestSwarmConcurrency(t *testing.T) {
 			_ = swarm.MeasureCoherence()
 		}()
 	}
-	
+
 	// Get agents concurrently
 	wg.Add(10)
 	for i := 0; i < 10; i++ {
@@ -1091,7 +1091,7 @@ func TestSwarmConcurrency(t *testing.T) {
 			_, _ = swarm.GetAgent(fmt.Sprintf("agent-%d", id))
 		}(i)
 	}
-	
+
 	// Disrupt agents concurrently
 	wg.Add(5)
 	for i := 0; i < 5; i++ {
@@ -1100,7 +1100,7 @@ func TestSwarmConcurrency(t *testing.T) {
 			swarm.DisruptAgents(0.1)
 		}()
 	}
-	
+
 	// Access monitor concurrently
 	wg.Add(10)
 	for i := 0; i < 10; i++ {
@@ -1113,9 +1113,9 @@ func TestSwarmConcurrency(t *testing.T) {
 			}
 		}()
 	}
-	
+
 	wg.Wait()
-	
+
 	// If we get here without panic, concurrent access is safe
 	if swarm.Size() != 50 {
 		t.Error("Swarm size should remain consistent after concurrent operations")
@@ -1128,16 +1128,16 @@ func BenchmarkSwarmMeasureCoherence(b *testing.B) {
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.9,
 	}
-	
+
 	sizes := []int{10, 50, 100, 500}
-	
+
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("size-%d", size), func(b *testing.B) {
 			swarm, err := NewSwarm(size, goal)
 			if err != nil {
 				b.Fatalf("Failed to create swarm: %v", err)
 			}
-			
+
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				swarm.MeasureCoherence()
@@ -1152,9 +1152,9 @@ func BenchmarkSwarmCreation(b *testing.B) {
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.9,
 	}
-	
+
 	sizes := []int{10, 50, 100}
-	
+
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("size-%d", size), func(b *testing.B) {
 			b.ResetTimer()
@@ -1174,10 +1174,10 @@ func BenchmarkSwarmDisruption(b *testing.B) {
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.9,
 	}
-	
+
 	sizes := []int{10, 50, 100}
 	factors := []float64{0.1, 0.5, 1.0}
-	
+
 	for _, size := range sizes {
 		for _, factor := range factors {
 			b.Run(fmt.Sprintf("size-%d-factor-%.1f", size, factor), func(b *testing.B) {
@@ -1185,14 +1185,14 @@ func BenchmarkSwarmDisruption(b *testing.B) {
 				if err != nil {
 					b.Fatalf("Failed to create swarm: %v", err)
 				}
-				
+
 				// Set all to same phase for consistent benchmarks
 				swarm.agents.Range(func(key, value any) bool {
 					agent := value.(*Agent)
 					agent.SetPhase(0)
 					return true
 				})
-				
+
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
 					swarm.DisruptAgents(factor)

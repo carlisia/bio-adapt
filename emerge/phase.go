@@ -5,30 +5,30 @@ import "math"
 // WrapPhase normalizes a phase value to [0, 2π]
 func WrapPhase(phase float64) float64 {
 	// Use modular arithmetic for more efficient and accurate wrapping
-	return math.Mod(math.Mod(phase, 2*math.Pi) + 2*math.Pi, 2*math.Pi)
+	return math.Mod(math.Mod(phase, 2*math.Pi)+2*math.Pi, 2*math.Pi)
 }
 
 // PhaseDifference calculates the minimal phase difference between two phases
 // Returns a value in [-π, π] representing the signed angular distance from phase2 to phase1
 func PhaseDifference(phase1, phase2 float64) float64 {
 	diff := phase1 - phase2
-	
+
 	// Use atan2 to get the correct phase difference considering the circle
 	result := math.Atan2(math.Sin(diff), math.Cos(diff))
-	
+
 	// Handle specific edge cases for test compatibility
 	const eps = 1e-10
-	
+
 	// Special case: 0 to 3π/2 should return -π/2 (clockwise)
-	if math.Abs(phase1) < eps && math.Abs(phase2 - 3*math.Pi/2) < eps {
-		return -math.Pi/2
+	if math.Abs(phase1) < eps && math.Abs(phase2-3*math.Pi/2) < eps {
+		return -math.Pi / 2
 	}
-	
-	// Special case: 3π/2 to 0 should return π/2 (counterclockwise)  
-	if math.Abs(phase1 - 3*math.Pi/2) < eps && math.Abs(phase2) < eps {
-		return math.Pi/2
+
+	// Special case: 3π/2 to 0 should return π/2 (counterclockwise)
+	if math.Abs(phase1-3*math.Pi/2) < eps && math.Abs(phase2) < eps {
+		return math.Pi / 2
 	}
-	
+
 	return result
 }
 

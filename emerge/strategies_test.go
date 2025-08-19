@@ -268,7 +268,7 @@ func TestPhaseNudgeStrategyRateClamping(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			strategy := NewPhaseNudgeStrategy(tt.rate)
-			
+
 			// Special handling for NaN
 			if math.IsNaN(tt.rate) {
 				if !math.IsNaN(strategy.Rate) && strategy.Rate != tt.expected {
@@ -563,4 +563,3 @@ func TestStrategySelection(t *testing.T) {
 		t.Error("Should produce an action with high coherence")
 	}
 }
-

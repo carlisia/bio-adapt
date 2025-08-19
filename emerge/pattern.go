@@ -235,7 +235,7 @@ func phaseCorrelation(phases1, phases2 []float64) float64 {
 	if len(phases1) != len(phases2) {
 		return 0
 	}
-	
+
 	if len(phases1) == 0 {
 		return 0
 	}

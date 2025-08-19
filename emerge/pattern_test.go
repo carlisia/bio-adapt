@@ -16,7 +16,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 	}{
 		// Happy path cases
 		{
-			name: "uniform pattern",
+			name:   "uniform pattern",
 			phases: []float64{0, math.Pi / 4, math.Pi / 2, 3 * math.Pi / 4, math.Pi},
 			frequencies: []time.Duration{
 				100 * time.Millisecond,
@@ -79,7 +79,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			description: "Single phase pattern should work",
 		},
 		{
-			name: "mixed frequencies",
+			name:   "mixed frequencies",
 			phases: []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 			frequencies: []time.Duration{
 				50 * time.Millisecond,
@@ -578,8 +578,8 @@ func TestPatternSimilarity(t *testing.T) {
 		{
 			name: "massively different scale patterns",
 			other: NewRhythmicPattern(
-				[]float64{0, 1000*math.Pi, 2000*math.Pi, 3000*math.Pi},
-				[]time.Duration{1*time.Nanosecond, 1*time.Nanosecond, 1*time.Nanosecond, 1*time.Nanosecond},
+				[]float64{0, 1000 * math.Pi, 2000 * math.Pi, 3000 * math.Pi},
+				[]time.Duration{1 * time.Nanosecond, 1 * time.Nanosecond, 1 * time.Nanosecond, 1 * time.Nanosecond},
 			),
 			minSim:      0.0,
 			maxSim:      0.3,
@@ -810,7 +810,7 @@ func TestPatternLibrary(t *testing.T) {
 			name: "identify best match among multiple",
 			setupFn: func() *PatternLibrary {
 				library := NewPatternLibrary()
-				
+
 				circadian := &PatternTemplate{
 					Name: "circadian",
 					BasePattern: *NewRhythmicPattern(
@@ -819,7 +819,7 @@ func TestPatternLibrary(t *testing.T) {
 					),
 					Tolerance: 0.15,
 				}
-				
+
 				ultradian := &PatternTemplate{
 					Name: "ultradian",
 					BasePattern: *NewRhythmicPattern(
@@ -828,7 +828,7 @@ func TestPatternLibrary(t *testing.T) {
 					),
 					Tolerance: 0.2,
 				}
-				
+
 				library.Add("circadian", circadian)
 				library.Add("ultradian", ultradian)
 				return library
@@ -899,12 +899,12 @@ func TestPatternLibrary(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			library := tt.setupFn()
 			name, similarity := library.Identify(tt.testPattern)
-			
+
 			if name != tt.expectedID {
 				t.Errorf("%s: Expected to identify as '%s', got '%s'",
 					tt.description, tt.expectedID, name)
 			}
-			
+
 			if similarity < tt.minSim {
 				t.Errorf("%s: Expected similarity >= %f, got %f",
 					tt.description, tt.minSim, similarity)
@@ -1031,7 +1031,7 @@ func TestHelperFunctions(t *testing.T) {
 				description: "Single frequency should return that value",
 			},
 			{
-				name: "zero frequencies",
+				name:        "zero frequencies",
 				frequencies: []time.Duration{0, 0, 0},
 				expected:    0,
 				description: "Zero frequencies should return zero",
@@ -1150,7 +1150,7 @@ func TestPatternConcurrency(t *testing.T) {
 		[]float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 		[]time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
 	)
-	
+
 	library := NewPatternLibrary()
 	template := &PatternTemplate{
 		Name:        "test",
@@ -1158,37 +1158,37 @@ func TestPatternConcurrency(t *testing.T) {
 		Tolerance:   0.2,
 	}
 	library.Add("test", template)
-	
+
 	// Run concurrent operations
 	done := make(chan bool, 100)
-	
-	for i := 0; i < 25; i++ {
+
+	for range 25 {
 		go func() {
 			_ = pattern.Detect()
 			done <- true
 		}()
-		
+
 		go func() {
 			_ = pattern.Similarity(pattern)
 			done <- true
 		}()
-		
+
 		go func() {
 			_, _ = library.Identify(pattern)
 			done <- true
 		}()
-		
+
 		go func() {
 			_ = template.Matches(pattern)
 			done <- true
 		}()
 	}
-	
+
 	// Wait for all goroutines
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		<-done
 	}
-	
+
 	// If we get here without race conditions, concurrent access is safe
 }
 
@@ -1199,9 +1199,9 @@ func BenchmarkPatternDetect(b *testing.B) {
 		phases[i] = float64(i) * math.Pi / 50
 		frequencies[i] = 100 * time.Millisecond
 	}
-	
+
 	pattern := NewRhythmicPattern(phases, frequencies)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		pattern.Detect()
@@ -1211,10 +1211,10 @@ func BenchmarkPatternDetect(b *testing.B) {
 func BenchmarkPatternSimilarity(b *testing.B) {
 	phases := []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2}
 	frequencies := []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond}
-	
+
 	pattern1 := NewRhythmicPattern(phases, frequencies)
 	pattern2 := NewRhythmicPattern(phases, frequencies)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		pattern1.Similarity(pattern2)
@@ -1223,9 +1223,9 @@ func BenchmarkPatternSimilarity(b *testing.B) {
 
 func BenchmarkLibraryIdentify(b *testing.B) {
 	library := NewPatternLibrary()
-	
+
 	// Add multiple templates
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		phases := make([]float64, 4)
 		for j := range phases {
 			phases[j] = float64(j+i) * math.Pi / 4
@@ -1240,12 +1240,12 @@ func BenchmarkLibraryIdentify(b *testing.B) {
 		}
 		library.Add("template", template)
 	}
-	
+
 	testPattern := NewRhythmicPattern(
 		[]float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 		[]time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
 	)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		library.Identify(testPattern)

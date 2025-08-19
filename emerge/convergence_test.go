@@ -11,10 +11,10 @@ import (
 
 func TestNewConvergenceMonitor(t *testing.T) {
 	tests := []struct {
-		name        string
-		target      emerge.State
-		threshold   float64
-		validateFn  func(t *testing.T, monitor *emerge.ConvergenceMonitor)
+		name       string
+		target     emerge.State
+		threshold  float64
+		validateFn func(t *testing.T, monitor *emerge.ConvergenceMonitor)
 	}{
 		{
 			name: "basic monitor creation",
@@ -272,14 +272,14 @@ func TestConvergenceMonitorRecord(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			monitor := emerge.NewConvergenceMonitor(tt.target, tt.threshold)
-			
+
 			for i, sample := range tt.samples {
 				monitor.Record(sample)
 				if i < len(tt.delays) && tt.delays[i] > 0 {
 					time.Sleep(tt.delays[i])
 				}
 			}
-			
+
 			tt.validateFn(t, monitor)
 		})
 	}
@@ -287,11 +287,11 @@ func TestConvergenceMonitorRecord(t *testing.T) {
 
 func TestConvergenceMonitorConvergenceTime(t *testing.T) {
 	tests := []struct {
-		name        string
-		target      emerge.State
-		threshold   float64
-		setupFn     func(monitor *emerge.ConvergenceMonitor)
-		validateFn  func(t *testing.T, monitor *emerge.ConvergenceMonitor)
+		name       string
+		target     emerge.State
+		threshold  float64
+		setupFn    func(monitor *emerge.ConvergenceMonitor)
+		validateFn func(t *testing.T, monitor *emerge.ConvergenceMonitor)
 	}{
 		{
 			name: "immediate convergence",
@@ -383,13 +383,13 @@ func TestConvergenceMonitorConvergenceTime(t *testing.T) {
 
 func TestConvergenceMonitorRate(t *testing.T) {
 	tests := []struct {
-		name       string
-		target     emerge.State
-		threshold  float64
-		samples    []float64
-		delays     []time.Duration
-		minRate    float64
-		maxRate    float64
+		name      string
+		target    emerge.State
+		threshold float64
+		samples   []float64
+		delays    []time.Duration
+		minRate   float64
+		maxRate   float64
 	}{
 		{
 			name: "increasing coherence",
@@ -461,14 +461,14 @@ func TestConvergenceMonitorRate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			monitor := emerge.NewConvergenceMonitor(tt.target, tt.threshold)
-			
+
 			for i, sample := range tt.samples {
 				monitor.Record(sample)
 				if i < len(tt.delays) && tt.delays[i] > 0 {
 					time.Sleep(tt.delays[i])
 				}
 			}
-			
+
 			rate := monitor.ConvergenceRate()
 			if rate < tt.minRate || rate > tt.maxRate {
 				t.Errorf("Expected rate in range [%f, %f], got %f", tt.minRate, tt.maxRate, rate)
@@ -551,12 +551,12 @@ func TestConvergenceMonitorStability(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			monitor := emerge.NewConvergenceMonitor(tt.target, tt.threshold)
-			
+
 			for _, sample := range tt.samples {
 				monitor.Record(sample)
 				time.Sleep(10 * time.Millisecond)
 			}
-			
+
 			stability := monitor.Stability()
 			if stability < tt.minStability || stability > tt.maxStability {
 				t.Errorf("Expected stability in range [%f, %f], got %f",
@@ -649,14 +649,14 @@ func TestConvergenceMonitorPrediction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			monitor := emerge.NewConvergenceMonitor(tt.target, tt.threshold)
-			
+
 			for i, sample := range tt.samples {
 				monitor.Record(sample)
 				if i < len(tt.delays) && tt.delays[i] > 0 {
 					time.Sleep(tt.delays[i])
 				}
 			}
-			
+
 			prediction := monitor.PredictConvergenceTime()
 			tt.validateFn(t, prediction)
 		})
@@ -688,26 +688,26 @@ func TestConvergenceMonitorStatistics(t *testing.T) {
 						t.Errorf("Statistics should include %s", field)
 					}
 				}
-				
+
 				// Verify values
 				if samples, ok := stats["samples"].(int); ok {
 					if samples != 8 {
 						t.Errorf("Expected 8 samples, got %d", samples)
 					}
 				}
-				
+
 				if max, ok := stats["max"].(float64); ok {
 					if math.Abs(max-0.9) > 0.01 {
 						t.Errorf("Expected max 0.9, got %f", max)
 					}
 				}
-				
+
 				if min, ok := stats["min"].(float64); ok {
 					if math.Abs(min-0.5) > 0.01 {
 						t.Errorf("Expected min 0.5, got %f", min)
 					}
 				}
-				
+
 				if mean, ok := stats["mean"].(float64); ok {
 					expectedMean := (0.5 + 0.6 + 0.7 + 0.65 + 0.75 + 0.8 + 0.85 + 0.9) / 8
 					if math.Abs(mean-expectedMean) > 0.01 {
@@ -748,7 +748,7 @@ func TestConvergenceMonitorStatistics(t *testing.T) {
 						t.Error("Expected 1 sample")
 					}
 				}
-				
+
 				// Min, max, and mean should all be the same
 				if min, ok := stats["min"].(float64); ok {
 					if math.Abs(min-0.75) > 0.01 {
@@ -799,12 +799,12 @@ func TestConvergenceMonitorStatistics(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			monitor := emerge.NewConvergenceMonitor(tt.target, tt.threshold)
-			
+
 			for _, sample := range tt.samples {
 				monitor.Record(sample)
 				time.Sleep(10 * time.Millisecond)
 			}
-			
+
 			stats := monitor.GetStatistics()
 			tt.validateFn(t, stats)
 		})
@@ -837,9 +837,9 @@ func TestConvergenceMonitorReset(t *testing.T) {
 				if !monitor.IsConverged() {
 					t.Error("Should be converged before reset")
 				}
-				
+
 				monitor.Reset()
-				
+
 				if monitor.IsConverged() {
 					t.Error("Should not be converged after reset")
 				}
@@ -869,9 +869,9 @@ func TestConvergenceMonitorReset(t *testing.T) {
 				if historyBefore != 2 {
 					t.Error("Should have 2 samples before reset")
 				}
-				
+
 				monitor.Reset()
-				
+
 				if monitor.IsConverged() {
 					t.Error("Should not be converged after reset")
 				}
@@ -919,7 +919,7 @@ func TestConvergenceMonitorReset(t *testing.T) {
 			},
 			validateFn: func(t *testing.T, monitor *emerge.ConvergenceMonitor) {
 				monitor.Reset()
-				
+
 				// Should still be in initial state
 				if monitor.IsConverged() {
 					t.Error("Should not be converged")

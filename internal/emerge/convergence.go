@@ -137,4 +137,3 @@ func (cm *ConvergenceMonitor) Reset() {
 	cm.convergedAt = nil
 	cm.stableIterations = 0
 }
-

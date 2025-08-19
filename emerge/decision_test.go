@@ -478,13 +478,13 @@ func TestSimpleDecisionMakerConsistency(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dm := &SimpleDecisionMaker{}
-			
+
 			var firstAction Action
 			var firstConfidence float64
-			
+
 			for i := 0; i < tt.iterations; i++ {
 				action, confidence := dm.Decide(tt.state, tt.options)
-				
+
 				if i == 0 {
 					firstAction = action
 					firstConfidence = confidence
@@ -634,33 +634,33 @@ func TestSimpleDecisionMakerBoundaryConditions(t *testing.T) {
 
 func TestSimpleDecisionMakerConcurrency(t *testing.T) {
 	dm := &SimpleDecisionMaker{}
-	
+
 	state := State{
 		Phase:     0,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.5,
 	}
-	
+
 	options := []Action{
 		{Type: "action1", Value: 1.0, Cost: 1.0, Benefit: 2.0},
 		{Type: "action2", Value: 2.0, Cost: 2.0, Benefit: 3.0},
 		{Type: "action3", Value: 3.0, Cost: 1.5, Benefit: 4.0},
 	}
-	
+
 	// Run concurrent decisions
 	done := make(chan bool, 100)
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		go func() {
 			_, _ = dm.Decide(state, options)
 			done <- true
 		}()
 	}
-	
+
 	// Wait for all goroutines
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		<-done
 	}
-	
+
 	// If we get here without race conditions, concurrent access is safe
 }
 
@@ -678,13 +678,13 @@ func BenchmarkSimpleDecisionMaker(b *testing.B) {
 	for _, bm := range benchmarks {
 		b.Run(bm.name, func(b *testing.B) {
 			dm := &SimpleDecisionMaker{}
-			
+
 			state := State{
 				Phase:     0,
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.5,
 			}
-			
+
 			options := make([]Action, bm.options)
 			for i := range options {
 				options[i] = Action{
@@ -694,7 +694,7 @@ func BenchmarkSimpleDecisionMaker(b *testing.B) {
 					Benefit: float64(bm.options-i) * 0.3,
 				}
 			}
-			
+
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				dm.Decide(state, options)
@@ -705,13 +705,13 @@ func BenchmarkSimpleDecisionMaker(b *testing.B) {
 
 func BenchmarkSimpleDecisionMakerZeroCost(b *testing.B) {
 	dm := &SimpleDecisionMaker{}
-	
+
 	state := State{
 		Phase:     0,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.5,
 	}
-	
+
 	// All zero cost options
 	options := make([]Action, 10)
 	for i := range options {
@@ -722,7 +722,7 @@ func BenchmarkSimpleDecisionMakerZeroCost(b *testing.B) {
 			Benefit: float64(i) * 0.5,
 		}
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		dm.Decide(state, options)

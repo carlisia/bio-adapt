@@ -104,4 +104,3 @@ func phaseCorrelation(phases1, phases2 []float64) float64 {
 
 	return math.Sqrt(sumCos*sumCos+sumSin*sumSin) / float64(n)
 }
-

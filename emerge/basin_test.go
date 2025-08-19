@@ -10,11 +10,11 @@ import (
 
 func TestNewAttractorBasin(t *testing.T) {
 	tests := []struct {
-		name         string
-		target       emerge.State
-		strength     float64
-		radius       float64
-		validateFn   func(t *testing.T, basin *emerge.AttractorBasin)
+		name       string
+		target     emerge.State
+		strength   float64
+		radius     float64
+		validateFn func(t *testing.T, basin *emerge.AttractorBasin)
 	}{
 		{
 			name: "basic basin creation",
@@ -213,10 +213,10 @@ func TestNewAttractorBasin(t *testing.T) {
 
 func TestBasinDistanceToTarget(t *testing.T) {
 	tests := []struct {
-		name     string
-		target   emerge.State
-		state    emerge.State
-		expected float64
+		name      string
+		target    emerge.State
+		state     emerge.State
+		expected  float64
 		tolerance float64
 	}{
 		// Happy path cases
@@ -232,7 +232,7 @@ func TestBasinDistanceToTarget(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.8,
 			},
-			expected: 0,
+			expected:  0,
 			tolerance: 0.01,
 		},
 		{
@@ -247,7 +247,7 @@ func TestBasinDistanceToTarget(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.8,
 			},
-			expected: math.Pi / 4,
+			expected:  math.Pi / 4,
 			tolerance: 0.01,
 		},
 		{
@@ -262,7 +262,7 @@ func TestBasinDistanceToTarget(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.8,
 			},
-			expected: math.Pi,
+			expected:  math.Pi,
 			tolerance: 0.01,
 		},
 		// Edge cases with phase wrapping
@@ -278,7 +278,7 @@ func TestBasinDistanceToTarget(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.8,
 			},
-			expected: math.Pi / 2,
+			expected:  math.Pi / 2,
 			tolerance: 0.01,
 		},
 		{
@@ -293,7 +293,7 @@ func TestBasinDistanceToTarget(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.8,
 			},
-			expected: 0,
+			expected:  0,
 			tolerance: 0.01,
 		},
 		// Negative phase values
@@ -309,7 +309,7 @@ func TestBasinDistanceToTarget(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.8,
 			},
-			expected: math.Pi,
+			expected:  math.Pi,
 			tolerance: 0.01,
 		},
 		// Very small differences
@@ -325,7 +325,7 @@ func TestBasinDistanceToTarget(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.8,
 			},
-			expected: 0.0001,
+			expected:  0.0001,
 			tolerance: 0.00001,
 		},
 		// Large phase values
@@ -341,7 +341,7 @@ func TestBasinDistanceToTarget(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.8,
 			},
-			expected: math.Pi / 2,
+			expected:  math.Pi / 2,
 			tolerance: 0.01,
 		},
 		// Target at π
@@ -357,7 +357,7 @@ func TestBasinDistanceToTarget(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.8,
 			},
-			expected: math.Pi,
+			expected:  math.Pi,
 			tolerance: 0.01,
 		},
 		{
@@ -372,7 +372,7 @@ func TestBasinDistanceToTarget(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.8,
 			},
-			expected: math.Pi,
+			expected:  math.Pi,
 			tolerance: 0.01,
 		},
 	}
@@ -1098,24 +1098,24 @@ func TestPhaseUtilityFunctions(t *testing.T) {
 			{name: "3π wraps to π", input: 3 * math.Pi, expected: math.Pi},
 			{name: "π/2 phase", input: math.Pi / 2, expected: math.Pi / 2},
 			{name: "3π/2 phase", input: 3 * math.Pi / 2, expected: 3 * math.Pi / 2},
-			
+
 			// Negative values
 			{name: "negative π wraps to π", input: -math.Pi, expected: math.Pi},
 			{name: "negative 2π wraps to 0", input: -2 * math.Pi, expected: 0},
 			{name: "negative π/2", input: -math.Pi / 2, expected: 3 * math.Pi / 2},
 			{name: "negative 3π/2", input: -3 * math.Pi / 2, expected: math.Pi / 2},
-			
+
 			// Large values
 			{name: "4π wraps to 0", input: 4 * math.Pi, expected: 0},
 			{name: "5π wraps to π", input: 5 * math.Pi, expected: math.Pi},
 			{name: "10π wraps to 0", input: 10 * math.Pi, expected: 0},
 			{name: "100π wraps to 0", input: 100 * math.Pi, expected: 0},
 			{name: "101π wraps to π", input: 101 * math.Pi, expected: math.Pi},
-			
+
 			// Very small values
 			{name: "0.001 radians", input: 0.001, expected: 0.001},
 			{name: "negative 0.001", input: -0.001, expected: 2*math.Pi - 0.001},
-			
+
 			// Non-π multiples
 			{name: "1.5 radians", input: 1.5, expected: 1.5},
 			{name: "2.7 radians", input: 2.7, expected: 2.7},
@@ -1147,22 +1147,22 @@ func TestPhaseUtilityFunctions(t *testing.T) {
 			{name: "0 to π", phase1: 0, phase2: math.Pi, expected: -math.Pi},
 			{name: "π/2 to π/4", phase1: math.Pi / 2, phase2: math.Pi / 4, expected: math.Pi / 4},
 			{name: "π/4 to π/2", phase1: math.Pi / 4, phase2: math.Pi / 2, expected: -math.Pi / 4},
-			
+
 			// Wrapping cases (shortest path)
 			{name: "0.1 to 2π-0.1", phase1: 0.1, phase2: 2*math.Pi - 0.1, expected: 0.2},
 			{name: "2π-0.1 to 0.1", phase1: 2*math.Pi - 0.1, phase2: 0.1, expected: -0.2},
 			{name: "0 to 3π/2", phase1: 0, phase2: 3 * math.Pi / 2, expected: -math.Pi / 2},
 			{name: "3π/2 to 0", phase1: 3 * math.Pi / 2, phase2: 0, expected: math.Pi / 2},
-			
+
 			// Large phase values
 			{name: "10π to 10.5π", phase1: 10 * math.Pi, phase2: 10.5 * math.Pi, expected: -math.Pi / 2},
 			{name: "100.1π to 100π", phase1: 100.1 * math.Pi, phase2: 100 * math.Pi, expected: 0.1 * math.Pi},
-			
+
 			// Negative phase values
 			{name: "-π/2 to π/2", phase1: -math.Pi / 2, phase2: math.Pi / 2, expected: -math.Pi},
 			{name: "π/2 to -π/2", phase1: math.Pi / 2, phase2: -math.Pi / 2, expected: math.Pi},
 			{name: "-π to π", phase1: -math.Pi, phase2: math.Pi, expected: 0},
-			
+
 			// Edge cases
 			{name: "π to -π (same angle)", phase1: math.Pi, phase2: -math.Pi, expected: 0},
 			{name: "very small difference", phase1: 1.0, phase2: 1.0001, expected: -0.0001},
@@ -1218,7 +1218,7 @@ func TestPhaseUtilityFunctions(t *testing.T) {
 				expected:  0.0,
 				tolerance: 0.01,
 			},
-			
+
 			// Edge cases
 			{
 				name:      "empty array",
@@ -1250,7 +1250,7 @@ func TestPhaseUtilityFunctions(t *testing.T) {
 				expected:  math.Sqrt(2) / 2,
 				tolerance: 0.01,
 			},
-			
+
 			// Many agents
 			{
 				name:      "100 aligned agents",
@@ -1276,7 +1276,7 @@ func TestPhaseUtilityFunctions(t *testing.T) {
 				expected:  0.0,
 				tolerance: 0.01,
 			},
-			
+
 			// Numerical edge cases
 			{
 				name:      "very small phases",
@@ -1316,4 +1316,3 @@ func uniformPhases(n int) []float64 {
 	}
 	return phases
 }
-

@@ -236,7 +236,7 @@ func TestAttractorBasinPhaseDistance(t *testing.T) {
 		},
 		{
 			name:         "near 2π boundary",
-			basin:        NewAttractorBasin(2*math.Pi - 0.1, 0.8, 0.5, math.Pi),
+			basin:        NewAttractorBasin(2*math.Pi-0.1, 0.8, 0.5, math.Pi),
 			currentPhase: 0.1,
 			wantDist:     0.2,
 			tolerance:    0.01,
@@ -244,21 +244,21 @@ func TestAttractorBasinPhaseDistance(t *testing.T) {
 		{
 			name:         "negative target to positive current",
 			basin:        NewAttractorBasin(-math.Pi/2, 0.8, 0.5, math.Pi),
-			currentPhase: math.Pi/2,
+			currentPhase: math.Pi / 2,
 			wantDist:     math.Pi,
 			tolerance:    0.01,
 		},
 		{
 			name:         "negative target to negative current",
 			basin:        NewAttractorBasin(-math.Pi/2, 0.8, 0.5, math.Pi),
-			currentPhase: -math.Pi/4,
-			wantDist:     math.Pi/4,
+			currentPhase: -math.Pi / 4,
+			wantDist:     math.Pi / 4,
 			tolerance:    0.01,
 		},
 		{
 			name:         "both negative opposite sides",
 			basin:        NewAttractorBasin(-math.Pi/2, 0.8, 0.5, math.Pi),
-			currentPhase: -3*math.Pi/2,
+			currentPhase: -3 * math.Pi / 2,
 			wantDist:     math.Pi,
 			tolerance:    0.01,
 		},
@@ -298,9 +298,9 @@ func TestAttractorBasinPhaseDistance(t *testing.T) {
 
 func TestAttractorBasinIsInBasin(t *testing.T) {
 	tests := []struct {
-		name    string
-		basin   *AttractorBasin
-		phases  []struct {
+		name   string
+		basin  *AttractorBasin
+		phases []struct {
 			phase   float64
 			inBasin bool
 		}
@@ -312,11 +312,11 @@ func TestAttractorBasinIsInBasin(t *testing.T) {
 				phase   float64
 				inBasin bool
 			}{
-				{math.Pi / 2, true},              // At target
-				{math.Pi/2 + math.Pi/16, true},    // Within radius
-				{math.Pi/2 + math.Pi/8, true},     // At boundary
-				{math.Pi/2 + math.Pi/4, false},    // Outside
-				{math.Pi, false},                  // Far outside
+				{math.Pi / 2, true},            // At target
+				{math.Pi/2 + math.Pi/16, true}, // Within radius
+				{math.Pi/2 + math.Pi/8, true},  // At boundary
+				{math.Pi/2 + math.Pi/4, false}, // Outside
+				{math.Pi, false},               // Far outside
 			},
 		},
 		{
@@ -326,11 +326,11 @@ func TestAttractorBasinIsInBasin(t *testing.T) {
 				phase   float64
 				inBasin bool
 			}{
-				{0, true},                // At target
-				{math.Pi / 2, true},       // Within radius
-				{math.Pi - 0.01, true},    // Near boundary
-				{math.Pi + 0.01, true},    // Just outside but within floating point tolerance
-				{3 * math.Pi / 2, true},   // Wrapped, within
+				{0, true},               // At target
+				{math.Pi / 2, true},     // Within radius
+				{math.Pi - 0.01, true},  // Near boundary
+				{math.Pi + 0.01, true},  // Just outside but within floating point tolerance
+				{3 * math.Pi / 2, true}, // Wrapped, within
 			},
 		},
 		{
@@ -340,9 +340,9 @@ func TestAttractorBasinIsInBasin(t *testing.T) {
 				phase   float64
 				inBasin bool
 			}{
-				{math.Pi, true},         // At target (distance 0 <= 0)
+				{math.Pi, true},          // At target (distance 0 <= 0)
 				{math.Pi + 0.001, false}, // Very close
-				{0, false},              // Opposite
+				{0, false},               // Opposite
 			},
 		},
 		{
@@ -352,11 +352,11 @@ func TestAttractorBasinIsInBasin(t *testing.T) {
 				phase   float64
 				inBasin bool
 			}{
-				{0, true},           // At target
-				{math.Pi / 2, true},  // Quarter
-				{math.Pi, true},      // Opposite
+				{0, true},               // At target
+				{math.Pi / 2, true},     // Quarter
+				{math.Pi, true},         // Opposite
 				{3 * math.Pi / 2, true}, // Three quarters
-				{-math.Pi, true},     // Wrapped negative
+				{-math.Pi, true},        // Wrapped negative
 			},
 		},
 	}
@@ -376,59 +376,59 @@ func TestAttractorBasinIsInBasin(t *testing.T) {
 
 func TestAttractorBasinConvergenceRate(t *testing.T) {
 	tests := []struct {
-		name      string
-		basin     *AttractorBasin
-		phase     float64
-		wantMin   float64
-		wantMax   float64
+		name        string
+		basin       *AttractorBasin
+		phase       float64
+		wantMin     float64
+		wantMax     float64
 		description string
 	}{
 		{
-			name:      "at target with high strength",
-			basin:     NewAttractorBasin(0, 0.9, 0.8, math.Pi/4),
-			phase:     0,
-			wantMin:   0.7,
-			wantMax:   0.8,
+			name:        "at target with high strength",
+			basin:       NewAttractorBasin(0, 0.9, 0.8, math.Pi/4),
+			phase:       0,
+			wantMin:     0.7,
+			wantMax:     0.8,
 			description: "maximum convergence at target",
 		},
 		{
-			name:      "within basin",
-			basin:     NewAttractorBasin(0, 0.9, 0.8, math.Pi/2),
-			phase:     math.Pi / 4,
-			wantMin:   0.3,
-			wantMax:   0.5,
+			name:        "within basin",
+			basin:       NewAttractorBasin(0, 0.9, 0.8, math.Pi/2),
+			phase:       math.Pi / 4,
+			wantMin:     0.3,
+			wantMax:     0.5,
 			description: "partial convergence within basin",
 		},
 		{
-			name:      "outside basin",
-			basin:     NewAttractorBasin(0, 0.9, 0.8, math.Pi/4),
-			phase:     math.Pi,
-			wantMin:   0,
-			wantMax:   0,
+			name:        "outside basin",
+			basin:       NewAttractorBasin(0, 0.9, 0.8, math.Pi/4),
+			phase:       math.Pi,
+			wantMin:     0,
+			wantMax:     0,
 			description: "no convergence outside basin",
 		},
 		{
-			name:      "zero radius",
-			basin:     NewAttractorBasin(0, 0.9, 0.8, 0),
-			phase:     0,
-			wantMin:   0,
-			wantMax:   0,
+			name:        "zero radius",
+			basin:       NewAttractorBasin(0, 0.9, 0.8, 0),
+			phase:       0,
+			wantMin:     0,
+			wantMax:     0,
 			description: "no convergence with zero radius",
 		},
 		{
-			name:      "zero strength",
-			basin:     NewAttractorBasin(0, 0.9, 0, math.Pi/2),
-			phase:     0,
-			wantMin:   0,
-			wantMax:   0,
+			name:        "zero strength",
+			basin:       NewAttractorBasin(0, 0.9, 0, math.Pi/2),
+			phase:       0,
+			wantMin:     0,
+			wantMax:     0,
 			description: "no convergence with zero strength",
 		},
 		{
-			name:      "at basin edge",
-			basin:     NewAttractorBasin(math.Pi, 0.85, 0.6, math.Pi/3),
-			phase:     math.Pi + math.Pi/3,
-			wantMin:   0,
-			wantMax:   0.1,
+			name:        "at basin edge",
+			basin:       NewAttractorBasin(math.Pi, 0.85, 0.6, math.Pi/3),
+			phase:       math.Pi + math.Pi/3,
+			wantMin:     0,
+			wantMax:     0.1,
 			description: "minimal convergence at edge",
 		},
 	}
@@ -512,13 +512,13 @@ func TestAttractorBasinExtremePhases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			basin := NewAttractorBasin(tt.targetPhase, 0.8, 0.5, tt.radius)
-			
+
 			// Should not panic
 			distance := basin.PhaseDistance(tt.currentPhase)
 			force := basin.AttractionForce(tt.currentPhase)
 			inBasin := basin.IsInBasin(tt.currentPhase)
 			rate := basin.ConvergenceRate(tt.currentPhase)
-			
+
 			// Basic sanity checks
 			if distance < 0 {
 				t.Errorf("%s: distance should be non-negative, got %f", tt.description, distance)
@@ -554,7 +554,7 @@ func TestPhaseDistanceNegativeValues(t *testing.T) {
 		{
 			name:         "large negative to zero",
 			targetPhase:  0,
-			currentPhase: -10*math.Pi,
+			currentPhase: -10 * math.Pi,
 			wantDist:     0,
 			tolerance:    0.001,
 			description:  "large negative should wrap to zero distance",
@@ -569,7 +569,7 @@ func TestPhaseDistanceNegativeValues(t *testing.T) {
 		},
 		{
 			name:         "negative 3Pi to negative Pi",
-			targetPhase:  -3*math.Pi,
+			targetPhase:  -3 * math.Pi,
 			currentPhase: -math.Pi,
 			wantDist:     0,
 			tolerance:    0.001,
@@ -585,40 +585,40 @@ func TestPhaseDistanceNegativeValues(t *testing.T) {
 		},
 		{
 			name:         "very large negative difference",
-			targetPhase:  -1000*math.Pi,
-			currentPhase: 1000*math.Pi,
+			targetPhase:  -1000 * math.Pi,
+			currentPhase: 1000 * math.Pi,
 			wantDist:     0,
 			tolerance:    0.001,
 			description:  "extreme negative to positive",
 		},
 		{
 			name:         "negative quarter turns",
-			targetPhase:  -math.Pi/4,
-			currentPhase: -3*math.Pi/4,
-			wantDist:     math.Pi/2,
+			targetPhase:  -math.Pi / 4,
+			currentPhase: -3 * math.Pi / 4,
+			wantDist:     math.Pi / 2,
 			tolerance:    0.001,
 			description:  "quarter turn difference, both negative",
 		},
 		{
 			name:         "negative wrap to positive equivalent",
-			targetPhase:  -3*math.Pi/2,
-			currentPhase: math.Pi/2,
+			targetPhase:  -3 * math.Pi / 2,
+			currentPhase: math.Pi / 2,
 			wantDist:     0,
 			tolerance:    0.001,
 			description:  "-3π/2 is same as π/2",
 		},
 		{
 			name:         "asymmetric negative values",
-			targetPhase:  -math.Pi/3,
-			currentPhase: -2*math.Pi/3,
-			wantDist:     math.Pi/3,
+			targetPhase:  -math.Pi / 3,
+			currentPhase: -2 * math.Pi / 3,
+			wantDist:     math.Pi / 3,
 			tolerance:    0.001,
 			description:  "one third turn, both negative",
 		},
 		{
 			name:         "negative target positive current opposite",
-			targetPhase:  -math.Pi/2,
-			currentPhase: 3*math.Pi/2,
+			targetPhase:  -math.Pi / 2,
+			currentPhase: 3 * math.Pi / 2,
 			wantDist:     0,
 			tolerance:    0.001,
 			description:  "-π/2 and 3π/2 are same angle",
@@ -629,18 +629,18 @@ func TestPhaseDistanceNegativeValues(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			basin := NewAttractorBasin(tt.targetPhase, 0.8, 0.5, math.Pi)
 			dist := basin.PhaseDistance(tt.currentPhase)
-			
+
 			if math.Abs(dist-tt.wantDist) > tt.tolerance {
 				t.Errorf("%s: PhaseDistance() = %f, want %f ± %f",
 					tt.description, dist, tt.wantDist, tt.tolerance)
 			}
-			
+
 			// Distance should always be non-negative
 			if dist < 0 {
 				t.Errorf("%s: PhaseDistance() returned negative value: %f",
 					tt.description, dist)
 			}
-			
+
 			// Distance should never exceed π (half circle)
 			if dist > math.Pi+tt.tolerance {
 				t.Errorf("%s: PhaseDistance() = %f, exceeds π",
@@ -734,13 +734,13 @@ func TestAttractorBasinNaNInfValues(t *testing.T) {
 			}()
 
 			basin := NewAttractorBasin(tt.targetPhase, tt.targetCoherence, tt.strength, tt.radius)
-			
+
 			// These operations should handle NaN/Inf gracefully
 			_ = basin.PhaseDistance(tt.currentPhase)
 			_ = basin.AttractionForce(tt.currentPhase)
 			_ = basin.IsInBasin(tt.currentPhase)
 			_ = basin.ConvergenceRate(tt.currentPhase)
-			
+
 			// Check that NaN strength gets clamped
 			if math.IsNaN(tt.strength) {
 				if !math.IsNaN(basin.strength) && (basin.strength < 0 || basin.strength > 1) {

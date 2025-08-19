@@ -222,4 +222,3 @@ func (m *MockGoalManager) Blend(local, global State, weight float64) State {
 		Coherence: local.Coherence*(1-weight) + global.Coherence*weight,
 	}
 }
-

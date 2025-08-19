@@ -10,9 +10,9 @@ import (
 
 func TestNewAgent(t *testing.T) {
 	tests := []struct {
-		name        string
-		id          string
-		validateFn  func(t *testing.T, agent *emerge.Agent)
+		name       string
+		id         string
+		validateFn func(t *testing.T, agent *emerge.Agent)
 	}{
 		{
 			name: "basic agent creation",
@@ -58,22 +58,22 @@ func TestNewAgent(t *testing.T) {
 				if phase < 0 || phase > 2*math.Pi {
 					t.Errorf("Phase = %f, want in [0, 2π]", phase)
 				}
-				
+
 				energy := agent.Energy()
 				if energy != 100.0 {
 					t.Errorf("Energy = %f, want 100.0", energy)
 				}
-				
+
 				localGoal := agent.LocalGoal()
 				if localGoal < 0 || localGoal > 2*math.Pi {
 					t.Errorf("LocalGoal = %f, want in [0, 2π]", localGoal)
 				}
-				
+
 				influence := agent.Influence()
 				if influence < 0.3 || influence > 0.7 {
 					t.Errorf("Influence = %f, want in [0.3, 0.7]", influence)
 				}
-				
+
 				stubbornness := agent.Stubbornness()
 				if stubbornness < 0 || stubbornness > 0.3 {
 					t.Errorf("Stubbornness = %f, want in [0, 0.3]", stubbornness)
@@ -95,9 +95,9 @@ func TestNewAgent(t *testing.T) {
 
 func TestAgentSettersAndGetters(t *testing.T) {
 	tests := []struct {
-		name     string
-		setupFn  func(agent *emerge.Agent)
-		checkFn  func(t *testing.T, agent *emerge.Agent)
+		name    string
+		setupFn func(agent *emerge.Agent)
+		checkFn func(t *testing.T, agent *emerge.Agent)
 	}{
 		{
 			name: "set phase to π",
@@ -214,10 +214,10 @@ func TestAgentSettersAndGetters(t *testing.T) {
 
 func TestAgentProposeAdjustment(t *testing.T) {
 	tests := []struct {
-		name        string
-		setupFn     func() *emerge.Agent
-		globalGoal  emerge.State
-		validateFn  func(t *testing.T, action emerge.Action, accepted bool)
+		name       string
+		setupFn    func() *emerge.Agent
+		globalGoal emerge.State
+		validateFn func(t *testing.T, action emerge.Action, accepted bool)
 	}{
 		{
 			name: "agent far from goal",
@@ -293,7 +293,7 @@ func TestAgentProposeAdjustment(t *testing.T) {
 			setupFn: func() *emerge.Agent {
 				agent := emerge.NewAgent("test")
 				// Deplete energy
-				for i := 0; i < 20; i++ {
+				for range 20 {
 					agent.ApplyAction(emerge.Action{
 						Type:  "adjust_phase",
 						Value: 0.1,
@@ -329,12 +329,12 @@ func TestAgentProposeAdjustment(t *testing.T) {
 
 func TestAgentApplyAction(t *testing.T) {
 	tests := []struct {
-		name         string
-		setupFn      func() *emerge.Agent
-		action       emerge.Action
-		wantSuccess  bool
-		wantCost     float64
-		validateFn   func(t *testing.T, agent *emerge.Agent, beforePhase float64)
+		name        string
+		setupFn     func() *emerge.Agent
+		action      emerge.Action
+		wantSuccess bool
+		wantCost    float64
+		validateFn  func(t *testing.T, agent *emerge.Agent, beforePhase float64)
 	}{
 		{
 			name: "adjust phase positive",
@@ -462,8 +462,8 @@ func TestAgentApplyAction(t *testing.T) {
 				return emerge.NewAgent("test")
 			},
 			action: emerge.Action{
-				Type:  "maintain",
-				Cost:  0,
+				Type: "maintain",
+				Cost: 0,
 			},
 			wantSuccess: true,
 			wantCost:    0,
@@ -497,7 +497,7 @@ func TestAgentApplyAction(t *testing.T) {
 			setupFn: func() *emerge.Agent {
 				agent := emerge.NewAgent("test")
 				// Deplete energy
-				for i := 0; i < 19; i++ {
+				for range 19 {
 					agent.ApplyAction(emerge.Action{
 						Type:  "adjust_phase",
 						Value: 0.01,
@@ -525,16 +525,16 @@ func TestAgentApplyAction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			agent := tt.setupFn()
 			beforePhase := agent.Phase()
-			
+
 			success, cost := agent.ApplyAction(tt.action)
-			
+
 			if success != tt.wantSuccess {
 				t.Errorf("ApplyAction() success = %v, want %v", success, tt.wantSuccess)
 			}
 			if cost != tt.wantCost {
 				t.Errorf("ApplyAction() cost = %f, want %f", cost, tt.wantCost)
 			}
-			
+
 			tt.validateFn(t, agent, beforePhase)
 		})
 	}
@@ -542,9 +542,9 @@ func TestAgentApplyAction(t *testing.T) {
 
 func TestAgentEnergyManagement(t *testing.T) {
 	tests := []struct {
-		name       string
-		actions    []emerge.Action
-		wantEnergy func(float64) bool
+		name        string
+		actions     []emerge.Action
+		wantEnergy  func(float64) bool
 		description string
 	}{
 		{
@@ -611,11 +611,11 @@ func TestAgentEnergyManagement(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			agent := emerge.NewAgent("test")
-			
+
 			for _, action := range tt.actions {
 				agent.ApplyAction(action)
 			}
-			
+
 			energy := agent.Energy()
 			if !tt.wantEnergy(energy) {
 				t.Errorf("Energy = %f, %s", energy, tt.description)
@@ -626,9 +626,9 @@ func TestAgentEnergyManagement(t *testing.T) {
 
 func TestAgentWithOptions(t *testing.T) {
 	tests := []struct {
-		name      string
-		options   []emerge.AgentOption
-		validate  func(t *testing.T, agent *emerge.Agent)
+		name     string
+		options  []emerge.AgentOption
+		validate func(t *testing.T, agent *emerge.Agent)
 	}{
 		{
 			name: "with phase",
@@ -698,7 +698,7 @@ func TestAgentWithOptions(t *testing.T) {
 			},
 		},
 		{
-			name: "no options (defaults)",
+			name:    "no options (defaults)",
 			options: []emerge.AgentOption{},
 			validate: func(t *testing.T, agent *emerge.Agent) {
 				if agent.Energy() != 100.0 {
@@ -722,12 +722,12 @@ func TestAgentWithOptions(t *testing.T) {
 
 func TestAgentFromConfig(t *testing.T) {
 	tests := []struct {
-		name      string
-		configFn  func() emerge.AgentConfig
-		validate  func(t *testing.T, agent *emerge.Agent, config emerge.AgentConfig)
+		name     string
+		configFn func() emerge.AgentConfig
+		validate func(t *testing.T, agent *emerge.Agent, config emerge.AgentConfig)
 	}{
 		{
-			name: "default config",
+			name:     "default config",
 			configFn: emerge.DefaultAgentConfig,
 			validate: func(t *testing.T, agent *emerge.Agent, config emerge.AgentConfig) {
 				if agent.Energy() != 100.0 {
@@ -739,7 +739,7 @@ func TestAgentFromConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "test config",
+			name:     "test config",
 			configFn: emerge.TestAgentConfig,
 			validate: func(t *testing.T, agent *emerge.Agent, config emerge.AgentConfig) {
 				if agent.Stubbornness() != 0.01 {
@@ -751,7 +751,7 @@ func TestAgentFromConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "randomized config",
+			name:     "randomized config",
 			configFn: emerge.RandomizedAgentConfig,
 			validate: func(t *testing.T, agent *emerge.Agent, config emerge.AgentConfig) {
 				if !config.RandomizePhase {
@@ -767,11 +767,11 @@ func TestAgentFromConfig(t *testing.T) {
 			name: "custom config with extreme values",
 			configFn: func() emerge.AgentConfig {
 				return emerge.AgentConfig{
-					Phase:     3 * math.Pi, // Should wrap
-					InitialEnergy:    200.0,       // Above normal
-					Stubbornness:     2.0,         // Should clamp
-					Influence:        -0.5,        // Should clamp
-					RandomizePhase:   false,
+					Phase:          3 * math.Pi, // Should wrap
+					InitialEnergy:  200.0,       // Above normal
+					Stubbornness:   2.0,         // Should clamp
+					Influence:      -0.5,        // Should clamp
+					RandomizePhase: false,
 				}
 			},
 			validate: func(t *testing.T, agent *emerge.Agent, config emerge.AgentConfig) {
@@ -790,11 +790,11 @@ func TestAgentFromConfig(t *testing.T) {
 			name: "config with zero values",
 			configFn: func() emerge.AgentConfig {
 				return emerge.AgentConfig{
-					Phase:     0,
-					InitialEnergy:    0,
-					Stubbornness:     0,
-					Influence:        0,
-					RandomizePhase:   false,
+					Phase:          0,
+					InitialEnergy:  0,
+					Stubbornness:   0,
+					Influence:      0,
+					RandomizePhase: false,
 				}
 			},
 			validate: func(t *testing.T, agent *emerge.Agent, config emerge.AgentConfig) {
@@ -829,10 +829,10 @@ func TestAgentFromConfig(t *testing.T) {
 
 func TestAgentConcurrency(t *testing.T) {
 	agent := emerge.NewAgent("concurrent-test")
-	
+
 	// Test concurrent reads
 	done := make(chan bool, 10)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go func() {
 			_ = agent.Phase()
 			_ = agent.Energy()
@@ -842,13 +842,13 @@ func TestAgentConcurrency(t *testing.T) {
 			done <- true
 		}()
 	}
-	
-	for i := 0; i < 10; i++ {
+
+	for range 10 {
 		<-done
 	}
-	
+
 	// Test concurrent writes
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		go func(val float64) {
 			agent.SetPhase(val)
 			agent.SetLocalGoal(val)
@@ -857,13 +857,13 @@ func TestAgentConcurrency(t *testing.T) {
 			done <- true
 		}(float64(i))
 	}
-	
-	for i := 0; i < 10; i++ {
+
+	for range 10 {
 		<-done
 	}
-	
+
 	// Test concurrent actions
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go func() {
 			action := emerge.Action{
 				Type:  "adjust_phase",
@@ -874,11 +874,11 @@ func TestAgentConcurrency(t *testing.T) {
 			done <- true
 		}()
 	}
-	
-	for i := 0; i < 10; i++ {
+
+	for range 10 {
 		<-done
 	}
-	
+
 	// Energy should be reduced after concurrent actions
 	if agent.Energy() >= 100.0 {
 		t.Error("Energy should be reduced after concurrent actions")
@@ -887,9 +887,9 @@ func TestAgentConcurrency(t *testing.T) {
 
 func TestAgentNeighborManagement(t *testing.T) {
 	tests := []struct {
-		name      string
-		setupFn   func() (*emerge.Agent, *emerge.Agent)
-		validate  func(t *testing.T, agent1, agent2 *emerge.Agent)
+		name     string
+		setupFn  func() (*emerge.Agent, *emerge.Agent)
+		validate func(t *testing.T, agent1, agent2 *emerge.Agent)
 	}{
 		{
 			name: "add neighbor",
@@ -904,10 +904,10 @@ func TestAgentNeighborManagement(t *testing.T) {
 				if neighbors == nil {
 					t.Error("Neighbors() should not return nil")
 				}
-				
+
 				// Store neighbor
 				neighbors.Store(agent2.ID, agent2)
-				
+
 				// Verify neighbor was added
 				val, exists := neighbors.Load(agent2.ID)
 				if !exists {
@@ -924,11 +924,11 @@ func TestAgentNeighborManagement(t *testing.T) {
 				agent1 := emerge.NewAgent("agent1")
 				agent2 := emerge.NewAgent("agent2")
 				agent3 := emerge.NewAgent("agent3")
-				
+
 				neighbors := agent1.Neighbors()
 				neighbors.Store(agent2.ID, agent2)
 				neighbors.Store(agent3.ID, agent3)
-				
+
 				return agent1, agent2
 			},
 			validate: func(t *testing.T, agent1, agent2 *emerge.Agent) {
@@ -937,7 +937,7 @@ func TestAgentNeighborManagement(t *testing.T) {
 					count++
 					return true
 				})
-				
+
 				if count != 2 {
 					t.Errorf("Expected 2 neighbors, got %d", count)
 				}

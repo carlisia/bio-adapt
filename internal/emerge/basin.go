@@ -67,4 +67,3 @@ func (b *AttractorBasin) ConvergenceRate(currentPhase float64) float64 {
 	}
 	return b.strength * (1 - distance/b.radius)
 }
-

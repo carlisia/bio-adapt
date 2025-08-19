@@ -257,7 +257,7 @@ func TestWeightedGoalManagerBlend(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gm := &emerge.WeightedGoalManager{}
 			blended := gm.Blend(tt.local, tt.global, tt.weight)
-			
+
 			// Check phase
 			phaseDiff := math.Abs(blended.Phase - tt.expectedPhase)
 			// Handle phase wrapping
@@ -268,13 +268,13 @@ func TestWeightedGoalManagerBlend(t *testing.T) {
 				t.Errorf("%s: Phase = %f, expected %f±%f",
 					tt.description, blended.Phase, tt.expectedPhase, tt.phaseTolerance)
 			}
-			
+
 			// Check coherence
 			if math.Abs(blended.Coherence-tt.expectedCoherence) > tt.cohTolerance {
 				t.Errorf("%s: Coherence = %f, expected %f±%f",
 					tt.description, blended.Coherence, tt.expectedCoherence, tt.cohTolerance)
 			}
-			
+
 			// Check frequency preservation
 			if blended.Frequency != tt.local.Frequency {
 				t.Errorf("%s: Frequency should be preserved from local state", tt.description)
@@ -285,11 +285,11 @@ func TestWeightedGoalManagerBlend(t *testing.T) {
 
 func TestWeightedGoalManagerPhaseWrapping(t *testing.T) {
 	tests := []struct {
-		name           string
-		local          emerge.State
-		global         emerge.State
-		weight         float64
-		validateFn     func(t *testing.T, blended emerge.State)
+		name       string
+		local      emerge.State
+		global     emerge.State
+		weight     float64
+		validateFn func(t *testing.T, blended emerge.State)
 	}{
 		{
 			name: "phase wrapping across 0/2π boundary",
@@ -539,17 +539,17 @@ func TestWeightedGoalManagerWeightClamping(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gm := &emerge.WeightedGoalManager{}
 			blended := gm.Blend(tt.local, tt.global, tt.weight)
-			
+
 			// Skip NaN test if result is also NaN
 			if math.IsNaN(tt.weight) && math.IsNaN(blended.Phase) {
 				t.Skip("NaN weight produces NaN result")
 			}
-			
+
 			if math.Abs(blended.Phase-tt.expectedPhase) > 0.01 {
 				t.Errorf("%s: Phase = %f, expected %f",
 					tt.description, blended.Phase, tt.expectedPhase)
 			}
-			
+
 			if math.Abs(blended.Coherence-tt.expectedCoherence) > 0.01 {
 				t.Errorf("%s: Coherence = %f, expected %f",
 					tt.description, blended.Coherence, tt.expectedCoherence)
@@ -640,30 +640,30 @@ func TestWeightedGoalManagerSymmetry(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gm := &emerge.WeightedGoalManager{}
-			
+
 			// Blend 1->2 with weight w
 			blend12 := gm.Blend(tt.state1, tt.state2, tt.weight)
-			
+
 			// Blend 2->1 with weight (1-w)
 			blend21 := gm.Blend(tt.state2, tt.state1, 1-tt.weight)
-			
+
 			// Results should be the same
 			phaseDiff := math.Abs(blend12.Phase - blend21.Phase)
 			// Handle phase wrapping
 			if phaseDiff > math.Pi {
 				phaseDiff = 2*math.Pi - phaseDiff
 			}
-			
+
 			if phaseDiff > 0.01 {
 				t.Errorf("Blending not symmetric for phase: %f vs %f (diff: %f)",
 					blend12.Phase, blend21.Phase, phaseDiff)
 			}
-			
+
 			if math.Abs(blend12.Coherence-blend21.Coherence) > 0.01 {
 				t.Errorf("Blending not symmetric for coherence: %f vs %f",
 					blend12.Coherence, blend21.Coherence)
 			}
-			
+
 			// Note: Frequency might not be symmetric since it's taken from local state
 		})
 	}
@@ -788,51 +788,51 @@ func TestWeightedGoalManagerEdgeCases(t *testing.T) {
 
 func TestWeightedGoalManagerConcurrency(t *testing.T) {
 	gm := &emerge.WeightedGoalManager{}
-	
+
 	local := emerge.State{
 		Phase:     0,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.5,
 	}
-	
+
 	global := emerge.State{
 		Phase:     math.Pi,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.5,
 	}
-	
+
 	// Run concurrent blends
 	done := make(chan bool, 100)
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		go func(weight float64) {
 			_ = gm.Blend(local, global, weight)
 			done <- true
 		}(float64(i) / 100.0)
 	}
-	
+
 	// Wait for all goroutines
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		<-done
 	}
-	
+
 	// If we get here without panic, concurrent access is safe
 }
 
 func BenchmarkWeightedGoalManager(b *testing.B) {
 	gm := &emerge.WeightedGoalManager{}
-	
+
 	local := emerge.State{
 		Phase:     rand.Float64() * 2 * math.Pi,
 		Frequency: 100 * time.Millisecond,
 		Coherence: rand.Float64(),
 	}
-	
+
 	global := emerge.State{
 		Phase:     rand.Float64() * 2 * math.Pi,
 		Frequency: 100 * time.Millisecond,
 		Coherence: rand.Float64(),
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		weight := float64(i%100) / 100.0
@@ -842,20 +842,20 @@ func BenchmarkWeightedGoalManager(b *testing.B) {
 
 func BenchmarkWeightedGoalManagerWrapping(b *testing.B) {
 	gm := &emerge.WeightedGoalManager{}
-	
+
 	// Test with phases that require wrapping
 	local := emerge.State{
 		Phase:     0.1,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.5,
 	}
-	
+
 	global := emerge.State{
 		Phase:     2*math.Pi - 0.1,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.5,
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		weight := float64(i%100) / 100.0

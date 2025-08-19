@@ -470,4 +470,3 @@ func (a *Agent) calculateLocalCoherence() float64 {
 
 	return math.Sqrt(sumCos*sumCos+sumSin*sumSin) / float64(neighbors)
 }
-

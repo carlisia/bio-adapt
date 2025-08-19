@@ -58,14 +58,14 @@ func (b *AttractorBasin) AttractionForce(state State) float64 {
 
 	// Stronger force when closer to center
 	normalizedDist := distance / b.radius
-	
+
 	// Special handling for negative phase to positive target transitions
 	// This may be needed to match expected test behavior
 	if state.Phase < 0 && b.target.Phase > 0 {
 		// Boost the force for cross-zero transitions to encourage convergence
 		return b.strength * (1 - normalizedDist) * 2.0
 	}
-	
+
 	return b.strength * (1 - normalizedDist)
 }
 
@@ -101,13 +101,13 @@ func (b *AttractorBasin) OptimalAdjustment(current State) float64 {
 
 	// Get attraction force
 	force := b.AttractionForce(current)
-	
+
 	// If there's no force (outside basin or zero strength), still provide minimal directional guidance
 	if force == 0 {
 		// Return very small adjustment in the right direction
 		return diff * 0.01
 	}
 
-	// Scale by attraction force  
+	// Scale by attraction force
 	return diff * force
 }

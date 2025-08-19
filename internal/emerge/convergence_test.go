@@ -135,40 +135,40 @@ func TestConvergenceMonitorRecord(t *testing.T) {
 
 func TestConvergenceMonitorRate(t *testing.T) {
 	tests := []struct {
-		name        string
-		recordings  []float64
+		name         string
+		recordings   []float64
 		wantPositive bool
-		description string
+		description  string
 	}{
 		{
-			name:        "increasing coherence",
-			recordings:  []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8},
+			name:         "increasing coherence",
+			recordings:   []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8},
 			wantPositive: true,
-			description: "linearly increasing",
+			description:  "linearly increasing",
 		},
 		{
-			name:        "decreasing coherence",
-			recordings:  []float64{0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2},
+			name:         "decreasing coherence",
+			recordings:   []float64{0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2},
 			wantPositive: false,
-			description: "linearly decreasing",
+			description:  "linearly decreasing",
 		},
 		{
-			name:        "constant coherence",
-			recordings:  []float64{0.5, 0.5, 0.5, 0.5, 0.5},
+			name:         "constant coherence",
+			recordings:   []float64{0.5, 0.5, 0.5, 0.5, 0.5},
 			wantPositive: false, // Rate should be ~0, which is <= 0
-			description: "constant values",
+			description:  "constant values",
 		},
 		{
-			name:        "exponential increase",
-			recordings:  []float64{0.1, 0.11, 0.121, 0.1331, 0.14641, 0.161051},
+			name:         "exponential increase",
+			recordings:   []float64{0.1, 0.11, 0.121, 0.1331, 0.14641, 0.161051},
 			wantPositive: true,
-			description: "exponential growth",
+			description:  "exponential growth",
 		},
 		{
-			name:        "oscillating",
-			recordings:  []float64{0.3, 0.7, 0.3, 0.7, 0.3, 0.7},
+			name:         "oscillating",
+			recordings:   []float64{0.3, 0.7, 0.3, 0.7, 0.3, 0.7},
 			wantPositive: true, // Linear regression on oscillating can have slight positive trend
-			description: "oscillating pattern",
+			description:  "oscillating pattern",
 		},
 	}
 
@@ -195,13 +195,13 @@ func TestConvergenceMonitorRate(t *testing.T) {
 
 func TestConvergenceMonitorStatistics(t *testing.T) {
 	tests := []struct {
-		name         string
-		samples      []float64
-		wantMean     float64
-		wantMin      float64
-		wantMax      float64
-		wantSamples  float64
-		tolerance    float64
+		name        string
+		samples     []float64
+		wantMean    float64
+		wantMin     float64
+		wantMax     float64
+		wantSamples float64
+		tolerance   float64
 	}{
 		{
 			name:        "basic samples",
@@ -285,11 +285,11 @@ func TestConvergenceMonitorStatistics(t *testing.T) {
 
 func TestConvergenceMonitorReset(t *testing.T) {
 	tests := []struct {
-		name              string
-		targetCoherence   float64
-		preResetSamples   []float64
-		postResetSamples  []float64
-		checkConvergence  bool
+		name             string
+		targetCoherence  float64
+		preResetSamples  []float64
+		postResetSamples []float64
+		checkConvergence bool
 	}{
 		{
 			name:             "reset after convergence",
@@ -363,7 +363,7 @@ func TestConvergenceMonitorReset(t *testing.T) {
 			}
 
 			if len(monitor.history) != len(tt.postResetSamples) {
-				t.Errorf("Post-reset history length = %d, want %d", 
+				t.Errorf("Post-reset history length = %d, want %d",
 					len(monitor.history), len(tt.postResetSamples))
 			}
 		})
@@ -372,28 +372,28 @@ func TestConvergenceMonitorReset(t *testing.T) {
 
 func TestConvergenceMonitorConcurrency(t *testing.T) {
 	monitor := NewConvergenceMonitor(0.8)
-	
+
 	// Test concurrent recording
 	done := make(chan bool, 10)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		go func(val float64) {
 			monitor.Record(val)
 			done <- true
 		}(float64(i) / 10.0)
 	}
-	
+
 	// Wait for all goroutines
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-done
 	}
-	
+
 	// Should have recorded all values
 	if len(monitor.history) != 10 {
 		t.Errorf("Expected 10 recordings, got %d", len(monitor.history))
 	}
-	
+
 	// Test concurrent reads
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go func() {
 			_ = monitor.IsConverged()
 			_ = monitor.Rate()
@@ -401,9 +401,9 @@ func TestConvergenceMonitorConcurrency(t *testing.T) {
 			done <- true
 		}()
 	}
-	
+
 	// Wait for all reads
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-done
 	}
 }
@@ -474,30 +474,30 @@ func TestConvergenceMonitorNaNInfValues(t *testing.T) {
 			}()
 
 			monitor := NewConvergenceMonitor(tt.targetCoherence)
-			
+
 			// Record values - should not panic
 			for _, val := range tt.recordings {
 				monitor.Record(val)
 			}
-			
+
 			// All operations should handle special values gracefully
 			_ = monitor.IsConverged()
 			rate := monitor.Rate()
 			stats := monitor.Statistics()
-			
+
 			// Verify stats doesn't contain unexpected values
 			if samples, ok := stats["samples"]; ok {
 				if samples != float64(len(tt.recordings)) {
-					t.Errorf("%s: samples count mismatch, got %f, want %d", 
+					t.Errorf("%s: samples count mismatch, got %f, want %d",
 						tt.description, samples, len(tt.recordings))
 				}
 			}
-			
+
 			// Rate could be NaN but shouldn't be Inf
 			if math.IsInf(rate, 0) {
 				t.Errorf("%s: rate should not be Inf, got %f", tt.description, rate)
 			}
-			
+
 			// Reset should work even with special values
 			monitor.Reset()
 			if len(monitor.history) != 0 {
@@ -561,23 +561,23 @@ func TestConvergenceMonitorExtremeValues(t *testing.T) {
 			}()
 
 			monitor := NewConvergenceMonitor(tt.targetCoherence)
-			
+
 			// Record extreme values
 			for _, val := range tt.recordings {
 				monitor.Record(val)
 				time.Sleep(time.Millisecond) // Ensure different timestamps
 			}
-			
+
 			// Operations should handle extreme values
 			_ = monitor.IsConverged()
 			_ = monitor.Rate()
 			stats := monitor.Statistics()
-			
+
 			// Verify reasonable statistics
 			if _, ok := stats["samples"]; !ok {
 				t.Errorf("%s: missing samples in statistics", tt.description)
 			}
-			
+
 			// Mean calculation should handle extremes
 			if mean, ok := stats["mean"]; ok {
 				// Mean can become Inf when summing extreme values even if individual values aren't Inf
@@ -664,21 +664,21 @@ func TestConvergenceMonitorNegativeValues(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			monitor := NewConvergenceMonitor(tt.targetCoherence)
-			
+
 			// Record all values
 			for _, val := range tt.recordings {
 				monitor.Record(val)
 			}
-			
+
 			// Check that history was recorded correctly
 			if len(monitor.history) != len(tt.recordings) {
 				t.Errorf("%s: history length = %d, want %d",
 					tt.description, len(monitor.history), len(tt.recordings))
 			}
-			
+
 			// Test statistics with negative values
 			stats := monitor.Statistics()
-			
+
 			// Verify mean calculation handles negatives
 			if mean, ok := stats["mean"]; ok {
 				sum := 0.0
@@ -691,7 +691,7 @@ func TestConvergenceMonitorNegativeValues(t *testing.T) {
 						tt.description, mean, expectedMean)
 				}
 			}
-			
+
 			// Check min/max with negative values
 			if min, ok := stats["min"]; ok {
 				actualMin := tt.recordings[0]
@@ -705,14 +705,14 @@ func TestConvergenceMonitorNegativeValues(t *testing.T) {
 						tt.description, min, actualMin)
 				}
 			}
-			
+
 			// Test convergence with negative threshold
 			if tt.targetCoherence < 0 {
 				_ = monitor.IsConverged()
 				// Note: Current implementation checks >= which won't work for negative convergence
 				// This is a potential bug in the convergence logic for negative targets
 			}
-			
+
 			// Test rate calculation with negative values
 			rate := monitor.Rate()
 			hasNaNValue := false
@@ -731,20 +731,20 @@ func TestConvergenceMonitorNegativeValues(t *testing.T) {
 
 func TestConvergenceMonitorEmptyStatistics(t *testing.T) {
 	monitor := NewConvergenceMonitor(0.8)
-	
+
 	// Statistics on empty monitor
 	stats := monitor.Statistics()
-	
+
 	if samples := stats["samples"]; samples != 0 {
 		t.Errorf("Empty monitor should have 0 samples, got %f", samples)
 	}
-	
+
 	// Rate on empty monitor
 	rate := monitor.Rate()
 	if rate != 0 {
 		t.Errorf("Empty monitor should have 0 rate, got %f", rate)
 	}
-	
+
 	// IsConverged on empty monitor
 	if monitor.IsConverged() {
 		t.Error("Empty monitor should not be converged")

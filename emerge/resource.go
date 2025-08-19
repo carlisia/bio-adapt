@@ -52,7 +52,7 @@ func (t *TokenResourceManager) Request(amount float64) float64 {
 	if available <= 0 {
 		return 0
 	}
-	
+
 	allocated := math.Min(amount, available)
 	t.tokens.Store(available - allocated)
 

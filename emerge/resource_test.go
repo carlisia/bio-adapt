@@ -8,9 +8,9 @@ import (
 
 func TestTokenResourceManager(t *testing.T) {
 	tests := []struct {
-		name        string
-		maxTokens   float64
-		operations  []struct {
+		name       string
+		maxTokens  float64
+		operations []struct {
 			op       string // "request" or "release"
 			amount   float64
 			expected float64 // expected result of operation
@@ -441,7 +441,7 @@ func TestTokenResourceManagerStressPatterns(t *testing.T) {
 		{
 			name: "rapid request-release cycle",
 			pattern: func(rm ResourceManager) {
-				for i := 0; i < 1000; i++ {
+				for range 1000 {
 					allocated := rm.Request(1)
 					rm.Release(allocated)
 				}
@@ -475,7 +475,7 @@ func TestTokenResourceManagerStressPatterns(t *testing.T) {
 		{
 			name: "sawtooth pattern",
 			pattern: func(rm ResourceManager) {
-				for i := 0; i < 5; i++ {
+				for range 5 {
 					rm.Request(100) // Deplete
 					rm.Release(100) // Restore
 				}
@@ -508,7 +508,7 @@ func TestTokenResourceManagerStressPatterns(t *testing.T) {
 		{
 			name: "alternating small large",
 			pattern: func(rm ResourceManager) {
-				for i := 0; i < 10; i++ {
+				for i := range 10 {
 					if i%2 == 0 {
 						rm.Request(1)
 					} else {
@@ -570,7 +570,7 @@ func TestTokenResourceManagerBoundaryConditions(t *testing.T) {
 			maxTokens: 1.0,
 			validateFn: func(t *testing.T, rm ResourceManager) {
 				// Request in small increments
-				for i := 0; i < 10; i++ {
+				for range 10 {
 					rm.Request(0.1)
 				}
 				// Due to floating point precision, might not be exactly 0
@@ -678,7 +678,7 @@ func BenchmarkTokenResourceManagerConcurrent(b *testing.B) {
 	for _, bm := range benchmarks {
 		b.Run(bm.name, func(b *testing.B) {
 			rm := NewTokenResourceManager(bm.maxTokens)
-			
+
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
 					allocated := rm.Request(bm.request)
@@ -690,4 +690,3 @@ func BenchmarkTokenResourceManagerConcurrent(b *testing.B) {
 		})
 	}
 }
-

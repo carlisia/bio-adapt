@@ -324,11 +324,11 @@ func TestNewSwarmErrors(t *testing.T) {
 				if err == nil {
 					t.Errorf("%s: Expected error but got nil", tt.description)
 				} else if tt.errorMsg != "" && !strings.Contains(err.Error(), tt.errorMsg) {
-					t.Errorf("%s: Expected error containing '%s', got '%v'", 
+					t.Errorf("%s: Expected error containing '%s', got '%v'",
 						tt.description, tt.errorMsg, err)
 				}
 				if swarm != nil {
-					t.Errorf("%s: Expected nil swarm on error, got %v", 
+					t.Errorf("%s: Expected nil swarm on error, got %v",
 						tt.description, swarm)
 				}
 			} else {
@@ -339,7 +339,7 @@ func TestNewSwarmErrors(t *testing.T) {
 					t.Errorf("%s: Expected valid swarm, got nil", tt.description)
 				} else {
 					if swarm.Size() != tt.size {
-						t.Errorf("%s: Expected swarm size %d, got %d", 
+						t.Errorf("%s: Expected swarm size %d, got %d",
 							tt.description, tt.size, swarm.Size())
 					}
 					// Verify goal state was set correctly
@@ -462,7 +462,7 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 			description: "Maximum int size handling",
 		},
 		{
-			name: "exactly at size limit", 
+			name: "exactly at size limit",
 			size: 1000000,
 			goal: State{
 				Phase:     0,
