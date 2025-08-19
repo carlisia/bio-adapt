@@ -313,7 +313,7 @@ func testResilience(swarm *attractor.Swarm, targetState attractor.State) {
 	beforeCoherence := swarm.MeasureCoherence()
 	fmt.Printf("Before disruption: %.3f\n", beforeCoherence)
 	
-	// Disrupt random services
+	// Disrupt random workloads
 	swarm.DisruptAgents(0.3)
 	
 	afterDisruption := swarm.MeasureCoherence()
