@@ -134,7 +134,6 @@ func TestAgentProposeAdjustment(t *testing.T) {
 	}
 }
 
-
 func TestAgentApplyAction(t *testing.T) {
 	agent := NewAgent("test")
 	initialPhase := agent.GetPhase()
@@ -235,9 +234,11 @@ func (t *testDecisionMaker) Decide(state State, options []Action) (Action, float
 }
 
 func TestAgentStubbornness(t *testing.T) {
-	agent := NewAgent("stubborn")
-	agent.stubbornness.Store(1.0) // Always stubborn
-	agent.SetPhase(0)
+	// Use functional options for clean setup
+	agent := NewAgent("stubborn",
+		WithStubbornness(1.0), // Always stubborn
+		WithPhase(0),
+	)
 
 	globalGoal := State{
 		Phase:     math.Pi,
@@ -252,4 +253,110 @@ func TestAgentStubbornness(t *testing.T) {
 			t.Error("Stubborn agent should not accept adjustments")
 		}
 	}
+}
+
+// TestAgentWithOptions demonstrates idiomatic dependency injection
+func TestAgentWithOptions(t *testing.T) {
+	t.Run("custom decision maker", func(t *testing.T) {
+		mockDM := &MockDecisionMaker{
+			DecisionFunc: func(s State, opts []Action) (Action, float64) {
+				return Action{Type: "custom"}, 1.0
+			},
+		}
+
+		agent := NewAgent("test",
+			WithDecisionMaker(mockDM),
+			WithPhase(1.5),
+			WithStubbornness(0.05),
+		)
+
+		if agent.decider != mockDM {
+			t.Error("expected mock decision maker")
+		}
+		if agent.GetPhase() != 1.5 {
+			t.Errorf("expected phase 1.5, got %f", agent.GetPhase())
+		}
+	})
+
+	t.Run("custom resource manager", func(t *testing.T) {
+		mockRM := &MockResourceManager{Energy: 200}
+
+		agent := NewAgent("test",
+			WithResourceManager(mockRM),
+		)
+
+		if agent.GetEnergy() != 200 {
+			t.Errorf("expected energy 200, got %f", agent.GetEnergy())
+		}
+	})
+}
+
+// TestAgentFromConfig demonstrates config-based creation
+func TestAgentFromConfig(t *testing.T) {
+	t.Run("default config", func(t *testing.T) {
+		config := DefaultAgentConfig()
+		agent := NewAgentFromConfig("test", config)
+
+		if agent.GetEnergy() != 100.0 {
+			t.Errorf("expected energy 100, got %f", agent.GetEnergy())
+		}
+		// Default config should not randomize
+		if config.RandomizePhase {
+			t.Error("default config should not randomize phase")
+		}
+	})
+
+	t.Run("test config", func(t *testing.T) {
+		config := TestAgentConfig()
+		agent := NewAgentFromConfig("test", config)
+
+		// Test config should have predictable values
+		if agent.GetStubbornness() != 0.01 {
+			t.Errorf("expected stubbornness 0.01, got %f", agent.GetStubbornness())
+		}
+		if agent.GetInfluence() != 0.8 {
+			t.Errorf("expected influence 0.8, got %f", agent.GetInfluence())
+		}
+	})
+
+	t.Run("randomized config", func(t *testing.T) {
+		config := RandomizedAgentConfig()
+		agent := NewAgentFromConfig("test", config)
+
+		// Should have randomized initial conditions
+		if !config.RandomizePhase {
+			t.Error("randomized config should randomize phase")
+		}
+		// Phase should be in valid range
+		phase := agent.GetPhase()
+		if phase < 0 || phase > 2*math.Pi {
+			t.Errorf("phase out of range: %f", phase)
+		}
+	})
+}
+
+// TestTestingHelpers demonstrates the testing utilities
+func TestTestingHelpers(t *testing.T) {
+	t.Run("TestAgent helper", func(t *testing.T) {
+		agent := TestAgent("helper-test")
+
+		// Should have predictable test values
+		if agent.GetStubbornness() != 0.01 {
+			t.Errorf("expected test stubbornness 0.01, got %f", agent.GetStubbornness())
+		}
+	})
+
+	t.Run("TestAgentWithMocks helper", func(t *testing.T) {
+		mockDM := &MockDecisionMaker{}
+		mockRM := &MockResourceManager{Energy: 150}
+
+		agent := TestAgentWithMocks("mock-test", mockDM, mockRM)
+
+		if agent.decider != mockDM {
+			t.Error("expected mock decision maker")
+		}
+		if agent.GetEnergy() != 150 {
+			t.Errorf("expected energy 150, got %f", agent.GetEnergy())
+		}
+	})
 }
