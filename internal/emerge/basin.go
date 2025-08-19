@@ -43,12 +43,12 @@ func (b *AttractorBasin) AttractionForce(currentPhase float64) float64 {
 
 // PhaseDistance calculates distance from current phase to target.
 func (b *AttractorBasin) PhaseDistance(currentPhase float64) float64 {
-	diff := math.Abs(currentPhase - b.targetPhase)
-	// Handle phase wrapping
-	if diff > math.Pi {
-		diff = 2*math.Pi - diff
-	}
-	return diff
+	diff := currentPhase - b.targetPhase
+	// Normalize to [-π, π] range using math.Remainder
+	// This handles both positive and negative phases correctly
+	diff = math.Remainder(diff, 2*math.Pi)
+	// Return the absolute distance
+	return math.Abs(diff)
 }
 
 // IsInBasin checks if a phase is within the basin's influence.

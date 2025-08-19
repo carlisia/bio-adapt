@@ -7,74 +7,275 @@ import (
 )
 
 func TestPhaseNudgeStrategy(t *testing.T) {
-	strategy := NewPhaseNudgeStrategy(0.5)
-
-	if strategy.Rate != 0.5 {
-		t.Errorf("Expected rate 0.5, got %f", strategy.Rate)
-	}
-
-	if strategy.Name() != "phase_nudge" {
-		t.Errorf("Expected name 'phase_nudge', got '%s'", strategy.Name())
-	}
-
-	current := State{
-		Phase:     0,
-		Frequency: 100 * time.Millisecond,
-		Coherence: 0.5,
-	}
-
-	target := State{
-		Phase:     math.Pi / 2,
-		Frequency: 100 * time.Millisecond,
-		Coherence: 0.9,
-	}
-
-	context := Context{
-		Density:        0.5,
-		Stability:      0.7,
-		Progress:       0.3,
-		LocalCoherence: 0.6,
-	}
-
-	action, confidence := strategy.Propose(current, target, context)
-
-	if action.Type != "phase_nudge" {
-		t.Errorf("Expected action type 'phase_nudge', got '%s'", action.Type)
-	}
-
-	// Value should be positive (moving toward pi/2 from 0)
-	if action.Value <= 0 {
-		t.Error("Action value should be positive when moving forward")
-	}
-
-	// Cost should be proportional to adjustment
-	if action.Cost <= 0 {
-		t.Error("Action cost should be positive")
-	}
-
-	if confidence < 0 || confidence > 1 {
-		t.Errorf("Confidence should be in [0, 1], got %f", confidence)
-	}
-}
-
-func TestPhaseNudgeStrategyRateClamping(t *testing.T) {
 	tests := []struct {
-		name     string
-		rate     float64
-		expected float64
+		name        string
+		rate        float64
+		current     State
+		target      State
+		context     Context
+		validateFn  func(t *testing.T, strategy *PhaseNudgeStrategy, action Action, confidence float64)
+		description string
 	}{
-		{"negative rate", -0.5, 0},
-		{"zero rate", 0, 0},
-		{"normal rate", 0.5, 0.5},
-		{"max rate", 1.0, 1.0},
-		{"over max rate", 1.5, 1.0},
+		// Happy path cases
+		{
+			name: "basic nudge forward",
+			rate: 0.5,
+			current: State{
+				Phase:     0,
+				Frequency: 100 * time.Millisecond,
+				Coherence: 0.5,
+			},
+			target: State{
+				Phase:     math.Pi / 2,
+				Frequency: 100 * time.Millisecond,
+				Coherence: 0.9,
+			},
+			context: Context{
+				Density:        0.5,
+				Stability:      0.7,
+				Progress:       0.3,
+				LocalCoherence: 0.6,
+			},
+			validateFn: func(t *testing.T, strategy *PhaseNudgeStrategy, action Action, confidence float64) {
+				if strategy.Rate != 0.5 {
+					t.Errorf("Expected rate 0.5, got %f", strategy.Rate)
+				}
+				if strategy.Name() != "phase_nudge" {
+					t.Errorf("Expected name 'phase_nudge', got '%s'", strategy.Name())
+				}
+				if action.Type != "phase_nudge" {
+					t.Errorf("Expected action type 'phase_nudge', got '%s'", action.Type)
+				}
+				if action.Value <= 0 {
+					t.Error("Action value should be positive when moving forward")
+				}
+				if action.Cost <= 0 {
+					t.Error("Action cost should be positive")
+				}
+				if confidence < 0 || confidence > 1 {
+					t.Errorf("Confidence should be in [0, 1], got %f", confidence)
+				}
+			},
+			description: "Basic forward phase nudge",
+		},
+		{
+			name: "nudge backward",
+			rate: 0.3,
+			current: State{
+				Phase:     math.Pi,
+				Frequency: 100 * time.Millisecond,
+				Coherence: 0.5,
+			},
+			target: State{
+				Phase:     0,
+				Frequency: 100 * time.Millisecond,
+				Coherence: 0.9,
+			},
+			context: Context{
+				Density:        0.5,
+				Stability:      0.7,
+				Progress:       0.3,
+				LocalCoherence: 0.6,
+			},
+			validateFn: func(t *testing.T, strategy *PhaseNudgeStrategy, action Action, confidence float64) {
+				if action.Type != "phase_nudge" {
+					t.Errorf("Expected action type 'phase_nudge', got '%s'", action.Type)
+				}
+				if action.Value >= 0 {
+					t.Error("Action value should be negative when moving backward")
+				}
+			},
+			description: "Backward phase nudge",
+		},
+		{
+			name: "zero rate",
+			rate: 0,
+			current: State{
+				Phase:     0,
+				Frequency: 100 * time.Millisecond,
+				Coherence: 0.5,
+			},
+			target: State{
+				Phase:     math.Pi,
+				Frequency: 100 * time.Millisecond,
+				Coherence: 0.9,
+			},
+			context: Context{
+				LocalCoherence: 0.6,
+			},
+			validateFn: func(t *testing.T, strategy *PhaseNudgeStrategy, action Action, confidence float64) {
+				if action.Value != 0 {
+					t.Error("Zero rate should produce zero value")
+				}
+			},
+			description: "Zero rate produces no nudge",
+		},
+		{
+			name: "max rate",
+			rate: 1.0,
+			current: State{
+				Phase:     0,
+				Frequency: 100 * time.Millisecond,
+				Coherence: 0.5,
+			},
+			target: State{
+				Phase:     math.Pi,
+				Frequency: 100 * time.Millisecond,
+				Coherence: 0.9,
+			},
+			context: Context{
+				LocalCoherence: 0.8,
+			},
+			validateFn: func(t *testing.T, strategy *PhaseNudgeStrategy, action Action, confidence float64) {
+				if strategy.Rate != 1.0 {
+					t.Errorf("Expected rate 1.0, got %f", strategy.Rate)
+				}
+				// Max rate should produce large adjustment
+				if math.Abs(action.Value) < math.Pi/4 {
+					t.Error("Max rate should produce significant adjustment")
+				}
+			},
+			description: "Maximum rate produces large nudge",
+		},
+		// Edge cases
+		{
+			name: "same phase",
+			rate: 0.5,
+			current: State{
+				Phase:     math.Pi / 2,
+				Frequency: 100 * time.Millisecond,
+				Coherence: 0.5,
+			},
+			target: State{
+				Phase:     math.Pi / 2,
+				Frequency: 100 * time.Millisecond,
+				Coherence: 0.9,
+			},
+			context: Context{
+				LocalCoherence: 0.6,
+			},
+			validateFn: func(t *testing.T, strategy *PhaseNudgeStrategy, action Action, confidence float64) {
+				if action.Value != 0 {
+					t.Error("Same phase should produce zero nudge")
+				}
+			},
+			description: "Same phase produces no nudge",
+		},
+		{
+			name: "wrap around",
+			rate: 0.5,
+			current: State{
+				Phase:     2*math.Pi - 0.1,
+				Frequency: 100 * time.Millisecond,
+				Coherence: 0.5,
+			},
+			target: State{
+				Phase:     0.1,
+				Frequency: 100 * time.Millisecond,
+				Coherence: 0.9,
+			},
+			context: Context{
+				LocalCoherence: 0.6,
+			},
+			validateFn: func(t *testing.T, strategy *PhaseNudgeStrategy, action Action, confidence float64) {
+				// Should take shortest path across boundary
+				if math.Abs(action.Value) > math.Pi {
+					t.Error("Should take shortest path across phase boundary")
+				}
+			},
+			description: "Phase wrap around handling",
+		},
+		{
+			name: "negative phase",
+			rate: 0.5,
+			current: State{
+				Phase:     -math.Pi / 2,
+				Frequency: 100 * time.Millisecond,
+				Coherence: 0.5,
+			},
+			target: State{
+				Phase:     math.Pi / 2,
+				Frequency: 100 * time.Millisecond,
+				Coherence: 0.9,
+			},
+			context: Context{
+				LocalCoherence: 0.6,
+			},
+			validateFn: func(t *testing.T, strategy *PhaseNudgeStrategy, action Action, confidence float64) {
+				if action.Type != "phase_nudge" {
+					t.Errorf("Expected action type 'phase_nudge', got '%s'", action.Type)
+				}
+			},
+			description: "Negative phase handling",
+		},
+		{
+			name: "zero coherence context",
+			rate: 0.5,
+			current: State{
+				Phase:     0,
+				Frequency: 100 * time.Millisecond,
+				Coherence: 0.5,
+			},
+			target: State{
+				Phase:     math.Pi,
+				Frequency: 100 * time.Millisecond,
+				Coherence: 0.9,
+			},
+			context: Context{
+				LocalCoherence: 0,
+			},
+			validateFn: func(t *testing.T, strategy *PhaseNudgeStrategy, action Action, confidence float64) {
+				if confidence < 0.5 {
+					t.Error("Confidence should be at least 0.5")
+				}
+				// Zero local coherence should produce high confidence (need to adjust)
+				if confidence < 0.9 {
+					t.Error("Zero local coherence should produce high confidence")
+				}
+			},
+			description: "Zero coherence produces high confidence",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			strategy := NewPhaseNudgeStrategy(tt.rate)
-			if strategy.Rate != tt.expected {
-				t.Errorf("Expected rate %f, got %f", tt.expected, strategy.Rate)
+			action, confidence := strategy.Propose(tt.current, tt.target, tt.context)
+			tt.validateFn(t, strategy, action, confidence)
+		})
+	}
+}
+
+func TestPhaseNudgeStrategyRateClamping(t *testing.T) {
+	tests := []struct {
+		name        string
+		rate        float64
+		expected    float64
+		description string
+	}{
+		{"negative rate", -0.5, 0, "Negative rate should clamp to 0"},
+		{"zero rate", 0, 0, "Zero rate should remain 0"},
+		{"normal rate", 0.5, 0.5, "Normal rate should be preserved"},
+		{"max rate", 1.0, 1.0, "Max rate should be preserved"},
+		{"over max rate", 1.5, 1.0, "Over max should clamp to 1.0"},
+		{"very negative", -100, 0, "Very negative should clamp to 0"},
+		{"very large", 100, 1.0, "Very large should clamp to 1.0"},
+		{"NaN rate", math.NaN(), 0, "NaN should default to 0"},
+		{"infinity rate", math.Inf(1), 1.0, "Infinity should clamp to 1.0"},
+		{"negative infinity", math.Inf(-1), 0, "Negative infinity should clamp to 0"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			strategy := NewPhaseNudgeStrategy(tt.rate)
+			
+			// Special handling for NaN
+			if math.IsNaN(tt.rate) {
+				if !math.IsNaN(strategy.Rate) && strategy.Rate != tt.expected {
+					t.Errorf("%s: Expected rate %f, got %f", tt.description, tt.expected, strategy.Rate)
+				}
+			} else if strategy.Rate != tt.expected {
+				t.Errorf("%s: Expected rate %f, got %f", tt.description, tt.expected, strategy.Rate)
 			}
 		})
 	}

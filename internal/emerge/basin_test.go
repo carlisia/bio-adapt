@@ -241,6 +241,48 @@ func TestAttractorBasinPhaseDistance(t *testing.T) {
 			wantDist:     0.2,
 			tolerance:    0.01,
 		},
+		{
+			name:         "negative target to positive current",
+			basin:        NewAttractorBasin(-math.Pi/2, 0.8, 0.5, math.Pi),
+			currentPhase: math.Pi/2,
+			wantDist:     math.Pi,
+			tolerance:    0.01,
+		},
+		{
+			name:         "negative target to negative current",
+			basin:        NewAttractorBasin(-math.Pi/2, 0.8, 0.5, math.Pi),
+			currentPhase: -math.Pi/4,
+			wantDist:     math.Pi/4,
+			tolerance:    0.01,
+		},
+		{
+			name:         "both negative opposite sides",
+			basin:        NewAttractorBasin(-math.Pi/2, 0.8, 0.5, math.Pi),
+			currentPhase: -3*math.Pi/2,
+			wantDist:     math.Pi,
+			tolerance:    0.01,
+		},
+		{
+			name:         "negative large values",
+			basin:        NewAttractorBasin(-5*math.Pi, 0.8, 0.5, math.Pi),
+			currentPhase: -5*math.Pi + 0.1,
+			wantDist:     0.1,
+			tolerance:    0.01,
+		},
+		{
+			name:         "negative to positive wrap",
+			basin:        NewAttractorBasin(-0.1, 0.8, 0.5, math.Pi),
+			currentPhase: 0.1,
+			wantDist:     0.2,
+			tolerance:    0.01,
+		},
+		{
+			name:         "large negative difference",
+			basin:        NewAttractorBasin(math.Pi, 0.8, 0.5, math.Pi),
+			currentPhase: -2*math.Pi + 0.1,
+			wantDist:     math.Pi - 0.1,
+			tolerance:    0.01,
+		},
 	}
 
 	for _, tt := range tests {
@@ -427,4 +469,284 @@ func TestAttractorBasinEdgeCases(t *testing.T) {
 			t.Error("Negative radius means nothing is in basin")
 		}
 	})
+}
+
+func TestAttractorBasinExtremePhases(t *testing.T) {
+	tests := []struct {
+		name         string
+		targetPhase  float64
+		currentPhase float64
+		radius       float64
+		description  string
+	}{
+		{
+			name:         "extremely large phases",
+			targetPhase:  1000 * math.Pi,
+			currentPhase: 1000*math.Pi + 0.1,
+			radius:       math.Pi / 4,
+			description:  "handle phases > 100π",
+		},
+		{
+			name:         "very large phase difference",
+			targetPhase:  0,
+			currentPhase: 500 * math.Pi,
+			radius:       math.Pi,
+			description:  "phase wrapping with extreme values",
+		},
+		{
+			name:         "large negative phases",
+			targetPhase:  -1000 * math.Pi,
+			currentPhase: -1000*math.Pi + 0.5,
+			radius:       math.Pi / 2,
+			description:  "negative extreme phases",
+		},
+		{
+			name:         "maximum float64 phase",
+			targetPhase:  math.MaxFloat64 / 2,
+			currentPhase: math.MaxFloat64 / 2,
+			radius:       math.Pi,
+			description:  "near float64 limits",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			basin := NewAttractorBasin(tt.targetPhase, 0.8, 0.5, tt.radius)
+			
+			// Should not panic
+			distance := basin.PhaseDistance(tt.currentPhase)
+			force := basin.AttractionForce(tt.currentPhase)
+			inBasin := basin.IsInBasin(tt.currentPhase)
+			rate := basin.ConvergenceRate(tt.currentPhase)
+			
+			// Basic sanity checks
+			if distance < 0 {
+				t.Errorf("%s: distance should be non-negative, got %f", tt.description, distance)
+			}
+			if force < 0 || force > 1 {
+				t.Errorf("%s: force should be in [0,1], got %f", tt.description, force)
+			}
+			if rate < 0 || rate > 1 {
+				t.Errorf("%s: rate should be in [0,1], got %f", tt.description, rate)
+			}
+			_ = inBasin // Just ensure it doesn't panic
+		})
+	}
+}
+
+func TestPhaseDistanceNegativeValues(t *testing.T) {
+	tests := []struct {
+		name         string
+		targetPhase  float64
+		currentPhase float64
+		wantDist     float64
+		tolerance    float64
+		description  string
+	}{
+		{
+			name:         "negative to positive small",
+			targetPhase:  -0.5,
+			currentPhase: 0.5,
+			wantDist:     1.0,
+			tolerance:    0.001,
+			description:  "small negative to positive",
+		},
+		{
+			name:         "large negative to zero",
+			targetPhase:  0,
+			currentPhase: -10*math.Pi,
+			wantDist:     0,
+			tolerance:    0.001,
+			description:  "large negative should wrap to zero distance",
+		},
+		{
+			name:         "negative Pi to positive Pi",
+			targetPhase:  -math.Pi,
+			currentPhase: math.Pi,
+			wantDist:     0,
+			tolerance:    0.001,
+			description:  "-π and π are the same angle",
+		},
+		{
+			name:         "negative 3Pi to negative Pi",
+			targetPhase:  -3*math.Pi,
+			currentPhase: -math.Pi,
+			wantDist:     0,
+			tolerance:    0.001,
+			description:  "both negative, 2π apart",
+		},
+		{
+			name:         "cross zero boundary negative",
+			targetPhase:  -0.1,
+			currentPhase: 0.1,
+			wantDist:     0.2,
+			tolerance:    0.001,
+			description:  "small gap across zero",
+		},
+		{
+			name:         "very large negative difference",
+			targetPhase:  -1000*math.Pi,
+			currentPhase: 1000*math.Pi,
+			wantDist:     0,
+			tolerance:    0.001,
+			description:  "extreme negative to positive",
+		},
+		{
+			name:         "negative quarter turns",
+			targetPhase:  -math.Pi/4,
+			currentPhase: -3*math.Pi/4,
+			wantDist:     math.Pi/2,
+			tolerance:    0.001,
+			description:  "quarter turn difference, both negative",
+		},
+		{
+			name:         "negative wrap to positive equivalent",
+			targetPhase:  -3*math.Pi/2,
+			currentPhase: math.Pi/2,
+			wantDist:     0,
+			tolerance:    0.001,
+			description:  "-3π/2 is same as π/2",
+		},
+		{
+			name:         "asymmetric negative values",
+			targetPhase:  -math.Pi/3,
+			currentPhase: -2*math.Pi/3,
+			wantDist:     math.Pi/3,
+			tolerance:    0.001,
+			description:  "one third turn, both negative",
+		},
+		{
+			name:         "negative target positive current opposite",
+			targetPhase:  -math.Pi/2,
+			currentPhase: 3*math.Pi/2,
+			wantDist:     0,
+			tolerance:    0.001,
+			description:  "-π/2 and 3π/2 are same angle",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			basin := NewAttractorBasin(tt.targetPhase, 0.8, 0.5, math.Pi)
+			dist := basin.PhaseDistance(tt.currentPhase)
+			
+			if math.Abs(dist-tt.wantDist) > tt.tolerance {
+				t.Errorf("%s: PhaseDistance() = %f, want %f ± %f",
+					tt.description, dist, tt.wantDist, tt.tolerance)
+			}
+			
+			// Distance should always be non-negative
+			if dist < 0 {
+				t.Errorf("%s: PhaseDistance() returned negative value: %f",
+					tt.description, dist)
+			}
+			
+			// Distance should never exceed π (half circle)
+			if dist > math.Pi+tt.tolerance {
+				t.Errorf("%s: PhaseDistance() = %f, exceeds π",
+					tt.description, dist)
+			}
+		})
+	}
+}
+
+func TestAttractorBasinNaNInfValues(t *testing.T) {
+	tests := []struct {
+		name            string
+		targetPhase     float64
+		targetCoherence float64
+		strength        float64
+		radius          float64
+		currentPhase    float64
+		expectPanic     bool
+	}{
+		{
+			name:            "NaN target phase",
+			targetPhase:     math.NaN(),
+			targetCoherence: 0.8,
+			strength:        0.5,
+			radius:          math.Pi,
+			currentPhase:    0,
+			expectPanic:     false,
+		},
+		{
+			name:            "Inf target phase",
+			targetPhase:     math.Inf(1),
+			targetCoherence: 0.8,
+			strength:        0.5,
+			radius:          math.Pi,
+			currentPhase:    0,
+			expectPanic:     false,
+		},
+		{
+			name:            "negative Inf target phase",
+			targetPhase:     math.Inf(-1),
+			targetCoherence: 0.8,
+			strength:        0.5,
+			radius:          math.Pi,
+			currentPhase:    0,
+			expectPanic:     false,
+		},
+		{
+			name:            "NaN current phase",
+			targetPhase:     0,
+			targetCoherence: 0.8,
+			strength:        0.5,
+			radius:          math.Pi,
+			currentPhase:    math.NaN(),
+			expectPanic:     false,
+		},
+		{
+			name:            "Inf radius",
+			targetPhase:     0,
+			targetCoherence: 0.8,
+			strength:        0.5,
+			radius:          math.Inf(1),
+			currentPhase:    math.Pi,
+			expectPanic:     false,
+		},
+		{
+			name:            "NaN strength",
+			targetPhase:     0,
+			targetCoherence: 0.8,
+			strength:        math.NaN(),
+			radius:          math.Pi,
+			currentPhase:    0,
+			expectPanic:     false,
+		},
+		{
+			name:            "NaN coherence",
+			targetPhase:     0,
+			targetCoherence: math.NaN(),
+			strength:        0.5,
+			radius:          math.Pi,
+			currentPhase:    0,
+			expectPanic:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil && !tt.expectPanic {
+					t.Errorf("Unexpected panic: %v", r)
+				}
+			}()
+
+			basin := NewAttractorBasin(tt.targetPhase, tt.targetCoherence, tt.strength, tt.radius)
+			
+			// These operations should handle NaN/Inf gracefully
+			_ = basin.PhaseDistance(tt.currentPhase)
+			_ = basin.AttractionForce(tt.currentPhase)
+			_ = basin.IsInBasin(tt.currentPhase)
+			_ = basin.ConvergenceRate(tt.currentPhase)
+			
+			// Check that NaN strength gets clamped
+			if math.IsNaN(tt.strength) {
+				if !math.IsNaN(basin.strength) && (basin.strength < 0 || basin.strength > 1) {
+					t.Errorf("NaN strength should be handled, got %f", basin.strength)
+				}
+			}
+		})
+	}
 }

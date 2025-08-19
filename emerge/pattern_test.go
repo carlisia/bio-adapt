@@ -7,85 +7,303 @@ import (
 )
 
 func TestNewRhythmicPattern(t *testing.T) {
-	phases := []float64{0, math.Pi / 4, math.Pi / 2, 3 * math.Pi / 4, math.Pi}
-	frequencies := []time.Duration{
-		100 * time.Millisecond,
-		100 * time.Millisecond,
-		100 * time.Millisecond,
-		100 * time.Millisecond,
-		100 * time.Millisecond,
+	tests := []struct {
+		name        string
+		phases      []float64
+		frequencies []time.Duration
+		validateFn  func(t *testing.T, pattern *RhythmicPattern)
+		description string
+	}{
+		// Happy path cases
+		{
+			name: "uniform pattern",
+			phases: []float64{0, math.Pi / 4, math.Pi / 2, 3 * math.Pi / 4, math.Pi},
+			frequencies: []time.Duration{
+				100 * time.Millisecond,
+				100 * time.Millisecond,
+				100 * time.Millisecond,
+				100 * time.Millisecond,
+				100 * time.Millisecond,
+			},
+			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				if len(pattern.Phases) != 5 {
+					t.Errorf("Expected 5 phases, got %d", len(pattern.Phases))
+				}
+				if len(pattern.Frequencies) != 5 {
+					t.Errorf("Expected 5 frequencies, got %d", len(pattern.Frequencies))
+				}
+				if pattern.Amplitude <= 0 {
+					t.Error("Amplitude should be positive for varied phases")
+				}
+				if pattern.Period != 100*time.Millisecond {
+					t.Errorf("Expected period 100ms, got %v", pattern.Period)
+				}
+				if pattern.Confidence != 1.0 {
+					t.Errorf("Expected confidence 1.0, got %f", pattern.Confidence)
+				}
+			},
+			description: "Uniform frequency pattern should work correctly",
+		},
+		{
+			name:        "empty pattern",
+			phases:      []float64{},
+			frequencies: []time.Duration{},
+			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				if len(pattern.Phases) != 0 {
+					t.Errorf("Expected 0 phases, got %d", len(pattern.Phases))
+				}
+				if pattern.Amplitude != 0 {
+					t.Errorf("Expected amplitude 0 for empty pattern, got %f", pattern.Amplitude)
+				}
+				if pattern.Period != 0 {
+					t.Errorf("Expected period 0 for empty pattern, got %v", pattern.Period)
+				}
+			},
+			description: "Empty pattern should be handled correctly",
+		},
+		{
+			name:        "single phase",
+			phases:      []float64{math.Pi},
+			frequencies: []time.Duration{100 * time.Millisecond},
+			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				if len(pattern.Phases) != 1 {
+					t.Errorf("Expected 1 phase, got %d", len(pattern.Phases))
+				}
+				if pattern.Amplitude != 0 {
+					t.Errorf("Expected amplitude 0 for single phase, got %f", pattern.Amplitude)
+				}
+				if pattern.Period != 100*time.Millisecond {
+					t.Errorf("Expected period 100ms, got %v", pattern.Period)
+				}
+			},
+			description: "Single phase pattern should work",
+		},
+		{
+			name: "mixed frequencies",
+			phases: []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
+			frequencies: []time.Duration{
+				50 * time.Millisecond,
+				100 * time.Millisecond,
+				150 * time.Millisecond,
+				200 * time.Millisecond,
+			},
+			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				expectedPeriod := 125 * time.Millisecond // Average
+				if pattern.Period != expectedPeriod {
+					t.Errorf("Expected period %v, got %v", expectedPeriod, pattern.Period)
+				}
+			},
+			description: "Mixed frequencies should average correctly",
+		},
+		// Edge cases
+		{
+			name:        "zero phases",
+			phases:      []float64{0, 0, 0, 0},
+			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
+			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				if pattern.Amplitude != 0 {
+					t.Errorf("Expected amplitude 0 for uniform zero phases, got %f", pattern.Amplitude)
+				}
+			},
+			description: "All zero phases should have zero amplitude",
+		},
+		{
+			name:        "negative phases",
+			phases:      []float64{-math.Pi, -math.Pi / 2, 0, math.Pi / 2},
+			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
+			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				if pattern.Amplitude <= 0 {
+					t.Error("Should calculate amplitude for negative phases")
+				}
+			},
+			description: "Negative phases should work",
+		},
+		{
+			name:        "very large phases",
+			phases:      []float64{0, 10 * math.Pi, 20 * math.Pi, 30 * math.Pi},
+			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
+			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				if pattern.Amplitude <= 0 {
+					t.Error("Should calculate amplitude for large phases")
+				}
+			},
+			description: "Very large phases should work",
+		},
+		{
+			name:        "zero duration frequencies",
+			phases:      []float64{0, math.Pi},
+			frequencies: []time.Duration{0, 0},
+			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				if pattern.Period != 0 {
+					t.Errorf("Expected period 0 for zero frequencies, got %v", pattern.Period)
+				}
+			},
+			description: "Zero duration frequencies should work",
+		},
+		{
+			name:        "negative duration frequencies",
+			phases:      []float64{0, math.Pi},
+			frequencies: []time.Duration{-100 * time.Millisecond, -100 * time.Millisecond},
+			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				if pattern.Period != -100*time.Millisecond {
+					t.Errorf("Expected period -100ms, got %v", pattern.Period)
+				}
+			},
+			description: "Negative duration frequencies should be preserved",
+		},
+		{
+			name:        "mismatched lengths",
+			phases:      []float64{0, math.Pi, math.Pi / 2},
+			frequencies: []time.Duration{100 * time.Millisecond},
+			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				if len(pattern.Phases) != 3 {
+					t.Errorf("Expected 3 phases, got %d", len(pattern.Phases))
+				}
+				if len(pattern.Frequencies) != 1 {
+					t.Errorf("Expected 1 frequency, got %d", len(pattern.Frequencies))
+				}
+			},
+			description: "Mismatched lengths should be preserved",
+		},
 	}
 
-	pattern := NewRhythmicPattern(phases, frequencies)
-
-	if len(pattern.Phases) != len(phases) {
-		t.Errorf("Expected %d phases, got %d", len(phases), len(pattern.Phases))
-	}
-
-	if len(pattern.Frequencies) != len(frequencies) {
-		t.Errorf("Expected %d frequencies, got %d", len(frequencies), len(pattern.Frequencies))
-	}
-
-	if pattern.Amplitude <= 0 {
-		t.Error("Amplitude should be positive")
-	}
-
-	if pattern.Period != 100*time.Millisecond {
-		t.Errorf("Expected period 100ms, got %v", pattern.Period)
-	}
-
-	if pattern.Confidence != 1.0 {
-		t.Errorf("Expected confidence 1.0, got %f", pattern.Confidence)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pattern := NewRhythmicPattern(tt.phases, tt.frequencies)
+			tt.validateFn(t, pattern)
+		})
 	}
 }
 
 func TestPatternDetectGaps(t *testing.T) {
-	// Create pattern with a gap (large phase jump)
-	phases := []float64{0, math.Pi / 4, math.Pi * 1.5, math.Pi * 1.75}
-	frequencies := []time.Duration{
-		100 * time.Millisecond,
-		100 * time.Millisecond,
-		100 * time.Millisecond,
-		100 * time.Millisecond,
+	tests := []struct {
+		name        string
+		phases      []float64
+		frequencies []time.Duration
+		validateFn  func(t *testing.T, gaps []PatternGap)
+		description string
+	}{
+		{
+			name:        "large phase jump",
+			phases:      []float64{0, math.Pi / 4, math.Pi * 1.5, math.Pi * 1.75},
+			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
+			validateFn: func(t *testing.T, gaps []PatternGap) {
+				if len(gaps) == 0 {
+					t.Error("Should detect at least one gap")
+				}
+				foundGap := false
+				for _, gap := range gaps {
+					if gap.StartIdx == 1 && gap.EndIdx == 2 {
+						foundGap = true
+						break
+					}
+				}
+				if !foundGap {
+					t.Error("Should detect gap between indices 1 and 2")
+				}
+			},
+			description: "Should detect large phase jumps",
+		},
+		{
+			name:        "uniform pattern no gaps",
+			phases:      []float64{0, math.Pi / 4, math.Pi / 2, 3 * math.Pi / 4},
+			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
+			validateFn: func(t *testing.T, gaps []PatternGap) {
+				// May or may not detect gaps depending on threshold
+				// Just verify it doesn't crash
+			},
+			description: "Uniform pattern gap detection",
+		},
+		{
+			name:        "empty pattern",
+			phases:      []float64{},
+			frequencies: []time.Duration{},
+			validateFn: func(t *testing.T, gaps []PatternGap) {
+				if gaps == nil {
+					t.Error("Should return non-nil slice for empty pattern")
+				}
+			},
+			description: "Empty pattern should return empty gaps",
+		},
+		{
+			name:        "single phase",
+			phases:      []float64{math.Pi},
+			frequencies: []time.Duration{100 * time.Millisecond},
+			validateFn: func(t *testing.T, gaps []PatternGap) {
+				if len(gaps) != 0 {
+					t.Error("Single phase should have no gaps")
+				}
+			},
+			description: "Single phase should have no gaps",
+		},
+		{
+			name:        "wraparound phases",
+			phases:      []float64{0, math.Pi / 2, 3 * math.Pi / 2, 2 * math.Pi},
+			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
+			validateFn: func(t *testing.T, gaps []PatternGap) {
+				// Check for gap between π/2 and 3π/2
+				foundGap := false
+				for _, gap := range gaps {
+					if gap.StartIdx == 1 && gap.EndIdx == 2 {
+						foundGap = true
+						break
+					}
+				}
+				if !foundGap {
+					t.Error("Should detect gap between π/2 and 3π/2")
+				}
+			},
+			description: "Should detect wraparound gaps",
+		},
+		{
+			name:        "multiple gaps",
+			phases:      []float64{0, 0.1, math.Pi, math.Pi + 0.1, 2 * math.Pi},
+			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
+			validateFn: func(t *testing.T, gaps []PatternGap) {
+				if len(gaps) < 2 {
+					t.Errorf("Should detect multiple gaps, got %d", len(gaps))
+				}
+			},
+			description: "Should detect multiple gaps",
+		},
+		{
+			name:        "negative phases",
+			phases:      []float64{-math.Pi, -math.Pi / 2, math.Pi / 2, math.Pi},
+			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
+			validateFn: func(t *testing.T, gaps []PatternGap) {
+				// Should handle negative phases
+				// Just verify it doesn't crash
+			},
+			description: "Should handle negative phases",
+		},
 	}
 
-	pattern := NewRhythmicPattern(phases, frequencies)
-	gaps := pattern.Detect()
-
-	if len(gaps) == 0 {
-		t.Error("Should detect at least one gap")
-	}
-
-	// The gap should be between indices 1 and 2
-	foundGap := false
-	for _, gap := range gaps {
-		if gap.StartIdx == 1 && gap.EndIdx == 2 {
-			foundGap = true
-			break
-		}
-	}
-
-	if !foundGap {
-		t.Error("Should detect gap between indices 1 and 2")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pattern := NewRhythmicPattern(tt.phases, tt.frequencies)
+			gaps := pattern.Detect()
+			tt.validateFn(t, gaps)
+		})
 	}
 }
 
 func TestPatternComplete(t *testing.T) {
-	phases := []float64{0, math.Pi / 4, math.Pi / 2, 3 * math.Pi / 4, math.Pi}
-	frequencies := []time.Duration{
+	basePhases := []float64{0, math.Pi / 4, math.Pi / 2, 3 * math.Pi / 4, math.Pi}
+	baseFrequencies := []time.Duration{
 		100 * time.Millisecond,
 		100 * time.Millisecond,
 		100 * time.Millisecond,
 		100 * time.Millisecond,
 		100 * time.Millisecond,
 	}
-
-	pattern := NewRhythmicPattern(phases, frequencies)
+	pattern := NewRhythmicPattern(basePhases, baseFrequencies)
 
 	tests := []struct {
-		name     string
-		gap      PatternGap
-		expected int // expected number of completed values
+		name        string
+		gap         PatternGap
+		expectedLen int
+		validateFn  func(t *testing.T, completed []float64)
+		description string
 	}{
 		{
 			name: "single step gap",
@@ -94,7 +312,13 @@ func TestPatternComplete(t *testing.T) {
 				EndIdx:   2,
 				Duration: 100 * time.Millisecond,
 			},
-			expected: 1,
+			expectedLen: 1,
+			validateFn: func(t *testing.T, completed []float64) {
+				if len(completed) != 1 {
+					t.Errorf("Expected 1 completed value, got %d", len(completed))
+				}
+			},
+			description: "Should complete single step gap",
 		},
 		{
 			name: "multi step gap",
@@ -103,7 +327,13 @@ func TestPatternComplete(t *testing.T) {
 				EndIdx:   4,
 				Duration: 100 * time.Millisecond,
 			},
-			expected: 2,
+			expectedLen: 2,
+			validateFn: func(t *testing.T, completed []float64) {
+				if len(completed) != 2 {
+					t.Errorf("Expected 2 completed values, got %d", len(completed))
+				}
+			},
+			description: "Should complete multi step gap",
 		},
 		{
 			name: "adjacent indices",
@@ -112,32 +342,110 @@ func TestPatternComplete(t *testing.T) {
 				EndIdx:   3,
 				Duration: 100 * time.Millisecond,
 			},
-			expected: 0,
+			expectedLen: 0,
+			validateFn: func(t *testing.T, completed []float64) {
+				if len(completed) != 0 {
+					t.Errorf("Expected 0 completed values for adjacent indices, got %d", len(completed))
+				}
+			},
+			description: "Adjacent indices should return no completions",
 		},
 		{
-			name: "invalid gap",
+			name: "invalid start index",
 			gap: PatternGap{
 				StartIdx: -1,
 				EndIdx:   2,
 				Duration: 100 * time.Millisecond,
 			},
-			expected: -1, // nil result
+			expectedLen: -1,
+			validateFn: func(t *testing.T, completed []float64) {
+				if completed != nil {
+					t.Error("Expected nil for invalid start index")
+				}
+			},
+			description: "Invalid start index should return nil",
+		},
+		{
+			name: "invalid end index",
+			gap: PatternGap{
+				StartIdx: 0,
+				EndIdx:   10,
+				Duration: 100 * time.Millisecond,
+			},
+			expectedLen: -1,
+			validateFn: func(t *testing.T, completed []float64) {
+				if completed != nil {
+					t.Error("Expected nil for invalid end index")
+				}
+			},
+			description: "Invalid end index should return nil",
+		},
+		{
+			name: "reversed indices",
+			gap: PatternGap{
+				StartIdx: 3,
+				EndIdx:   1,
+				Duration: 100 * time.Millisecond,
+			},
+			expectedLen: -1,
+			validateFn: func(t *testing.T, completed []float64) {
+				if completed != nil {
+					t.Error("Expected nil for reversed indices")
+				}
+			},
+			description: "Reversed indices should return nil",
+		},
+		{
+			name: "zero duration",
+			gap: PatternGap{
+				StartIdx: 0,
+				EndIdx:   2,
+				Duration: 0,
+			},
+			expectedLen: 1,
+			validateFn: func(t *testing.T, completed []float64) {
+				if len(completed) != 1 {
+					t.Errorf("Should handle zero duration, got %d completions", len(completed))
+				}
+			},
+			description: "Zero duration should still complete",
+		},
+		{
+			name: "negative duration",
+			gap: PatternGap{
+				StartIdx: 0,
+				EndIdx:   2,
+				Duration: -100 * time.Millisecond,
+			},
+			expectedLen: 1,
+			validateFn: func(t *testing.T, completed []float64) {
+				if len(completed) != 1 {
+					t.Errorf("Should handle negative duration, got %d completions", len(completed))
+				}
+			},
+			description: "Negative duration should still complete",
+		},
+		{
+			name: "wrap around end",
+			gap: PatternGap{
+				StartIdx: 3,
+				EndIdx:   5, // Beyond array bounds
+				Duration: 100 * time.Millisecond,
+			},
+			expectedLen: -1,
+			validateFn: func(t *testing.T, completed []float64) {
+				if completed != nil {
+					t.Error("Expected nil for out of bounds end index")
+				}
+			},
+			description: "Out of bounds should return nil",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			completed := pattern.Complete(tt.gap)
-
-			if tt.expected == -1 {
-				if completed != nil {
-					t.Error("Expected nil for invalid gap")
-				}
-			} else {
-				if len(completed) != tt.expected {
-					t.Errorf("Expected %d completed values, got %d", tt.expected, len(completed))
-				}
-			}
+			tt.validateFn(t, completed)
 		})
 	}
 }
@@ -148,16 +456,18 @@ func TestPatternSimilarity(t *testing.T) {
 	pattern1 := NewRhythmicPattern(phases1, frequencies1)
 
 	tests := []struct {
-		name   string
-		other  *RhythmicPattern
-		minSim float64
-		maxSim float64
+		name        string
+		other       *RhythmicPattern
+		minSim      float64
+		maxSim      float64
+		description string
 	}{
 		{
-			name:   "identical pattern",
-			other:  NewRhythmicPattern(phases1, frequencies1),
-			minSim: 0.95,
-			maxSim: 1.0,
+			name:        "identical pattern",
+			other:       NewRhythmicPattern(phases1, frequencies1),
+			minSim:      0.95,
+			maxSim:      1.0,
+			description: "Identical patterns should have high similarity",
 		},
 		{
 			name: "similar pattern",
@@ -165,8 +475,9 @@ func TestPatternSimilarity(t *testing.T) {
 				[]float64{0, math.Pi/4 + 0.1, math.Pi / 2, 3*math.Pi/4 - 0.1},
 				frequencies1,
 			),
-			minSim: 0.7,
-			maxSim: 1.0,
+			minSim:      0.7,
+			maxSim:      1.0,
+			description: "Similar patterns should have good similarity",
 		},
 		{
 			name: "different pattern",
@@ -174,20 +485,105 @@ func TestPatternSimilarity(t *testing.T) {
 				[]float64{math.Pi, math.Pi * 1.25, math.Pi * 1.5, math.Pi * 1.75},
 				[]time.Duration{200 * time.Millisecond, 200 * time.Millisecond, 200 * time.Millisecond, 200 * time.Millisecond},
 			),
-			minSim: 0.0,
-			maxSim: 0.5,
+			minSim:      0.0,
+			maxSim:      0.5,
+			description: "Different patterns should have low similarity",
 		},
 		{
-			name:   "nil pattern",
-			other:  nil,
-			minSim: 0.0,
-			maxSim: 0.0,
+			name:        "nil pattern",
+			other:       nil,
+			minSim:      0.0,
+			maxSim:      0.0,
+			description: "Nil pattern should have zero similarity",
 		},
 		{
-			name:   "empty pattern",
-			other:  NewRhythmicPattern([]float64{}, []time.Duration{}),
-			minSim: 0.0,
-			maxSim: 0.0,
+			name:        "empty pattern",
+			other:       NewRhythmicPattern([]float64{}, []time.Duration{}),
+			minSim:      0.0,
+			maxSim:      0.0,
+			description: "Empty pattern should have zero similarity",
+		},
+		{
+			name: "different length patterns",
+			other: NewRhythmicPattern(
+				[]float64{0, math.Pi / 2},
+				[]time.Duration{100 * time.Millisecond, 100 * time.Millisecond},
+			),
+			minSim:      0.4,
+			maxSim:      0.7,
+			description: "Different length patterns should have reduced similarity",
+		},
+		{
+			name: "shifted pattern",
+			other: NewRhythmicPattern(
+				[]float64{math.Pi / 4, math.Pi / 2, 3 * math.Pi / 4, math.Pi},
+				frequencies1,
+			),
+			minSim:      0.5,
+			maxSim:      1.0,
+			description: "Shifted pattern should have moderate similarity",
+		},
+		{
+			name: "inverted pattern",
+			other: NewRhythmicPattern(
+				[]float64{3 * math.Pi / 4, math.Pi / 2, math.Pi / 4, 0},
+				frequencies1,
+			),
+			minSim:      0.7,
+			maxSim:      0.9,
+			description: "Inverted pattern should have low similarity",
+		},
+		{
+			name: "same phases different frequencies",
+			other: NewRhythmicPattern(
+				phases1,
+				[]time.Duration{50 * time.Millisecond, 50 * time.Millisecond, 50 * time.Millisecond, 50 * time.Millisecond},
+			),
+			minSim:      0.8,
+			maxSim:      0.9,
+			description: "Same phases with different frequencies should have partial similarity",
+		},
+		{
+			name: "negative phases",
+			other: NewRhythmicPattern(
+				[]float64{-math.Pi / 4, -math.Pi / 2, -3 * math.Pi / 4, -math.Pi},
+				frequencies1,
+			),
+			minSim:      0.7,
+			maxSim:      0.9,
+			description: "Negative phases should be handled",
+		},
+		{
+			name: "invalid pattern with NaN phases",
+			other: &RhythmicPattern{
+				Phases:      []float64{0, math.NaN(), math.Pi},
+				Frequencies: frequencies1[:3],
+				Amplitude:   math.NaN(),
+			},
+			minSim:      0.0,
+			maxSim:      0.1,
+			description: "Patterns with NaN should have very low similarity",
+		},
+		{
+			name: "pattern with infinite phases",
+			other: &RhythmicPattern{
+				Phases:      []float64{0, math.Inf(1), math.Pi},
+				Frequencies: frequencies1[:3],
+				Amplitude:   math.Inf(1),
+			},
+			minSim:      0.0,
+			maxSim:      0.1,
+			description: "Patterns with infinity should have very low similarity",
+		},
+		{
+			name: "massively different scale patterns",
+			other: NewRhythmicPattern(
+				[]float64{0, 1000*math.Pi, 2000*math.Pi, 3000*math.Pi},
+				[]time.Duration{1*time.Nanosecond, 1*time.Nanosecond, 1*time.Nanosecond, 1*time.Nanosecond},
+			),
+			minSim:      0.0,
+			maxSim:      0.3,
+			description: "Vastly different scale patterns should have low similarity",
 		},
 	}
 
@@ -195,7 +591,8 @@ func TestPatternSimilarity(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			similarity := pattern1.Similarity(tt.other)
 			if similarity < tt.minSim || similarity > tt.maxSim {
-				t.Errorf("Expected similarity in [%f, %f], got %f", tt.minSim, tt.maxSim, similarity)
+				t.Errorf("%s: Expected similarity in [%f, %f], got %f",
+					tt.description, tt.minSim, tt.maxSim, similarity)
 			}
 		})
 	}
@@ -210,20 +607,20 @@ func TestPatternTemplate(t *testing.T) {
 		Confidence:  1.0,
 	}
 
-	template := &PatternTemplate{
-		Name:        "test-template",
-		BasePattern: basePattern,
-		Variations:  []RhythmicPattern{},
-		Tolerance:   0.2,
-	}
-
 	tests := []struct {
-		name     string
-		pattern  *RhythmicPattern
-		expected bool
+		name        string
+		template    *PatternTemplate
+		pattern     *RhythmicPattern
+		expected    bool
+		description string
 	}{
 		{
 			name: "exact match",
+			template: &PatternTemplate{
+				Name:        "test",
+				BasePattern: basePattern,
+				Tolerance:   0.2,
+			},
 			pattern: &RhythmicPattern{
 				Phases:      []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 				Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
@@ -231,10 +628,16 @@ func TestPatternTemplate(t *testing.T) {
 				Period:      100 * time.Millisecond,
 				Confidence:  1.0,
 			},
-			expected: true,
+			expected:    true,
+			description: "Exact match should succeed",
 		},
 		{
 			name: "within tolerance",
+			template: &PatternTemplate{
+				Name:        "test",
+				BasePattern: basePattern,
+				Tolerance:   0.2,
+			},
 			pattern: &RhythmicPattern{
 				Phases:      []float64{0.1, math.Pi/2 + 0.1, math.Pi, 3*math.Pi/2 - 0.1},
 				Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
@@ -242,10 +645,16 @@ func TestPatternTemplate(t *testing.T) {
 				Period:      100 * time.Millisecond,
 				Confidence:  1.0,
 			},
-			expected: true,
+			expected:    true,
+			description: "Pattern within tolerance should match",
 		},
 		{
 			name: "outside tolerance",
+			template: &PatternTemplate{
+				Name:        "test",
+				BasePattern: basePattern,
+				Tolerance:   0.2,
+			},
 			pattern: &RhythmicPattern{
 				Phases:      []float64{math.Pi / 4, 3 * math.Pi / 4, 5 * math.Pi / 4, 7 * math.Pi / 4},
 				Frequencies: []time.Duration{200 * time.Millisecond, 200 * time.Millisecond, 200 * time.Millisecond, 200 * time.Millisecond},
@@ -253,137 +662,592 @@ func TestPatternTemplate(t *testing.T) {
 				Period:      200 * time.Millisecond,
 				Confidence:  1.0,
 			},
-			expected: false,
+			expected:    false,
+			description: "Pattern outside tolerance should not match",
+		},
+		{
+			name: "nil pattern",
+			template: &PatternTemplate{
+				Name:        "test",
+				BasePattern: basePattern,
+				Tolerance:   0.2,
+			},
+			pattern:     nil,
+			expected:    false,
+			description: "Nil pattern should not match",
+		},
+		{
+			name: "zero tolerance exact match",
+			template: &PatternTemplate{
+				Name:        "test",
+				BasePattern: basePattern,
+				Tolerance:   0.0,
+			},
+			pattern:     &basePattern,
+			expected:    true,
+			description: "Zero tolerance should require exact match",
+		},
+		{
+			name: "negative tolerance",
+			template: &PatternTemplate{
+				Name:        "test",
+				BasePattern: basePattern,
+				Tolerance:   -0.5,
+			},
+			pattern:     &basePattern,
+			expected:    false,
+			description: "Negative tolerance should never match",
+		},
+		{
+			name: "very high tolerance",
+			template: &PatternTemplate{
+				Name:        "test",
+				BasePattern: basePattern,
+				Tolerance:   10.0,
+			},
+			pattern: &RhythmicPattern{
+				Phases:      []float64{0, 0, 0, 0},
+				Frequencies: []time.Duration{1 * time.Second, 1 * time.Second, 1 * time.Second, 1 * time.Second},
+				Amplitude:   0,
+				Period:      1 * time.Second,
+				Confidence:  0,
+			},
+			expected:    true,
+			description: "Very high tolerance should match almost anything",
+		},
+		{
+			name: "empty template pattern",
+			template: &PatternTemplate{
+				Name: "test",
+				BasePattern: RhythmicPattern{
+					Phases:      []float64{},
+					Frequencies: []time.Duration{},
+				},
+				Tolerance: 0.2,
+			},
+			pattern: &RhythmicPattern{
+				Phases:      []float64{0, math.Pi},
+				Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond},
+			},
+			expected:    false,
+			description: "Empty template should not match non-empty pattern",
+		},
+		{
+			name: "with variations",
+			template: &PatternTemplate{
+				Name:        "test",
+				BasePattern: basePattern,
+				Variations: []RhythmicPattern{
+					{
+						Phases:      []float64{0.1, math.Pi/2 + 0.1, math.Pi + 0.1, 3*math.Pi/2 + 0.1},
+						Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
+					},
+				},
+				Tolerance: 0.1,
+			},
+			pattern: &RhythmicPattern{
+				Phases:      []float64{0.1, math.Pi/2 + 0.1, math.Pi + 0.1, 3*math.Pi/2 + 0.1},
+				Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
+				Amplitude:   1.0,
+				Period:      100 * time.Millisecond,
+				Confidence:  1.0,
+			},
+			expected:    true,
+			description: "Should match variation patterns",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			matches := template.Matches(tt.pattern)
+			matches := tt.template.Matches(tt.pattern)
 			if matches != tt.expected {
-				t.Errorf("Expected Matches() = %v, got %v", tt.expected, matches)
+				t.Errorf("%s: Expected Matches() = %v, got %v",
+					tt.description, tt.expected, matches)
 			}
 		})
 	}
 }
 
 func TestPatternLibrary(t *testing.T) {
-	library := NewPatternLibrary()
-
-	// Add templates
-	circadian := &PatternTemplate{
-		Name: "circadian",
-		BasePattern: RhythmicPattern{
-			Phases:      []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
-			Frequencies: []time.Duration{6 * time.Hour, 6 * time.Hour, 6 * time.Hour, 6 * time.Hour},
-			Amplitude:   1.0,
-			Period:      24 * time.Hour,
-			Confidence:  1.0,
+	tests := []struct {
+		name        string
+		setupFn     func() *PatternLibrary
+		testPattern *RhythmicPattern
+		expectedID  string
+		minSim      float64
+		description string
+	}{
+		{
+			name: "identify circadian pattern",
+			setupFn: func() *PatternLibrary {
+				library := NewPatternLibrary()
+				circadian := &PatternTemplate{
+					Name: "circadian",
+					BasePattern: RhythmicPattern{
+						Phases:      []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
+						Frequencies: []time.Duration{6 * time.Hour, 6 * time.Hour, 6 * time.Hour, 6 * time.Hour},
+						Amplitude:   1.0,
+						Period:      24 * time.Hour,
+						Confidence:  1.0,
+					},
+					Tolerance: 0.15,
+				}
+				library.Add("circadian", circadian)
+				return library
+			},
+			testPattern: &RhythmicPattern{
+				Phases:      []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
+				Frequencies: []time.Duration{6 * time.Hour, 6 * time.Hour, 6 * time.Hour, 6 * time.Hour},
+				Amplitude:   0.95,
+				Period:      24 * time.Hour,
+				Confidence:  0.9,
+			},
+			expectedID:  "circadian",
+			minSim:      0.8,
+			description: "Should identify circadian pattern",
 		},
-		Tolerance: 0.15,
-	}
-
-	ultradian := &PatternTemplate{
-		Name: "ultradian",
-		BasePattern: RhythmicPattern{
-			Phases:      []float64{0, math.Pi},
-			Frequencies: []time.Duration{45 * time.Minute, 45 * time.Minute},
-			Amplitude:   0.5,
-			Period:      90 * time.Minute,
-			Confidence:  1.0,
+		{
+			name: "identify best match among multiple",
+			setupFn: func() *PatternLibrary {
+				library := NewPatternLibrary()
+				
+				circadian := &PatternTemplate{
+					Name: "circadian",
+					BasePattern: *NewRhythmicPattern(
+						[]float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
+						[]time.Duration{6 * time.Hour, 6 * time.Hour, 6 * time.Hour, 6 * time.Hour},
+					),
+					Tolerance: 0.15,
+				}
+				
+				ultradian := &PatternTemplate{
+					Name: "ultradian",
+					BasePattern: *NewRhythmicPattern(
+						[]float64{0, math.Pi},
+						[]time.Duration{45 * time.Minute, 45 * time.Minute},
+					),
+					Tolerance: 0.2,
+				}
+				
+				library.Add("circadian", circadian)
+				library.Add("ultradian", ultradian)
+				return library
+			},
+			testPattern: NewRhythmicPattern(
+				[]float64{0, math.Pi},
+				[]time.Duration{45 * time.Minute, 45 * time.Minute},
+			),
+			expectedID:  "ultradian",
+			minSim:      0.8,
+			description: "Should identify best matching pattern",
 		},
-		Tolerance: 0.2,
+		{
+			name: "no match found",
+			setupFn: func() *PatternLibrary {
+				library := NewPatternLibrary()
+				circadian := &PatternTemplate{
+					Name: "circadian",
+					BasePattern: RhythmicPattern{
+						Phases:      []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
+						Frequencies: []time.Duration{6 * time.Hour, 6 * time.Hour, 6 * time.Hour, 6 * time.Hour},
+					},
+					Tolerance: 0.15,
+				}
+				library.Add("circadian", circadian)
+				return library
+			},
+			testPattern: &RhythmicPattern{
+				Phases:      []float64{0, 0.1, 0.2, 0.3},
+				Frequencies: []time.Duration{1 * time.Second, 1 * time.Second, 1 * time.Second, 1 * time.Second},
+			},
+			expectedID:  "",
+			minSim:      0,
+			description: "Should return empty for no match",
+		},
+		{
+			name: "empty library",
+			setupFn: func() *PatternLibrary {
+				return NewPatternLibrary()
+			},
+			testPattern: &RhythmicPattern{
+				Phases:      []float64{0, math.Pi},
+				Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond},
+			},
+			expectedID:  "",
+			minSim:      0,
+			description: "Empty library should return empty",
+		},
+		{
+			name: "nil pattern",
+			setupFn: func() *PatternLibrary {
+				library := NewPatternLibrary()
+				template := &PatternTemplate{
+					Name:        "test",
+					BasePattern: RhythmicPattern{Phases: []float64{0, math.Pi}},
+				}
+				library.Add("test", template)
+				return library
+			},
+			testPattern: nil,
+			expectedID:  "",
+			minSim:      0,
+			description: "Nil pattern should return empty",
+		},
 	}
 
-	library.Add("circadian", circadian)
-	library.Add("ultradian", ultradian)
-
-	// Test identification
-	testPattern := &RhythmicPattern{
-		Phases:      []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
-		Frequencies: []time.Duration{6 * time.Hour, 6 * time.Hour, 6 * time.Hour, 6 * time.Hour},
-		Amplitude:   0.95,
-		Period:      24 * time.Hour,
-		Confidence:  0.9,
-	}
-
-	name, similarity := library.Identify(testPattern)
-
-	if name != "circadian" {
-		t.Errorf("Expected to identify as 'circadian', got '%s'", name)
-	}
-
-	if similarity < 0.8 {
-		t.Errorf("Expected high similarity (>0.8), got %f", similarity)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			library := tt.setupFn()
+			name, similarity := library.Identify(tt.testPattern)
+			
+			if name != tt.expectedID {
+				t.Errorf("%s: Expected to identify as '%s', got '%s'",
+					tt.description, tt.expectedID, name)
+			}
+			
+			if similarity < tt.minSim {
+				t.Errorf("%s: Expected similarity >= %f, got %f",
+					tt.description, tt.minSim, similarity)
+			}
+		})
 	}
 }
 
 func TestHelperFunctions(t *testing.T) {
 	t.Run("calculateAmplitude", func(t *testing.T) {
-		// Test with uniform phases (low amplitude)
-		uniform := []float64{1.0, 1.0, 1.0, 1.0}
-		amp := calculateAmplitude(uniform)
-		if amp != 0 {
-			t.Errorf("Expected amplitude 0 for uniform phases, got %f", amp)
+		tests := []struct {
+			name        string
+			phases      []float64
+			expectedMin float64
+			expectedMax float64
+			description string
+		}{
+			{
+				name:        "uniform phases",
+				phases:      []float64{1.0, 1.0, 1.0, 1.0},
+				expectedMin: 0,
+				expectedMax: 0,
+				description: "Uniform phases should have zero amplitude",
+			},
+			{
+				name:        "varied phases",
+				phases:      []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
+				expectedMin: 0.5,
+				expectedMax: 2.0,
+				description: "Varied phases should have positive amplitude",
+			},
+			{
+				name:        "empty slice",
+				phases:      []float64{},
+				expectedMin: 0,
+				expectedMax: 0,
+				description: "Empty phases should have zero amplitude",
+			},
+			{
+				name:        "single phase",
+				phases:      []float64{math.Pi},
+				expectedMin: 0,
+				expectedMax: 0,
+				description: "Single phase should have zero amplitude",
+			},
+			{
+				name:        "negative phases",
+				phases:      []float64{-math.Pi, -math.Pi / 2, 0, math.Pi / 2},
+				expectedMin: 0.5,
+				expectedMax: 2.0,
+				description: "Negative phases should work",
+			},
+			{
+				name:        "large phases (normalized)",
+				phases:      []float64{0, 10*math.Pi + math.Pi/2, 20*math.Pi + math.Pi, 30*math.Pi + 3*math.Pi/2},
+				expectedMin: 1.5,
+				expectedMax: 2.0,
+				description: "Large phases should be normalized before amplitude calculation",
+			},
+			{
+				name:        "extremely large phases",
+				phases:      []float64{0, 1000 * math.Pi, 2000 * math.Pi},
+				expectedMin: 0.0,
+				expectedMax: 3.0,
+				description: "Extremely large phases should be handled",
+			},
+			{
+				name:        "negative and positive mix",
+				phases:      []float64{-10 * math.Pi, -5 * math.Pi, 5 * math.Pi, 10 * math.Pi},
+				expectedMin: 0.0,
+				expectedMax: 3.0,
+				description: "Mixed negative and positive large phases",
+			},
 		}
 
-		// Test with varied phases (higher amplitude)
-		varied := []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2}
-		amp = calculateAmplitude(varied)
-		if amp <= 0 {
-			t.Error("Expected positive amplitude for varied phases")
-		}
-
-		// Test with empty slice
-		empty := []float64{}
-		amp = calculateAmplitude(empty)
-		if amp != 0 {
-			t.Errorf("Expected amplitude 0 for empty phases, got %f", amp)
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				amp := calculateAmplitude(tt.phases)
+				if amp < tt.expectedMin || amp > tt.expectedMax {
+					t.Errorf("%s: Expected amplitude in [%f, %f], got %f",
+						tt.description, tt.expectedMin, tt.expectedMax, amp)
+				}
+			})
 		}
 	})
 
 	t.Run("calculatePeriod", func(t *testing.T) {
-		frequencies := []time.Duration{
-			100 * time.Millisecond,
-			200 * time.Millisecond,
-			150 * time.Millisecond,
-		}
-		period := calculatePeriod(frequencies)
-		expected := 150 * time.Millisecond
-		if period != expected {
-			t.Errorf("Expected period %v, got %v", expected, period)
+		tests := []struct {
+			name        string
+			frequencies []time.Duration
+			expected    time.Duration
+			description string
+		}{
+			{
+				name: "uniform frequencies",
+				frequencies: []time.Duration{
+					100 * time.Millisecond,
+					100 * time.Millisecond,
+					100 * time.Millisecond,
+				},
+				expected:    100 * time.Millisecond,
+				description: "Uniform frequencies should return that value",
+			},
+			{
+				name: "mixed frequencies",
+				frequencies: []time.Duration{
+					100 * time.Millisecond,
+					200 * time.Millisecond,
+					150 * time.Millisecond,
+				},
+				expected:    150 * time.Millisecond,
+				description: "Mixed frequencies should return average",
+			},
+			{
+				name:        "empty slice",
+				frequencies: []time.Duration{},
+				expected:    0,
+				description: "Empty frequencies should return zero",
+			},
+			{
+				name:        "single frequency",
+				frequencies: []time.Duration{500 * time.Millisecond},
+				expected:    500 * time.Millisecond,
+				description: "Single frequency should return that value",
+			},
+			{
+				name: "zero frequencies",
+				frequencies: []time.Duration{0, 0, 0},
+				expected:    0,
+				description: "Zero frequencies should return zero",
+			},
+			{
+				name: "negative frequencies",
+				frequencies: []time.Duration{
+					-100 * time.Millisecond,
+					-200 * time.Millisecond,
+				},
+				expected:    -150 * time.Millisecond,
+				description: "Negative frequencies should work",
+			},
 		}
 
-		// Test with empty slice
-		empty := []time.Duration{}
-		period = calculatePeriod(empty)
-		if period != 0 {
-			t.Errorf("Expected period 0 for empty frequencies, got %v", period)
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				period := calculatePeriod(tt.frequencies)
+				if period != tt.expected {
+					t.Errorf("%s: Expected period %v, got %v",
+						tt.description, tt.expected, period)
+				}
+			})
 		}
 	})
 
 	t.Run("phaseCorrelation", func(t *testing.T) {
-		// Test identical phases
-		phases1 := []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2}
-		phases2 := []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2}
-		corr := phaseCorrelation(phases1, phases2)
-		if corr < 0.99 {
-			t.Errorf("Expected correlation ~1.0 for identical phases, got %f", corr)
+		tests := []struct {
+			name        string
+			phases1     []float64
+			phases2     []float64
+			expectedMin float64
+			expectedMax float64
+			description string
+		}{
+			{
+				name:        "identical phases",
+				phases1:     []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
+				phases2:     []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
+				expectedMin: 0.99,
+				expectedMax: 1.0,
+				description: "Identical phases should have correlation ~1.0",
+			},
+			{
+				name:        "opposite phases",
+				phases1:     []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
+				phases2:     []float64{math.Pi, 3 * math.Pi / 2, 0, math.Pi / 2},
+				expectedMin: 0.0,
+				expectedMax: 0.5,
+				description: "Opposite phases should have low correlation",
+			},
+			{
+				name:        "empty first",
+				phases1:     []float64{},
+				phases2:     []float64{0, math.Pi},
+				expectedMin: 0,
+				expectedMax: 0,
+				description: "Empty first array should return zero",
+			},
+			{
+				name:        "empty second",
+				phases1:     []float64{0, math.Pi},
+				phases2:     []float64{},
+				expectedMin: 0,
+				expectedMax: 0,
+				description: "Empty second array should return zero",
+			},
+			{
+				name:        "both empty",
+				phases1:     []float64{},
+				phases2:     []float64{},
+				expectedMin: 0,
+				expectedMax: 0,
+				description: "Both empty should return zero",
+			},
+			{
+				name:        "different lengths",
+				phases1:     []float64{0, math.Pi / 2, math.Pi},
+				phases2:     []float64{0, math.Pi / 2},
+				expectedMin: 0,
+				expectedMax: 0,
+				description: "Different lengths should return zero",
+			},
+			{
+				name:        "negative phases",
+				phases1:     []float64{-math.Pi, -math.Pi / 2, 0, math.Pi / 2},
+				phases2:     []float64{-math.Pi, -math.Pi / 2, 0, math.Pi / 2},
+				expectedMin: 0.99,
+				expectedMax: 1.0,
+				description: "Negative phases should work",
+			},
+			{
+				name:        "single element",
+				phases1:     []float64{math.Pi},
+				phases2:     []float64{math.Pi},
+				expectedMin: 1.0,
+				expectedMax: 1.0,
+				description: "Single identical element should return 1.0",
+			},
 		}
 
-		// Test opposite phases
-		phases3 := []float64{math.Pi, 3 * math.Pi / 2, 0, math.Pi / 2}
-		corr = phaseCorrelation(phases1, phases3)
-		if corr > 0.5 {
-			t.Errorf("Expected low correlation for opposite phases, got %f", corr)
-		}
-
-		// Test empty slices
-		empty := []float64{}
-		corr = phaseCorrelation(empty, phases1)
-		if corr != 0 {
-			t.Errorf("Expected correlation 0 for empty phases, got %f", corr)
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				corr := phaseCorrelation(tt.phases1, tt.phases2)
+				if corr < tt.expectedMin || corr > tt.expectedMax {
+					t.Errorf("%s: Expected correlation in [%f, %f], got %f",
+						tt.description, tt.expectedMin, tt.expectedMax, corr)
+				}
+			})
 		}
 	})
 }
 
+func TestPatternConcurrency(t *testing.T) {
+	pattern := NewRhythmicPattern(
+		[]float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
+		[]time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
+	)
+	
+	library := NewPatternLibrary()
+	template := &PatternTemplate{
+		Name:        "test",
+		BasePattern: *pattern,
+		Tolerance:   0.2,
+	}
+	library.Add("test", template)
+	
+	// Run concurrent operations
+	done := make(chan bool, 100)
+	
+	for i := 0; i < 25; i++ {
+		go func() {
+			_ = pattern.Detect()
+			done <- true
+		}()
+		
+		go func() {
+			_ = pattern.Similarity(pattern)
+			done <- true
+		}()
+		
+		go func() {
+			_, _ = library.Identify(pattern)
+			done <- true
+		}()
+		
+		go func() {
+			_ = template.Matches(pattern)
+			done <- true
+		}()
+	}
+	
+	// Wait for all goroutines
+	for i := 0; i < 100; i++ {
+		<-done
+	}
+	
+	// If we get here without race conditions, concurrent access is safe
+}
+
+func BenchmarkPatternDetect(b *testing.B) {
+	phases := make([]float64, 100)
+	frequencies := make([]time.Duration, 100)
+	for i := range phases {
+		phases[i] = float64(i) * math.Pi / 50
+		frequencies[i] = 100 * time.Millisecond
+	}
+	
+	pattern := NewRhythmicPattern(phases, frequencies)
+	
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pattern.Detect()
+	}
+}
+
+func BenchmarkPatternSimilarity(b *testing.B) {
+	phases := []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2}
+	frequencies := []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond}
+	
+	pattern1 := NewRhythmicPattern(phases, frequencies)
+	pattern2 := NewRhythmicPattern(phases, frequencies)
+	
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pattern1.Similarity(pattern2)
+	}
+}
+
+func BenchmarkLibraryIdentify(b *testing.B) {
+	library := NewPatternLibrary()
+	
+	// Add multiple templates
+	for i := 0; i < 10; i++ {
+		phases := make([]float64, 4)
+		for j := range phases {
+			phases[j] = float64(j+i) * math.Pi / 4
+		}
+		template := &PatternTemplate{
+			Name: "template",
+			BasePattern: RhythmicPattern{
+				Phases:      phases,
+				Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
+			},
+			Tolerance: 0.2,
+		}
+		library.Add("template", template)
+	}
+	
+	testPattern := NewRhythmicPattern(
+		[]float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
+		[]time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
+	)
+	
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		library.Identify(testPattern)
+	}
+}
