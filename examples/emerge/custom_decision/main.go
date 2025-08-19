@@ -267,7 +267,19 @@ func main() {
 				agentStats[i].accepted++
 				agentStats[i].totalCost += action.Cost
 				agentStats[i].totalBenefit += action.Benefit
-				agent.ApplyAction(action)
+				success, energyCost, err := agent.ApplyAction(action)
+				if err != nil {
+					// Action failed due to insufficient energy or invalid action type
+					// This is expected behavior in energy-constrained systems - continue simulation
+					if cycle%25 == 0 { // Only log occasionally to avoid spam
+						fmt.Printf("Agent %s action failed: %v\n", agent.ID, err)
+					}
+				} else if !success {
+					// Action was valid but unsuccessful for other reasons - continue
+					if cycle%25 == 0 {
+						fmt.Printf("Agent %s action unsuccessful (cost: %.1f)\n", agent.ID, energyCost)
+					}
+				}
 			}
 		}
 

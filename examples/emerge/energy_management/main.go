@@ -42,17 +42,29 @@ func main() {
 			// High energy agents - can afford more adjustments
 			agent.SetEnergy(100)
 			agent.SetInfluence(0.8)
-			fmt.Printf("  Agent %s: High energy (100), high influence\n", agent.ID[:8])
+			idDisplay := agent.ID
+			if len(idDisplay) > 8 {
+				idDisplay = idDisplay[:8]
+			}
+			fmt.Printf("  Agent %s: High energy (100), high influence\n", idDisplay)
 		} else if agentCount < 20 {
 			// Medium energy agents
 			agent.SetEnergy(50)
 			agent.SetInfluence(0.5)
-			fmt.Printf("  Agent %s: Medium energy (50), medium influence\n", agent.ID[:8])
+			idDisplay := agent.ID
+			if len(idDisplay) > 8 {
+				idDisplay = idDisplay[:8]
+			}
+			fmt.Printf("  Agent %s: Medium energy (50), medium influence\n", idDisplay)
 		} else {
 			// Low energy agents - must be conservative
 			agent.SetEnergy(20)
 			agent.SetInfluence(0.3)
-			fmt.Printf("  Agent %s: Low energy (20), low influence\n", agent.ID[:8])
+			idDisplay := agent.ID
+			if len(idDisplay) > 8 {
+				idDisplay = idDisplay[:8]
+			}
+			fmt.Printf("  Agent %s: Low energy (20), low influence\n", idDisplay)
 		}
 
 		agentCount++
@@ -227,7 +239,17 @@ func demonstrateEnergyDecisions() {
 	action1, accepted1 := richAgent.ProposeAdjustment(target)
 	if accepted1 {
 		fmt.Printf("Accepts adjustment (cost: %.1f)\n", action1.Cost)
-		richAgent.ApplyAction(action1)
+		success, energyCost, err := richAgent.ApplyAction(action1)
+		if err != nil {
+			// Action failed - could be insufficient energy or invalid action
+			// This demonstrates the energy constraints in action - continue with demo
+			fmt.Printf("  Action failed: %v\n", err)
+		} else if !success {
+			// Action was valid but unsuccessful - continue with demo
+			fmt.Printf("  Action unsuccessful (cost: %.1f)\n", energyCost)
+		} else {
+			fmt.Printf("  Action successful (cost: %.1f)\n", energyCost)
+		}
 	} else {
 		fmt.Println("Rejects adjustment")
 	}
@@ -238,7 +260,17 @@ func demonstrateEnergyDecisions() {
 	action2, accepted2 := poorAgent.ProposeAdjustment(target)
 	if accepted2 {
 		fmt.Printf("Accepts adjustment (cost: %.1f)\n", action2.Cost)
-		poorAgent.ApplyAction(action2)
+		success, energyCost, err := poorAgent.ApplyAction(action2)
+		if err != nil {
+			// Action failed - this is exactly what we want to demonstrate!
+			// Poor agents failing due to energy constraints is the point of this example
+			fmt.Printf("  Action failed: %v\n", err)
+		} else if !success {
+			// Action was valid but unsuccessful - part of the demonstration
+			fmt.Printf("  Action unsuccessful (cost: %.1f)\n", energyCost)
+		} else {
+			fmt.Printf("  Action successful (cost: %.1f)\n", energyCost)
+		}
 	} else {
 		fmt.Println("Rejects adjustment (too expensive)")
 	}

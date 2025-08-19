@@ -154,11 +154,38 @@ func main() {
 
 	// Create swarm with auto-scaled configuration
 	config := emerge.AutoScaleConfig(swarmSize)
+
+	// Optionally customize configuration for demo purposes
+	// You can uncomment these lines to see different behaviors:
+	// config.MaxConcurrentAgents = 50  // Limit concurrent goroutines
+	// config.UseBatchProcessing = true // Enable batch processing
+	// config.BatchSize = 25            // Process 25 agents per batch
+	// config.WorkerPoolSize = 10       // Use 10 worker goroutines
+	// config.AgentUpdateInterval = 100 * time.Millisecond // Slower updates
+	// config.MonitoringInterval = 200 * time.Millisecond  // Less frequent monitoring
+
 	swarm, err := emerge.NewSwarm(swarmSize, targetState, emerge.WithConfig(config))
 	if err != nil {
 		fmt.Printf("❌ Error: failed to create swarm: %v\n", err)
 		return
 	}
+
+	fmt.Println("⚡ SCALABILITY CONFIGURATION")
+	fmt.Printf("├─ Batch Processing: %v\n", config.UseBatchProcessing)
+	if config.UseBatchProcessing {
+		fmt.Printf("├─ Batch Size: %d agents per batch\n", config.BatchSize)
+		fmt.Printf("├─ Worker Pool: %d goroutines\n", config.WorkerPoolSize)
+	}
+	fmt.Printf("├─ Max Concurrent: %d goroutines\n", config.MaxConcurrentAgents)
+	fmt.Printf("├─ Update Interval: %v\n", config.AgentUpdateInterval)
+	fmt.Printf("├─ Monitor Interval: %v\n", config.MonitoringInterval)
+	if config.EnableConnectionOptim && swarmSize > config.ConnectionOptimThreshold {
+		fmt.Printf("├─ Connection Optimization: ENABLED (threshold: %d)\n", config.ConnectionOptimThreshold)
+	} else {
+		fmt.Println("├─ Connection Optimization: DISABLED")
+	}
+	fmt.Printf("└─ Max Swarm Size: %d agents\n", config.MaxSwarmSize)
+	fmt.Println()
 
 	// Measure initial coherence using Kuramoto order parameter.
 	// This will be low (~0.1-0.3) due to random initialization.
