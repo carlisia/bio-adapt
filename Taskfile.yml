@@ -64,17 +64,18 @@ tasks:
 
   # Run a specific example
   run:example:
-    desc: Run a specific example (use EXAMPLE=name)
+    desc: Run a specific example (use task run:example -- name)
     deps: [build:examples]
     cmds:
       - |
-        if [ -z "$EXAMPLE" ]; then
+        if [ -z "{{.CLI_ARGS}}" ]; then
           echo "Available examples:"
           ls -1 {{.BIN_DIR}}/examples/ 2>/dev/null || echo "No examples built yet"
           echo ""
-          echo "Usage: EXAMPLE=basic_sync task run:example"
+          echo "Usage: task run:example -- basic_sync"
+          echo "   or: task run:example -- llm_batching"
         else
-          {{.BIN_DIR}}/examples/$EXAMPLE
+          {{.BIN_DIR}}/examples/{{.CLI_ARGS}}
         fi
 
   # List all available binaries
