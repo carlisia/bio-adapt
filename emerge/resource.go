@@ -48,6 +48,11 @@ func (t *TokenResourceManager) Request(amount float64) float64 {
 	}
 
 	available := t.tokens.Load()
+	// Can't allocate from negative pool
+	if available <= 0 {
+		return 0
+	}
+	
 	allocated := math.Min(amount, available)
 	t.tokens.Store(available - allocated)
 
@@ -57,6 +62,11 @@ func (t *TokenResourceManager) Request(amount float64) float64 {
 func (t *TokenResourceManager) Release(amount float64) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+
+	// Ignore negative releases to maintain resource integrity
+	if amount <= 0 {
+		return
+	}
 
 	current := t.tokens.Load()
 	t.tokens.Store(math.Min(current+amount, t.maxTokens))

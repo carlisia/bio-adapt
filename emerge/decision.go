@@ -18,7 +18,7 @@ type SimpleDecisionMaker struct{}
 // Decide selects action with best benefit/cost ratio adjusted by context.
 func (s *SimpleDecisionMaker) Decide(state State, options []Action) (Action, float64) {
 	if len(options) == 0 {
-		return Action{Type: "maintain"}, 0.5
+		return Action{Type: "maintain"}, state.Coherence
 	}
 
 	bestAction := options[0]
