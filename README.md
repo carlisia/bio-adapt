@@ -11,8 +11,11 @@ Inspired by Dr. Michael Levin's bioelectric research showing how cellular networ
 ## Key Benefits
 
 🎯 **Goal-Directed** - Systems pursue target states, not rigid procedures
+
 🔄 **Self-Healing** - Automatic recovery from disruptions
+
 ⚡ **Emergent Coordination** - No central orchestrator needed
+
 🧬 **Biologically Inspired** - Proven patterns from nature
 
 ## Core Patterns
@@ -20,19 +23,25 @@ Inspired by Dr. Michael Levin's bioelectric research showing how cellular networ
 ### 🧲 Attractor Basin Synchronization
 
 **Package:** `emerge`
+
 **Use Case:** Coordinate timing across distributed workloads
+
 **Example:** Batch LLM API calls naturally without central control
 
 ### ⚡ Morphospace Navigation
 
 **Package:** `bioelectric` _(coming soon)_
+
 **Use Case:** Dynamic resource allocation around bottlenecks
+
 **Example:** Reroute processing when nodes fail
 
 ### 🔗 Cognitive Glue Networks
 
 **Package:** `glue` _(coming soon)_
+
 **Use Case:** Emergent consensus through collective problem-solving
+
 **Example:** Distributed schema evolution
 
 ## When to Use Bio-Adapt
@@ -82,8 +91,11 @@ swarm.Run(ctx)
 ## Examples
 
 🔄 **[Basic Synchronization](examples/emerge/basic_sync)** - Learn the fundamentals
+
 📦 **[LLM Batching](examples/emerge/llm_batching)** - Reduce API calls by 80%
+
 🌐 **[Distributed Swarm](examples/emerge/distributed_swarm)** - Multi-region coordination
+
 💪 **[Disruption Recovery](examples/emerge/disruption_recovery)** - Self-healing demos
 
 See [examples/](examples/) for all available examples.

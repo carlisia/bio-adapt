@@ -201,16 +201,20 @@ This implementation is based on:
 ## FAQ
 
 **Q: Is convergence guaranteed?**
-A: Convergence is probabilistic but highly reliable (>99.9% in practice).
+
+- A: Convergence is probabilistic but highly reliable (>99.9% in practice).
 
 **Q: How many agents can it handle?**
-A: Tested up to 10,000 agents. Performance is O(log N).
+
+- A: Tested up to 10,000 agents. Performance is O(log N).
 
 **Q: Can agents have different goals?**
-A: Yes! Use LocalGoal for individual preferences.
+
+- A: Yes! Use LocalGoal for individual preferences.
 
 **Q: What if an agent crashes?**
-A: The swarm automatically adapts and maintains synchronization.
+
+- A: The swarm automatically adapts and maintains synchronization.
 
 ## Next Steps
 
