@@ -1,33 +1,143 @@
 # Bio-Adapt
 
-A bio-inspired adaptive system framework in Go.
+**Bio-inspired adaptive systems for Go** - Self-organizing coordination patterns that achieve goals despite disruptions.
 
-It employs resilient orchestration patterns for distributed Go systems inspired by Dr. Michael Levin's bioelectric research on cellular intelligence and regeneration.
+## Overview
 
-## What It Does
+Bio-Adapt brings biological intelligence principles to distributed systems. Just as cells self-organize to heal wounds or regenerate limbs, your systems can adaptively coordinate to maintain desired states even when disrupted.
 
-bio-adapt implements goal-directed coordination patterns that enable distributed systems to achieve and maintain target states even under disruption, much like biological cells adaptively self-organize toward correct anatomical outcomes when typical pathways are blocked.
+Inspired by Dr. Michael Levin's bioelectric research showing how cellular networks achieve reliable outcomes through goal-directed behavior rather than fixed instruction sequences.
 
-It treats desired states as invariants and dynamically explores alternate execution paths to reach them.
+## Key Benefits
 
-By leveraging Go’s concurrency primitives, bio-adapt uses principles of biological intelligence to enable systems that pursue goals and reroute intelligently when conditions change.
+🎯 **Goal-Directed** - Systems pursue target states, not rigid procedures
+🔄 **Self-Healing** - Automatic recovery from disruptions
+⚡ **Emergent Coordination** - No central orchestrator needed
+🧬 **Biologically Inspired** - Proven patterns from nature
 
 ## Core Patterns
 
-- **Morphospace Navigation (bioelectric)**: Dynamic resource allocation that reroutes around bottlenecks
-- **Attractor Basin Synchronization (attractor)**: Rhythmic coordination that self-corrects disruptions
-- **Cognitive Glue Networks (glue)**: Emergent consensus through collective problem-solving
+### 🧲 Attractor Basin Synchronization
 
-## When to Use
+**Package:** `attractor`
+**Use Case:** Coordinate timing across distributed workloads
+**Example:** Batch LLM API calls naturally without central control
 
-- Scaling beyond 1000+ concurrent agents accessing shared resources
-- Coordinating periodic tasks without thundering herds
-- Adapting to schema changes without brittle contracts
-- Building self-healing distributed systems
+### ⚡ Morphospace Navigation
 
-See the `examples/` directory for usage examples.
+**Package:** `bioelectric` _(coming soon)_
+**Use Case:** Dynamic resource allocation around bottlenecks
+**Example:** Reroute processing when nodes fail
 
-## Inspired By
+### 🔗 Cognitive Glue Networks
 
-Based on the groundbreaking bioelectric research of Dr. Michael Levin at Tufts University, showing how cellular networks achieve reliable outcomes through goal-directed behavior rather than fixed instruction sequences.
+**Package:** `glue` _(coming soon)_
+**Use Case:** Emergent consensus through collective problem-solving
+**Example:** Distributed schema evolution
+
+## When to Use Bio-Adapt
+
+✅ **Perfect for:**
+
+- Systems with 100+ concurrent workloads needing coordination
+- API rate limiting and request batching
+- Self-healing distributed systems
+- Workload synchronization without central control
+- Natural load balancing across resources
+
+❌ **Not ideal for:**
+
+- Systems requiring strict deterministic guarantees
+- Simple request-response patterns
+- Tightly coupled synchronous operations
+
+## Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/carlisia/bio-adapt
+cd bio-adapt
+
+# Build and run examples
+task build:examples
+task run:example -- llm_batching
+```
+
+```go
+// Synchronize workloads naturally
+import "github.com/carlisia/bio-adapt/attractor"
+
+// Define target state
+goal := attractor.State{
+    Phase:     0,                      // Alignment point
+    Frequency: 200 * time.Millisecond, // Batch window
+    Coherence: 0.9,                    // 90% sync target
+}
+
+// Create self-organizing swarm
+swarm, _ := attractor.NewSwarm(20, goal)
+swarm.Run(ctx)
+```
+
+## Examples
+
+🔄 **[Basic Synchronization](examples/attractor/basic_sync)** - Learn the fundamentals
+📦 **[LLM Batching](examples/attractor/llm_batching)** - Reduce API calls by 80%
+🌐 **[Distributed Swarm](examples/attractor/distributed_swarm)** - Multi-region coordination
+💪 **[Disruption Recovery](examples/attractor/disruption_recovery)** - Self-healing demos
+
+See [examples/](examples/) for all available examples.
+
+## Documentation
+
+- [Attractor Package Guide](attractor/README.md) - Deep dive into synchronization
+- [Examples Overview](examples/attractor/README.md) - Hands-on tutorials
+- [API Reference](https://pkg.go.dev/github.com/carlisia/bio-adapt) - Complete API docs
+
+## Development
+
+```bash
+# Build everything
+task build:all
+
+# Run tests
+task test
+
+# Run linter
+task lint
+
+# Format code
+task fmt
+
+# Check for vulnerabilities
+task vuln
+
+# Development mode (auto-rebuild)
+task dev  # requires entr
+
+# Clean build artifacts
+task clean
+```
+
+## Contributing
+
+Contributions welcome! Areas of interest:
+
+- Additional synchronization strategies
+- Performance optimizations
+- New bio-inspired patterns
+- Real-world use cases
+
+## Research Foundation
+
+Based on groundbreaking research:
+
+- Dr. Michael Levin's work on bioelectric networks and regeneration
+- Kuramoto model of coupled oscillators
+- Swarm intelligence and emergent behavior
+- Dynamical systems and attractor theory
+
+## License
+
+MIT - See [LICENSE](LICENSE) file
 
