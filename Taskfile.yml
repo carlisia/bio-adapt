@@ -21,7 +21,7 @@ tasks:
     desc: Build the bio-adapt binary
     cmds:
       - mkdir -p {{.BIN_DIR}}
-      - go build {{.GO_FLAGS}} -ldflags="{{.LDFLAGS}}" -o {{.BIN_DIR}}/{{.BINARY}} .
+      - go build {{.GO_FLAGS}} -ldflags="{{.LDFLAGS}}" -o {{.BIN_DIR}}/{{.BINARY}} ./examples/emerge/basic_sync
     sources:
       - ./**/*.go
       - go.mod
