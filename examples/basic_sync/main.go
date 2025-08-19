@@ -9,15 +9,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/carlisia/bio-adapt/biofield"
+	"github.com/carlisia/bio-adapt/attractor"
 )
 
 func main() {
-	fmt.Println("=== Basic Biofield Synchronization Example ===")
+	fmt.Println("=== Basic Attractor Basin Synchronization Example ===")
 	fmt.Println()
 
 	// Define the target state we want the swarm to converge to
-	targetState := biofield.State{
+	targetState := attractor.State{
 		Phase:     0,                      // Target phase (0 radians)
 		Frequency: 100 * time.Millisecond, // Oscillation frequency
 		Coherence: 0.8,                    // 80% synchronization target
@@ -26,7 +26,7 @@ func main() {
 	// Create a small swarm of 10 autonomous agents
 	swarmSize := 10
 	fmt.Printf("Creating swarm of %d agents...\n", swarmSize)
-	swarm, err := biofield.NewSwarm(swarmSize, targetState)
+	swarm, err := attractor.NewSwarm(swarmSize, targetState)
 	if err != nil {
 		fmt.Printf("Error creating swarm: %v\n", err)
 		return

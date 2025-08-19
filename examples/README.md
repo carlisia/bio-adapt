@@ -1,6 +1,4 @@
-# Biofield Package Examples
-
-This directory contains comprehensive examples demonstrating various aspects of the biofield package's bio-inspired adaptive system capabilities.
+# attractor package's bio-inspired adaptive system capabilities
 
 ## Examples Overview
 
@@ -110,7 +108,7 @@ Comprehensive monitoring of swarm behavior, including real-time metrics, perform
 go run examples/monitoring_metrics/main.go
 ```
 
-## Key Biofield Concepts
+## Key Attractor Concepts
 
 All examples demonstrate these core principles:
 

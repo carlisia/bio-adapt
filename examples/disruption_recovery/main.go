@@ -10,7 +10,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/carlisia/bio-adapt/biofield"
+	"github.com/carlisia/bio-adapt/attractor"
 )
 
 func main() {
@@ -18,7 +18,7 @@ func main() {
 	fmt.Println()
 
 	// Create target state
-	target := biofield.State{
+	target := attractor.State{
 		Phase:     0,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.85,
@@ -26,7 +26,7 @@ func main() {
 
 	// Create a robust swarm
 	swarmSize := 50
-	swarm, err := biofield.NewSwarm(swarmSize, target)
+	swarm, err := attractor.NewSwarm(swarmSize, target)
 	if err != nil {
 		fmt.Printf("Error creating swarm: %v\n", err)
 		return
@@ -35,7 +35,7 @@ func main() {
 	fmt.Printf("Target coherence: %.2f\n\n", target.Coherence)
 
 	// Start monitoring
-	monitor := biofield.NewMonitor()
+	monitor := attractor.NewMonitor()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -76,40 +76,40 @@ func main() {
 	// Test different types of disruptions
 	disruptions := []struct {
 		name        string
-		disruptFunc func(*biofield.Swarm)
+		disruptFunc func(*attractor.Swarm)
 		severity    string
 	}{
 		{
 			name: "Random Phase Disruption",
-			disruptFunc: func(s *biofield.Swarm) {
+			disruptFunc: func(s *attractor.Swarm) {
 				randomPhaseDisruption(s, 0.2) // Disrupt 20% of agents
 			},
 			severity: "Moderate",
 		},
 		{
 			name: "Energy Depletion",
-			disruptFunc: func(s *biofield.Swarm) {
+			disruptFunc: func(s *attractor.Swarm) {
 				energyDepletionDisruption(s, 0.3) // Deplete 30% of agents
 			},
 			severity: "High",
 		},
 		{
 			name: "Network Partition",
-			disruptFunc: func(s *biofield.Swarm) {
+			disruptFunc: func(s *attractor.Swarm) {
 				networkPartitionDisruption(s)
 			},
 			severity: "Severe",
 		},
 		{
 			name: "Stubborn Agents",
-			disruptFunc: func(s *biofield.Swarm) {
+			disruptFunc: func(s *attractor.Swarm) {
 				stubbornAgentDisruption(s, 0.15) // Make 15% stubborn
 			},
 			severity: "Low",
 		},
 		{
 			name: "Cascade Failure",
-			disruptFunc: func(s *biofield.Swarm) {
+			disruptFunc: func(s *attractor.Swarm) {
 				cascadeFailureDisruption(s)
 			},
 			severity: "Critical",
@@ -225,11 +225,11 @@ func main() {
 }
 
 // randomPhaseDisruption randomly changes the phase of a fraction of agents
-func randomPhaseDisruption(swarm *biofield.Swarm, fraction float64) {
+func randomPhaseDisruption(swarm *attractor.Swarm, fraction float64) {
 	count := 0
 	swarm.Agents().Range(func(key, value any) bool {
 		if rand.Float64() < fraction {
-			agent := value.(*biofield.Agent)
+			agent := value.(*attractor.Agent)
 			// Random phase between 0 and 2π
 			agent.SetPhase(rand.Float64() * 2 * 3.14159)
 			count++
@@ -240,11 +240,11 @@ func randomPhaseDisruption(swarm *biofield.Swarm, fraction float64) {
 }
 
 // energyDepletionDisruption depletes energy from a fraction of agents
-func energyDepletionDisruption(swarm *biofield.Swarm, fraction float64) {
+func energyDepletionDisruption(swarm *attractor.Swarm, fraction float64) {
 	count := 0
 	swarm.Agents().Range(func(key, value any) bool {
 		if rand.Float64() < fraction {
-			agent := value.(*biofield.Agent)
+			agent := value.(*attractor.Agent)
 			// Reduce energy to critical levels
 			agent.SetEnergy(5 + rand.Float64()*10)
 			count++
@@ -255,11 +255,11 @@ func energyDepletionDisruption(swarm *biofield.Swarm, fraction float64) {
 }
 
 // networkPartitionDisruption simulates network partition by removing connections
-func networkPartitionDisruption(swarm *biofield.Swarm) {
+func networkPartitionDisruption(swarm *attractor.Swarm) {
 	// Remove connections between two halves of the network
-	var agents []*biofield.Agent
+	var agents []*attractor.Agent
 	swarm.Agents().Range(func(key, value any) bool {
-		agents = append(agents, value.(*biofield.Agent))
+		agents = append(agents, value.(*attractor.Agent))
 		return true
 	})
 
@@ -294,11 +294,11 @@ func networkPartitionDisruption(swarm *biofield.Swarm) {
 }
 
 // stubbornAgentDisruption makes some agents very stubborn
-func stubbornAgentDisruption(swarm *biofield.Swarm, fraction float64) {
+func stubbornAgentDisruption(swarm *attractor.Swarm, fraction float64) {
 	count := 0
 	swarm.Agents().Range(func(key, value any) bool {
 		if rand.Float64() < fraction {
-			agent := value.(*biofield.Agent)
+			agent := value.(*attractor.Agent)
 			// Make agent very stubborn
 			agent.SetStubbornness(0.9 + rand.Float64()*0.1)
 			// Give them different local goals
@@ -311,12 +311,12 @@ func stubbornAgentDisruption(swarm *biofield.Swarm, fraction float64) {
 }
 
 // cascadeFailureDisruption simulates a cascade failure starting from one agent
-func cascadeFailureDisruption(swarm *biofield.Swarm) {
+func cascadeFailureDisruption(swarm *attractor.Swarm) {
 	// Pick a random agent to start the cascade
-	var seedAgent *biofield.Agent
+	var seedAgent *attractor.Agent
 	swarm.Agents().Range(func(key, value any) bool {
 		if seedAgent == nil && rand.Float64() < 0.1 {
-			seedAgent = value.(*biofield.Agent)
+			seedAgent = value.(*attractor.Agent)
 			return false
 		}
 		return true
@@ -335,7 +335,7 @@ func cascadeFailureDisruption(swarm *biofield.Swarm) {
 
 	// Cascade to neighbors
 	seedAgent.Neighbors().Range(func(key, value any) bool {
-		neighbor := value.(*biofield.Agent)
+		neighbor := value.(*attractor.Agent)
 		// Neighbors are partially affected
 		neighbor.SetPhase(neighbor.GetPhase() + (rand.Float64()-0.5)*2)
 		neighbor.SetEnergy(neighbor.GetEnergy() * 0.5)
@@ -344,7 +344,7 @@ func cascadeFailureDisruption(swarm *biofield.Swarm) {
 		// Secondary cascade (with lower probability)
 		if rand.Float64() < 0.3 {
 			neighbor.Neighbors().Range(func(k2, v2 any) bool {
-				secondary := v2.(*biofield.Agent)
+				secondary := v2.(*attractor.Agent)
 				secondary.SetEnergy(secondary.GetEnergy() * 0.7)
 				affected++
 				return rand.Float64() < 0.5 // Continue with 50% probability

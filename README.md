@@ -15,7 +15,7 @@ By leveraging Go’s concurrency primitives, bio-adapt uses principles of biolog
 ## Core Patterns
 
 - **Morphospace Navigation (bioelectric)**: Dynamic resource allocation that reroutes around bottlenecks
-- **Attractor Basin Synchronization (biofield)**: Rhythmic coordination that self-corrects disruptions
+- **Attractor Basin Synchronization (attractor)**: Rhythmic coordination that self-corrects disruptions
 - **Cognitive Glue Networks (glue)**: Emergent consensus through collective problem-solving
 
 ## When to Use

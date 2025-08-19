@@ -10,7 +10,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/carlisia/bio-adapt/biofield"
+	"github.com/carlisia/bio-adapt/attractor"
 )
 
 func main() {
@@ -18,7 +18,7 @@ func main() {
 	fmt.Println()
 
 	// Create target state
-	target := biofield.State{
+	target := attractor.State{
 		Phase:     0,
 		Frequency: 150 * time.Millisecond,
 		Coherence: 0.85,
@@ -26,7 +26,7 @@ func main() {
 
 	// Create swarm with varying energy levels
 	swarmSize := 30
-	swarm, err := biofield.NewSwarm(swarmSize, target)
+	swarm, err := attractor.NewSwarm(swarmSize, target)
 	if err != nil {
 		fmt.Printf("Error creating swarm: %v\n", err)
 		return
@@ -36,7 +36,7 @@ func main() {
 	// Configure agents with different energy characteristics
 	agentCount := 0
 	swarm.Agents().Range(func(key, value any) bool {
-		agent := value.(*biofield.Agent)
+		agent := value.(*attractor.Agent)
 
 		if agentCount < 10 {
 			// High energy agents - can afford more adjustments
@@ -94,7 +94,7 @@ func main() {
 			minEnergy = 100
 
 			swarm.Agents().Range(func(key, value any) bool {
-				agent := value.(*biofield.Agent)
+				agent := value.(*attractor.Agent)
 				energy := agent.GetEnergy()
 
 				totalEnergy += energy
@@ -156,7 +156,7 @@ done:
 	var highEnergy, medEnergy, lowEnergy, exhausted int
 
 	swarm.Agents().Range(func(key, value any) bool {
-		agent := value.(*biofield.Agent)
+		agent := value.(*attractor.Agent)
 		energy := agent.GetEnergy()
 
 		switch {
@@ -188,11 +188,11 @@ done:
 }
 
 // replenishEnergy simulates energy recovery for a fraction of agents
-func replenishEnergy(swarm *biofield.Swarm, fraction float64) {
+func replenishEnergy(swarm *attractor.Swarm, fraction float64) {
 	count := 0
 	swarm.Agents().Range(func(key, value any) bool {
 		if rand.Float64() < fraction {
-			agent := value.(*biofield.Agent)
+			agent := value.(*attractor.Agent)
 			currentEnergy := agent.GetEnergy()
 			// Replenish up to 30 energy units
 			agent.SetEnergy(currentEnergy + 30)
@@ -208,13 +208,13 @@ func replenishEnergy(swarm *biofield.Swarm, fraction float64) {
 // demonstrateEnergyDecisions shows how agents make decisions based on energy
 func demonstrateEnergyDecisions() {
 	// Create two agents with different energy levels
-	richAgent := biofield.NewAgent("energy-rich")
+	richAgent := attractor.NewAgent("energy-rich")
 	richAgent.SetEnergy(90)
 
-	poorAgent := biofield.NewAgent("energy-poor")
+	poorAgent := attractor.NewAgent("energy-poor")
 	poorAgent.SetEnergy(15)
 
-	target := biofield.State{
+	target := attractor.State{
 		Phase:     1.0,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.8,

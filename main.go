@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/carlisia/bio-adapt/biofield"
+	"github.com/carlisia/bio-adapt/attractor"
 )
 
 func main() {
@@ -13,7 +13,7 @@ func main() {
 	fmt.Println("=" + string(make([]byte, 59)) + "=")
 
 	// Define target state
-	goal := biofield.State{
+	goal := attractor.State{
 		Phase:     0,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.8, // Target 80% synchronization
@@ -22,7 +22,7 @@ func main() {
 	// Create swarm of autonomous agents
 	swarmSize := 50
 	fmt.Printf("\nCreating swarm of %d autonomous agents...\n", swarmSize)
-	swarm, err := biofield.NewSwarm(swarmSize, goal)
+	swarm, err := attractor.NewSwarm(swarmSize, goal)
 	if err != nil {
 		fmt.Printf("Error creating swarm: %v\n", err)
 		return

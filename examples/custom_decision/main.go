@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/carlisia/bio-adapt/biofield"
+	"github.com/carlisia/bio-adapt/attractor"
 )
 
 // RiskAverseDecisionMaker avoids high-cost actions
@@ -28,9 +28,9 @@ func NewRiskAverseDecisionMaker(maxCost float64) *RiskAverseDecisionMaker {
 	}
 }
 
-func (r *RiskAverseDecisionMaker) Decide(state biofield.State, options []biofield.Action) (biofield.Action, float64) {
+func (r *RiskAverseDecisionMaker) Decide(state attractor.State, options []attractor.Action) (attractor.Action, float64) {
 	if len(options) == 0 {
-		return biofield.Action{Type: "maintain"}, 0.5
+		return attractor.Action{Type: "maintain"}, 0.5
 	}
 
 	bestAction := options[0]
@@ -77,9 +77,9 @@ func NewAggressiveDecisionMaker(aggressiveness float64) *AggressiveDecisionMaker
 	}
 }
 
-func (a *AggressiveDecisionMaker) Decide(state biofield.State, options []biofield.Action) (biofield.Action, float64) {
+func (a *AggressiveDecisionMaker) Decide(state attractor.State, options []attractor.Action) (attractor.Action, float64) {
 	if len(options) == 0 {
-		return biofield.Action{Type: "maintain"}, 0.5
+		return attractor.Action{Type: "maintain"}, 0.5
 	}
 
 	a.totalCount.Add(1)
@@ -137,9 +137,9 @@ func NewAdaptiveDecisionMaker(learningRate float64) *AdaptiveDecisionMaker {
 	return dm
 }
 
-func (a *AdaptiveDecisionMaker) Decide(state biofield.State, options []biofield.Action) (biofield.Action, float64) {
+func (a *AdaptiveDecisionMaker) Decide(state attractor.State, options []attractor.Action) (attractor.Action, float64) {
 	if len(options) == 0 {
-		return biofield.Action{Type: "maintain"}, 0.5
+		return attractor.Action{Type: "maintain"}, 0.5
 	}
 
 	costThresh := a.costThreshold.Load().(float64)
@@ -199,11 +199,11 @@ func main() {
 	fmt.Println()
 
 	// Create agents with different decision strategies
-	agents := []*biofield.Agent{
-		biofield.NewAgent("risk-averse"),
-		biofield.NewAgent("aggressive"),
-		biofield.NewAgent("adaptive"),
-		biofield.NewAgent("default"),
+	agents := []*attractor.Agent{
+		attractor.NewAgent("risk-averse"),
+		attractor.NewAgent("aggressive"),
+		attractor.NewAgent("adaptive"),
+		attractor.NewAgent("default"),
 	}
 
 	// Set custom decision makers
@@ -226,7 +226,7 @@ func main() {
 	}
 
 	// Define target state
-	target := biofield.State{
+	target := attractor.State{
 		Phase:     0,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.9,
@@ -326,13 +326,13 @@ func main() {
 
 func demonstrateRealTimeComparison() {
 	// Create a mini-swarm with different strategies
-	target := biofield.State{
+	target := attractor.State{
 		Phase:     0,
 		Frequency: 50 * time.Millisecond,
 		Coherence: 0.8,
 	}
 
-	swarm, err := biofield.NewSwarm(12, target)
+	swarm, err := attractor.NewSwarm(12, target)
 	if err != nil {
 		fmt.Printf("Error creating swarm: %v\n", err)
 		return
@@ -348,7 +348,7 @@ func demonstrateRealTimeComparison() {
 
 	i := 0
 	swarm.Agents().Range(func(key, value any) bool {
-		agent := value.(*biofield.Agent)
+		agent := value.(*attractor.Agent)
 
 		switch i % 4 {
 		case 0:

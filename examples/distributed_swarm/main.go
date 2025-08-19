@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/carlisia/bio-adapt/biofield"
+	"github.com/carlisia/bio-adapt/attractor"
 )
 
 func main() {
@@ -20,7 +20,7 @@ func main() {
 	fmt.Println()
 
 	// Global target state for all sub-swarms
-	globalTarget := biofield.State{
+	globalTarget := attractor.State{
 		Phase:     1.57, // π/2 radians
 		Frequency: 200 * time.Millisecond,
 		Coherence: 0.75,
@@ -29,12 +29,12 @@ func main() {
 	// Create multiple sub-swarms representing different regions
 	numSubSwarms := 3
 	swarmSizes := []int{20, 30, 25}
-	subSwarms := make([]*biofield.Swarm, numSubSwarms)
+	subSwarms := make([]*attractor.Swarm, numSubSwarms)
 
 	fmt.Printf("Creating %d sub-swarms:\n", numSubSwarms)
 	var err error
 	for i := range numSubSwarms {
-		subSwarms[i], err = biofield.NewSwarm(swarmSizes[i], globalTarget)
+		subSwarms[i], err = attractor.NewSwarm(swarmSizes[i], globalTarget)
 		if err != nil {
 			fmt.Printf("Error creating sub-swarm %d: %v\n", i, err)
 			return
@@ -42,7 +42,7 @@ func main() {
 
 		// Give each sub-swarm slightly different initial conditions
 		subSwarms[i].Agents().Range(func(key, value any) bool {
-			agent := value.(*biofield.Agent)
+			agent := value.(*attractor.Agent)
 			// Add regional bias to initial phase
 			regionalPhase := float64(i) * 0.5
 			agent.SetPhase(regionalPhase + rand.Float64()*0.5)
@@ -67,7 +67,7 @@ func main() {
 	errChan := make(chan error, len(subSwarms))
 	for i, swarm := range subSwarms {
 		wg.Add(1)
-		go func(idx int, s *biofield.Swarm) {
+		go func(idx int, s *attractor.Swarm) {
 			defer wg.Done()
 			if err := s.Run(ctx); err != nil {
 				errChan <- fmt.Errorf("sub-swarm %d: %w", idx, err)
@@ -145,12 +145,12 @@ done:
 }
 
 // measureGlobalCoherence calculates coherence across all sub-swarms
-func measureGlobalCoherence(swarms []*biofield.Swarm) float64 {
+func measureGlobalCoherence(swarms []*attractor.Swarm) float64 {
 	var phases []float64
 
 	for _, swarm := range swarms {
 		swarm.Agents().Range(func(key, value any) bool {
-			agent := value.(*biofield.Agent)
+			agent := value.(*attractor.Agent)
 			phases = append(phases, agent.GetPhase())
 			return true
 		})
@@ -172,7 +172,7 @@ func measureGlobalCoherence(swarms []*biofield.Swarm) float64 {
 }
 
 // connectSubSwarms creates bridge connections between sub-swarms
-func connectSubSwarms(swarms []*biofield.Swarm) {
+func connectSubSwarms(swarms []*attractor.Swarm) {
 	// Connect adjacent sub-swarms through a few bridge agents
 	for i := range len(swarms) - 1 {
 		// Select 2 random agents from each swarm to act as bridges
@@ -182,7 +182,7 @@ func connectSubSwarms(swarms []*biofield.Swarm) {
 				return false
 			}
 
-			agent1 := value1.(*biofield.Agent)
+			agent1 := value1.(*attractor.Agent)
 			connected := 0
 
 			swarms[i+1].Agents().Range(func(key2, value2 any) bool {
@@ -190,7 +190,7 @@ func connectSubSwarms(swarms []*biofield.Swarm) {
 					return false
 				}
 
-				agent2 := value2.(*biofield.Agent)
+				agent2 := value2.(*attractor.Agent)
 
 				// Create bidirectional connection
 				agent1.Neighbors().Store(agent2.ID, agent2)

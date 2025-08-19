@@ -20,7 +20,7 @@ import (
     "context"
     "fmt"
     "time"
-    
+
     "github.com/carlisia/bio-adapt/attractor"
 )
 
@@ -31,22 +31,22 @@ func main() {
         Frequency: 100 * time.Millisecond,
         Coherence: 0.9,
     }
-    
+
     // Create swarm that will converge to attractor
     swarm, err := attractor.NewSwarm(100, goal)
     if err != nil {
         panic(err)
     }
-    
+
     // Measure initial coherence
     fmt.Printf("Initial coherence: %.3f\n", swarm.MeasureCoherence())
-    
+
     // Run attractor basin synchronization
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
-    
+
     go swarm.Run(ctx)
-    
+
     // Wait and measure final coherence
     time.Sleep(3 * time.Second)
     fmt.Printf("Final coherence: %.3f\n", swarm.MeasureCoherence())
@@ -97,7 +97,7 @@ go test -tags nogossip ./attractor/...
 ## Performance
 
 - ~800ms convergence for 100 agents (vs 500ms centralized)
-- O(log N * log N) convergence with gossip protocol
+- O(log N \* log N) convergence with gossip protocol
 - Probabilistic but robust convergence
 - Graceful degradation under agent failures
 - Self-healing after disruptions
@@ -105,6 +105,7 @@ go test -tags nogossip ./attractor/...
 ## Theory
 
 Based on:
+
 - **Kuramoto Model**: Mathematical model of synchronization
 - **Dynamical Systems Theory**: Attractor basins and stability
 - **Swarm Intelligence**: Emergent behavior from simple rules
@@ -122,3 +123,4 @@ The modular design allows upgrading components:
 ## License
 
 See the main project LICENSE file.
+

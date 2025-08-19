@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/carlisia/bio-adapt/biofield"
+	"github.com/carlisia/bio-adapt/attractor"
 )
 
 // MetricsCollector collects detailed metrics from the swarm
@@ -108,19 +108,19 @@ func main() {
 
 	// Configuration
 	swarmSize := 100
-	target := biofield.State{
+	target := attractor.State{
 		Phase:     0,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.9,
 	}
 
 	// Create swarm and monitoring infrastructure
-	swarm, err := biofield.NewSwarm(swarmSize, target)
+	swarm, err := attractor.NewSwarm(swarmSize, target)
 	if err != nil {
 		fmt.Printf("Error creating swarm: %v\n", err)
 		return
 	}
-	monitor := biofield.NewMonitor()
+	monitor := attractor.NewMonitor()
 	metrics := NewMetricsCollector()
 
 	fmt.Printf("Monitoring swarm of %d agents\n", swarmSize)
@@ -168,7 +168,7 @@ func main() {
 			var phases []float64
 
 			swarm.Agents().Range(func(key, value any) bool {
-				agent := value.(*biofield.Agent)
+				agent := value.(*attractor.Agent)
 				totalEnergy += agent.GetEnergy()
 				phases = append(phases, agent.GetPhase())
 				agentCount++
@@ -342,14 +342,14 @@ func isIncreasing(data []float64) bool {
 	return increases > len(data)/2
 }
 
-func sampleDecisions(swarm *biofield.Swarm, metrics *MetricsCollector) {
+func sampleDecisions(swarm *attractor.Swarm, metrics *MetricsCollector) {
 	// Sample a few agents to track decision patterns
 	sampled := 0
 	swarm.Agents().Range(func(key, value any) bool {
 		if sampled >= 5 {
 			return false
 		}
-		agent := value.(*biofield.Agent)
+		agent := value.(*attractor.Agent)
 
 		// Simulate decision tracking
 		if agent.GetEnergy() < 20 {
@@ -365,7 +365,7 @@ func sampleDecisions(swarm *biofield.Swarm, metrics *MetricsCollector) {
 	})
 }
 
-func exportVisualizationData(monitor *biofield.Monitor, _ *MetricsCollector) {
+func exportVisualizationData(monitor *attractor.Monitor, _ *MetricsCollector) {
 	// Export coherence time series
 	history := monitor.GetHistory()
 	fmt.Println("\nCoherence Time Series (for plotting):")
@@ -379,7 +379,7 @@ func exportVisualizationData(monitor *biofield.Monitor, _ *MetricsCollector) {
 	fmt.Printf("\n[Full dataset contains %d points]\n", len(history))
 }
 
-func analyzeAgentBehavior(swarm *biofield.Swarm) {
+func analyzeAgentBehavior(swarm *attractor.Swarm) {
 	type agentStats struct {
 		id           string
 		phase        float64
@@ -392,7 +392,7 @@ func analyzeAgentBehavior(swarm *biofield.Swarm) {
 	var agents []agentStats
 
 	swarm.Agents().Range(func(key, value any) bool {
-		agent := value.(*biofield.Agent)
+		agent := value.(*attractor.Agent)
 
 		neighborCount := 0
 		agent.Neighbors().Range(func(k, v any) bool {
@@ -446,14 +446,14 @@ func analyzeAgentBehavior(swarm *biofield.Swarm) {
 	}
 }
 
-func analyzeNetworkTopology(swarm *biofield.Swarm) {
+func analyzeNetworkTopology(swarm *attractor.Swarm) {
 	connectionCounts := make(map[int]int)
 	totalConnections := 0
 	maxConnections := 0
 	minConnections := 1000
 
 	swarm.Agents().Range(func(key, value any) bool {
-		agent := value.(*biofield.Agent)
+		agent := value.(*attractor.Agent)
 
 		connections := 0
 		agent.Neighbors().Range(func(k, v any) bool {
