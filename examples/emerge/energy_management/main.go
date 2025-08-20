@@ -288,6 +288,14 @@ func replenishEnergy(s *swarm.Swarm, fraction float64) {
 
 // demonstrateEnergyDecisions shows how agents make decisions based on energy.
 func demonstrateEnergyDecisions() {
+	// Define outcome constants
+	const (
+		outcomeFailed       = "failed"
+		outcomeUnsuccessful = "unsuccessful"
+		outcomeSuccessful   = "successful"
+		outcomeRejected     = "rejected"
+	)
+
 	// Create two agents with different energy levels
 	richAgent := agent.New("energy-rich")
 	richAgent.SetEnergy(90)
@@ -302,9 +310,11 @@ func demonstrateEnergyDecisions() {
 	}
 
 	fmt.Println("\nTwo agents face the same adjustment opportunity:")
+
 	fmt.Printf("Rich agent (90 energy): ")
 
 	// Rich agent can afford expensive adjustments
+	var richOutcome string
 	action1, accepted1 := richAgent.ProposeAdjustment(target)
 	if accepted1 {
 		fmt.Printf("Accepts adjustment (cost: %.1f)\n", action1.Cost)
@@ -312,41 +322,54 @@ func demonstrateEnergyDecisions() {
 		switch {
 		case err != nil:
 			// Action failed - could be insufficient energy or invalid action
-			// This demonstrates the energy constraints in action - continue with demo
 			fmt.Printf("  Action failed: %v\n", err)
+			richOutcome = outcomeFailed
 		case !success:
-			// Action was valid but unsuccessful - continue with demo
+			// Action was valid but unsuccessful
 			fmt.Printf("  Action unsuccessful (cost: %.1f)\n", energyCost)
+			richOutcome = outcomeUnsuccessful
 		default:
 			fmt.Printf("  Action successful (cost: %.1f)\n", energyCost)
+			richOutcome = outcomeSuccessful
 		}
 	} else {
 		fmt.Println("Rejects adjustment")
+		richOutcome = outcomeRejected
 	}
 
 	fmt.Printf("Poor agent (15 energy): ")
 
 	// Poor agent must be conservative
+	var poorOutcome string
 	action2, accepted2 := poorAgent.ProposeAdjustment(target)
 	if accepted2 {
 		fmt.Printf("Accepts adjustment (cost: %.1f)\n", action2.Cost)
 		success, energyCost, err := poorAgent.ApplyAction(action2)
 		switch {
 		case err != nil:
-			// Action failed - this is exactly what we want to demonstrate!
-			// Poor agents failing due to energy constraints is the point of this example
+			// Action failed - this demonstrates energy constraints
 			fmt.Printf("  Action failed: %v\n", err)
+			poorOutcome = outcomeFailed
 		case !success:
-			// Action was valid but unsuccessful - part of the demonstration
+			// Action was valid but unsuccessful
 			fmt.Printf("  Action unsuccessful (cost: %.1f)\n", energyCost)
+			poorOutcome = outcomeUnsuccessful
 		default:
 			fmt.Printf("  Action successful (cost: %.1f)\n", energyCost)
+			poorOutcome = outcomeSuccessful
 		}
 	} else {
 		fmt.Println("Rejects adjustment (too expensive)")
+		poorOutcome = outcomeRejected
 	}
 
 	fmt.Printf("\nFinal energy levels:\n")
-	fmt.Printf("  Rich agent: %.1f\n", richAgent.Energy())
-	fmt.Printf("  Poor agent: %.1f\n", poorAgent.Energy())
+	fmt.Printf("  Rich agent: %.1f (outcome: %s)\n", richAgent.Energy(), richOutcome)
+	fmt.Printf("  Poor agent: %.1f (outcome: %s)\n", poorAgent.Energy(), poorOutcome)
+
+	// Demonstrate the key point
+	fmt.Println("\nKey insight: Energy constraints shape agent behavior")
+	if richOutcome == outcomeSuccessful && (poorOutcome == outcomeFailed || poorOutcome == outcomeRejected) {
+		fmt.Println("✓ Rich agents can afford actions that poor agents cannot")
+	}
 }
