@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/carlisia/bio-adapt/emerge/convergence"
 	"github.com/carlisia/bio-adapt/emerge/core"
 	"github.com/carlisia/bio-adapt/emerge/strategy"
+	"github.com/carlisia/bio-adapt/internal/random"
 )
 
 // GoalDirectedSync achieves synchronization through adaptive strategies.
@@ -109,10 +109,10 @@ func (gds *GoalDirectedSync) AchieveSynchronization(ctx context.Context, target 
 			gaps := core.IdentifyGaps(currentPattern, target)
 
 			// Step 6: Complete pattern using bioelectric memory
-			completion := gds.completionEngine.CompletePattern(currentPattern, gaps)
+			completedPattern := gds.completionEngine.CompletePattern(currentPattern, gaps)
 
 			// Step 7: Apply adjustments through current strategy
-			gds.applyPatternCompletion(completion)
+			gds.applyPatternCompletion(completedPattern)
 
 			// Step 8: Add noise if stuck to escape local minima
 			if gds.convergenceMonitor.IsStuck() {
@@ -137,11 +137,11 @@ func (gds *GoalDirectedSync) measureSystemPattern() *core.RhythmicPattern {
 	totalFreq := time.Duration(0)
 	count := 0
 
-	for _, agent := range agents {
-		phase := agent.Phase()
+	for _, a := range agents {
+		phase := a.Phase()
 		sumSin += math.Sin(phase)
 		sumCos += math.Cos(phase)
-		totalFreq += agent.Frequency()
+		totalFreq += a.Frequency()
 		count++
 	}
 
@@ -170,37 +170,37 @@ func (gds *GoalDirectedSync) isPatternAchieved(current *core.RhythmicPattern) bo
 }
 
 // applyPatternCompletion applies the completed pattern to agents.
-func (gds *GoalDirectedSync) applyPatternCompletion(completion *completion.CompletedPattern) {
+func (gds *GoalDirectedSync) applyPatternCompletion(completedPattern *completion.CompletedPattern) {
 	agents := gds.swarm.Agents()
 
 	// Get adjustments from completion
-	phaseAdjustment := completion.GetPhaseAdjustment()
-	freqAdjustment := completion.GetFrequencyAdjustment()
+	phaseAdjustment := completedPattern.GetPhaseAdjustment()
+	freqAdjustment := completedPattern.GetFrequencyAdjustment()
 
 	// Apply more aggressive adjustments for stronger convergence
 	adjustmentScale := 0.5 // Increase from subtle adjustments
 
 	// Apply to all agents with some variation
-	for _, agent := range agents {
+	for _, a := range agents {
 		// Add small random variation to avoid perfect sync
-		variation := (rand.Float64() - 0.5) * 0.1
+		variation := (random.Float64() - 0.5) * 0.1
 
 		// Always adjust phase toward target (removed threshold check)
-		currentPhase := agent.Phase()
+		currentPhase := a.Phase()
 		// Move toward target phase more strongly
 		targetPhase := gds.targetPattern.Phase
 		phaseDiff := core.WrapPhase(targetPhase - currentPhase)
 		// Use combination of completion adjustment and direct pull to target
 		effectiveAdjustment := phaseAdjustment*0.3 + phaseDiff*adjustmentScale
 		newPhase := core.WrapPhase(currentPhase + effectiveAdjustment*(1+variation))
-		agent.SetPhase(newPhase)
+		a.SetPhase(newPhase)
 
 		// Adjust frequency if needed
 		if freqAdjustment != 0 {
-			currentFreq := agent.Frequency()
+			currentFreq := a.Frequency()
 			newFreq := currentFreq + freqAdjustment
 			if newFreq > 0 {
-				agent.SetFrequency(newFreq)
+				a.SetFrequency(newFreq)
 			}
 		}
 	}
@@ -237,7 +237,7 @@ func (gds *GoalDirectedSync) switchStrategy() {
 		score += explorationBonus
 
 		// Add randomness for exploration
-		score += rand.Float64() * 0.1
+		score += random.Float64() * 0.1
 
 		if score > bestScore {
 			bestScore = score
@@ -262,7 +262,7 @@ func (gds *GoalDirectedSync) addStochasticResonance() {
 	for range perturbCount {
 		// Pick random agent
 		var targetAgent *agent.Agent
-		idx := rand.Intn(len(agents))
+		idx := random.Intn(len(agents))
 		count := 0
 		for _, a := range agents {
 			if count == idx {
@@ -274,7 +274,7 @@ func (gds *GoalDirectedSync) addStochasticResonance() {
 
 		if targetAgent != nil {
 			// Add phase noise
-			noise := (rand.Float64() - 0.5) * 0.5 // ±0.25 radians
+			noise := (random.Float64() - 0.5) * 0.5 // ±0.25 radians
 			currentPhase := targetAgent.Phase()
 			targetAgent.SetPhase(core.WrapPhase(currentPhase + noise))
 		}

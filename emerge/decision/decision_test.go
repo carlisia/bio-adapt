@@ -502,7 +502,7 @@ func TestSimpleDecisionMakerBoundaryConditions(t *testing.T) {
 		name        string
 		state       core.State
 		options     []core.Action
-		validateFn  func(t *testing.T, action core.Action, confidence float64)
+		validateFn  func(t *testing.T, action core.Action, _ float64)
 		description string
 	}{
 		{
@@ -531,7 +531,8 @@ func TestSimpleDecisionMakerBoundaryConditions(t *testing.T) {
 				}
 				return opts
 			}(),
-			validateFn: func(t *testing.T, action core.Action, confidence float64) {
+			validateFn: func(t *testing.T, action core.Action, _ float64) {
+				t.Helper()
 				assert.Equal(t, "best", action.Type, "Should select best option even among many")
 			},
 			description: "Should handle many options efficiently",
@@ -549,6 +550,7 @@ func TestSimpleDecisionMakerBoundaryConditions(t *testing.T) {
 				{Type: "same3", Value: 1.0, Cost: 1.0, Benefit: 1.0},
 			},
 			validateFn: func(t *testing.T, action core.Action, confidence float64) {
+				t.Helper()
 				assert.Equal(t, "same1", action.Type, "Should select first of identical options")
 				assert.InDelta(t, 0.5, confidence, 0.01, "Confidence should be 0.5 for ratio 1.0")
 			},
@@ -564,7 +566,8 @@ func TestSimpleDecisionMakerBoundaryConditions(t *testing.T) {
 			options: []core.Action{
 				{Type: "action", Value: 1.0, Cost: 1.0, Benefit: 1.0},
 			},
-			validateFn: func(t *testing.T, action core.Action, confidence float64) {
+			validateFn: func(t *testing.T, action core.Action, _ float64) {
+				t.Helper()
 				assert.Equal(t, "action", action.Type, "Should work with zero state values")
 			},
 			description: "Should work with zero state values",
@@ -579,7 +582,8 @@ func TestSimpleDecisionMakerBoundaryConditions(t *testing.T) {
 			options: []core.Action{
 				{Type: "action", Value: 1.0, Cost: 1.0, Benefit: 1.0},
 			},
-			validateFn: func(t *testing.T, action core.Action, confidence float64) {
+			validateFn: func(t *testing.T, action core.Action, _ float64) {
+				t.Helper()
 				assert.Equal(t, "action", action.Type, "Should work with negative phase")
 			},
 			description: "Should work with negative phase",
@@ -594,7 +598,8 @@ func TestSimpleDecisionMakerBoundaryConditions(t *testing.T) {
 			options: []core.Action{
 				{Type: "action", Value: 1.0, Cost: 1.0, Benefit: 1.0},
 			},
-			validateFn: func(t *testing.T, action core.Action, confidence float64) {
+			validateFn: func(t *testing.T, action core.Action, _ float64) {
+				t.Helper()
 				assert.Equal(t, "action", action.Type, "Should work with negative frequency")
 			},
 			description: "Should work with negative frequency",

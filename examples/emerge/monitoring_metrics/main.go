@@ -1,7 +1,6 @@
-// Monitoring and Metrics Example
+// Package main demonstrates comprehensive monitoring of swarm behavior.
 // This example demonstrates comprehensive monitoring of swarm behavior,
 // including real-time metrics, performance analysis, and visualization data.
-
 package main
 
 import (
@@ -117,7 +116,7 @@ func main() {
 	}
 
 	// Create swarm and monitoring infrastructure
-	swarm, err := swarm.New(swarmSize, target)
+	s, err := swarm.New(swarmSize, target)
 	if err != nil {
 		fmt.Printf("Error creating swarm: %v\n", err)
 		return
@@ -134,7 +133,7 @@ func main() {
 
 	errChan := make(chan error, 1)
 	go func() {
-		if err := swarm.Run(ctx); err != nil {
+		if err := s.Run(ctx); err != nil {
 			errChan <- err
 		}
 	}()
@@ -160,7 +159,7 @@ func main() {
 			iteration++
 
 			// Collect metrics
-			coherence := swarm.MeasureCoherence()
+			coherence := s.MeasureCoherence()
 			monitor.RecordSample(coherence)
 			metrics.RecordCoherence(coherence)
 
@@ -169,7 +168,7 @@ func main() {
 			agentCount := 0
 			var phases []float64
 
-			for _, agent := range swarm.Agents() {
+			for _, agent := range s.Agents() {
 				totalEnergy += agent.Energy()
 				phases = append(phases, agent.Phase())
 				agentCount++
@@ -210,7 +209,7 @@ func main() {
 			}
 
 			// Track decision types (sample a few agents)
-			sampleDecisions(swarm, metrics)
+			sampleDecisions(s, metrics)
 
 		case <-ctx.Done():
 			goto analysis
@@ -258,11 +257,11 @@ analysis:
 
 	// Agent-level analysis
 	fmt.Println("\n=== Agent-Level Analysis ===")
-	analyzeAgentBehavior(swarm)
+	analyzeAgentBehavior(s)
 
 	// Network analysis
 	fmt.Println("\n=== Network Topology Analysis ===")
-	analyzeNetworkTopology(swarm)
+	analyzeNetworkTopology(s)
 }
 
 // Helper functions for statistics.
@@ -307,26 +306,26 @@ func calculateMin(data []float64) float64 {
 	if len(data) == 0 {
 		return 0
 	}
-	min := data[0]
+	minVal := data[0]
 	for _, v := range data {
-		if v < min {
-			min = v
+		if v < minVal {
+			minVal = v
 		}
 	}
-	return min
+	return minVal
 }
 
 func calculateMax(data []float64) float64 {
 	if len(data) == 0 {
 		return 0
 	}
-	max := data[0]
+	maxVal := data[0]
 	for _, v := range data {
-		if v > max {
-			max = v
+		if v > maxVal {
+			maxVal = v
 		}
 	}
-	return max
+	return maxVal
 }
 
 func isIncreasing(data []float64) bool {
@@ -342,10 +341,10 @@ func isIncreasing(data []float64) bool {
 	return increases > len(data)/2
 }
 
-func sampleDecisions(swarm *swarm.Swarm, metrics *MetricsCollector) {
+func sampleDecisions(s *swarm.Swarm, metrics *MetricsCollector) {
 	// Sample a few agents to track decision patterns
 	sampled := 0
-	for _, agent := range swarm.Agents() {
+	for _, agent := range s.Agents() {
 		if sampled >= 5 {
 			break
 		}
@@ -378,7 +377,7 @@ func exportVisualizationData(monitor *monitoring.Monitor, _ *MetricsCollector) {
 	fmt.Printf("\n[Full dataset contains %d points]\n", len(history))
 }
 
-func analyzeAgentBehavior(swarm *swarm.Swarm) {
+func analyzeAgentBehavior(s *swarm.Swarm) {
 	type agentStats struct {
 		id           string
 		phase        float64
@@ -388,12 +387,12 @@ func analyzeAgentBehavior(swarm *swarm.Swarm) {
 		neighbors    int
 	}
 
-	swarmAgents := swarm.Agents()
+	swarmAgents := s.Agents()
 	agents := make([]agentStats, 0, len(swarmAgents))
 
 	for _, agent := range swarmAgents {
 		neighborCount := 0
-		agent.Neighbors().Range(func(k, v any) bool {
+		agent.Neighbors().Range(func(_, _ any) bool {
 			neighborCount++
 			return true
 		})
@@ -442,15 +441,15 @@ func analyzeAgentBehavior(swarm *swarm.Swarm) {
 	}
 }
 
-func analyzeNetworkTopology(swarm *swarm.Swarm) {
+func analyzeNetworkTopology(s *swarm.Swarm) {
 	connectionCounts := make(map[int]int)
 	totalConnections := 0
 	maxConnections := 0
 	minConnections := 1000
 
-	for _, agent := range swarm.Agents() {
+	for _, agent := range s.Agents() {
 		connections := 0
-		agent.Neighbors().Range(func(k, v any) bool {
+		agent.Neighbors().Range(func(_, _ any) bool {
 			connections++
 			return true
 		})

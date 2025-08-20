@@ -29,6 +29,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 				100 * time.Millisecond,
 			},
 			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				t.Helper()
 				assert.Len(t, pattern.Phases, 5, "Should have 5 phases")
 				assert.Len(t, pattern.Frequencies, 5, "Should have 5 frequencies")
 				assert.Greater(t, pattern.Amplitude, 0.0, "Amplitude should be positive for varied phases")
@@ -42,6 +43,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			phases:      []float64{},
 			frequencies: []time.Duration{},
 			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				t.Helper()
 				assert.Empty(t, pattern.Phases, "Should have 0 phases")
 				assert.Equal(t, 0.0, pattern.Amplitude, "Amplitude should be 0 for empty pattern")
 				assert.Equal(t, time.Duration(0), pattern.Period, "Period should be 0 for empty pattern")
@@ -53,6 +55,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			phases:      []float64{math.Pi},
 			frequencies: []time.Duration{100 * time.Millisecond},
 			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				t.Helper()
 				assert.Len(t, pattern.Phases, 1, "Should have 1 phase")
 				assert.Equal(t, 0.0, pattern.Amplitude, "Amplitude should be 0 for single phase")
 				assert.Equal(t, 100*time.Millisecond, pattern.Period, "Period should be 100ms")
@@ -69,6 +72,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 				200 * time.Millisecond,
 			},
 			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				t.Helper()
 				expectedPeriod := 125 * time.Millisecond // Average
 				assert.Equal(t, expectedPeriod, pattern.Period, "Period should be average of frequencies")
 			},
@@ -80,6 +84,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			phases:      []float64{0, 0, 0, 0},
 			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
 			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				t.Helper()
 				assert.Equal(t, 0.0, pattern.Amplitude, "Amplitude should be 0 for uniform zero phases")
 			},
 			description: "All zero phases should have zero amplitude",
@@ -89,6 +94,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			phases:      []float64{-math.Pi, -math.Pi / 2, 0, math.Pi / 2},
 			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
 			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				t.Helper()
 				assert.Greater(t, pattern.Amplitude, 0.0, "Should calculate amplitude for negative phases")
 			},
 			description: "Negative phases should work",
@@ -98,6 +104,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			phases:      []float64{0, 10 * math.Pi, 20 * math.Pi, 30 * math.Pi},
 			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
 			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				t.Helper()
 				assert.Greater(t, pattern.Amplitude, 0.0, "Should calculate amplitude for large phases")
 			},
 			description: "Very large phases should work",
@@ -107,6 +114,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			phases:      []float64{0, math.Pi},
 			frequencies: []time.Duration{0, 0},
 			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				t.Helper()
 				assert.Equal(t, time.Duration(0), pattern.Period, "Period should be 0 for zero frequencies")
 			},
 			description: "Zero duration frequencies should work",
@@ -116,6 +124,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			phases:      []float64{0, math.Pi},
 			frequencies: []time.Duration{-100 * time.Millisecond, -100 * time.Millisecond},
 			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				t.Helper()
 				assert.Equal(t, -100*time.Millisecond, pattern.Period, "Negative duration frequencies should be preserved")
 			},
 			description: "Negative duration frequencies should be preserved",
@@ -125,6 +134,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			phases:      []float64{0, math.Pi, math.Pi / 2},
 			frequencies: []time.Duration{100 * time.Millisecond},
 			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+				t.Helper()
 				assert.Len(t, pattern.Phases, 3, "Should have 3 phases")
 				assert.Len(t, pattern.Frequencies, 1, "Should have 1 frequency")
 			},
@@ -155,6 +165,7 @@ func TestPatternDetectGaps(t *testing.T) {
 			phases:      []float64{0, math.Pi / 4, math.Pi * 1.5, math.Pi * 1.75},
 			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
 			validateFn: func(t *testing.T, gaps []PatternGap) {
+				t.Helper()
 				assert.NotEmpty(t, gaps, "Should detect at least one gap")
 				foundGap := false
 				for _, gap := range gaps {
@@ -171,7 +182,7 @@ func TestPatternDetectGaps(t *testing.T) {
 			name:        "uniform pattern no gaps",
 			phases:      []float64{0, math.Pi / 4, math.Pi / 2, 3 * math.Pi / 4},
 			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
-			validateFn: func(t *testing.T, gaps []PatternGap) {
+			validateFn: func(_ *testing.T, _ []PatternGap) {
 				// May or may not detect gaps depending on threshold
 				// Just verify it doesn't crash
 			},
@@ -182,6 +193,7 @@ func TestPatternDetectGaps(t *testing.T) {
 			phases:      []float64{},
 			frequencies: []time.Duration{},
 			validateFn: func(t *testing.T, gaps []PatternGap) {
+				t.Helper()
 				assert.NotNil(t, gaps, "Should return non-nil slice for empty pattern")
 			},
 			description: "Empty pattern should return empty gaps",
@@ -191,6 +203,7 @@ func TestPatternDetectGaps(t *testing.T) {
 			phases:      []float64{math.Pi},
 			frequencies: []time.Duration{100 * time.Millisecond},
 			validateFn: func(t *testing.T, gaps []PatternGap) {
+				t.Helper()
 				assert.Empty(t, gaps, "Single phase should have no gaps")
 			},
 			description: "Single phase should have no gaps",
@@ -200,6 +213,7 @@ func TestPatternDetectGaps(t *testing.T) {
 			phases:      []float64{0, math.Pi / 2, 3 * math.Pi / 2, 2 * math.Pi},
 			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
 			validateFn: func(t *testing.T, gaps []PatternGap) {
+				t.Helper()
 				// Check for gap between π/2 and 3π/2
 				foundGap := false
 				for _, gap := range gaps {
@@ -217,6 +231,7 @@ func TestPatternDetectGaps(t *testing.T) {
 			phases:      []float64{0, 0.1, math.Pi, math.Pi + 0.1, 2 * math.Pi},
 			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
 			validateFn: func(t *testing.T, gaps []PatternGap) {
+				t.Helper()
 				assert.GreaterOrEqual(t, len(gaps), 2, "Should detect multiple gaps")
 			},
 			description: "Should detect multiple gaps",
@@ -225,7 +240,7 @@ func TestPatternDetectGaps(t *testing.T) {
 			name:        "negative phases",
 			phases:      []float64{-math.Pi, -math.Pi / 2, math.Pi / 2, math.Pi},
 			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
-			validateFn: func(t *testing.T, gaps []PatternGap) {
+			validateFn: func(_ *testing.T, _ []PatternGap) {
 				// Should handle negative phases
 				// Just verify it doesn't crash
 			},
@@ -271,6 +286,7 @@ func TestPatternComplete(t *testing.T) {
 			},
 			expectedLen: 1,
 			validateFn: func(t *testing.T, completed []float64) {
+				t.Helper()
 				assert.Len(t, completed, 1, "Should have 1 completed value")
 			},
 			description: "Should complete single step gap",
@@ -284,6 +300,7 @@ func TestPatternComplete(t *testing.T) {
 			},
 			expectedLen: 2,
 			validateFn: func(t *testing.T, completed []float64) {
+				t.Helper()
 				assert.Len(t, completed, 2, "Should have 2 completed values")
 			},
 			description: "Should complete multi step gap",
@@ -297,6 +314,7 @@ func TestPatternComplete(t *testing.T) {
 			},
 			expectedLen: 0,
 			validateFn: func(t *testing.T, completed []float64) {
+				t.Helper()
 				assert.Empty(t, completed, "Should have 0 completed values for adjacent indices")
 			},
 			description: "Adjacent indices should return no completions",
@@ -310,6 +328,7 @@ func TestPatternComplete(t *testing.T) {
 			},
 			expectedLen: -1,
 			validateFn: func(t *testing.T, completed []float64) {
+				t.Helper()
 				assert.Nil(t, completed, "Should return nil for invalid start index")
 			},
 			description: "Invalid start index should return nil",
@@ -323,6 +342,7 @@ func TestPatternComplete(t *testing.T) {
 			},
 			expectedLen: -1,
 			validateFn: func(t *testing.T, completed []float64) {
+				t.Helper()
 				assert.Nil(t, completed, "Should return nil for invalid end index")
 			},
 			description: "Invalid end index should return nil",
@@ -336,6 +356,7 @@ func TestPatternComplete(t *testing.T) {
 			},
 			expectedLen: -1,
 			validateFn: func(t *testing.T, completed []float64) {
+				t.Helper()
 				assert.Nil(t, completed, "Should return nil for reversed indices")
 			},
 			description: "Reversed indices should return nil",
@@ -349,6 +370,7 @@ func TestPatternComplete(t *testing.T) {
 			},
 			expectedLen: 1,
 			validateFn: func(t *testing.T, completed []float64) {
+				t.Helper()
 				assert.Len(t, completed, 1, "Should handle zero duration")
 			},
 			description: "Zero duration should still complete",
@@ -362,6 +384,7 @@ func TestPatternComplete(t *testing.T) {
 			},
 			expectedLen: 1,
 			validateFn: func(t *testing.T, completed []float64) {
+				t.Helper()
 				assert.Len(t, completed, 1, "Should handle negative duration")
 			},
 			description: "Negative duration should still complete",
@@ -375,6 +398,7 @@ func TestPatternComplete(t *testing.T) {
 			},
 			expectedLen: -1,
 			validateFn: func(t *testing.T, completed []float64) {
+				t.Helper()
 				assert.Nil(t, completed, "Should return nil for out of bounds end index")
 			},
 			description: "Out of bounds should return nil",
@@ -854,6 +878,7 @@ func TestPatternLibrary(t *testing.T) {
 func TestHelperFunctions(t *testing.T) {
 	t.Parallel()
 	t.Run("calculateAmplitude", func(t *testing.T) {
+		t.Parallel()
 		tests := []struct {
 			name        string
 			phases      []float64
@@ -935,6 +960,7 @@ func TestHelperFunctions(t *testing.T) {
 	})
 
 	t.Run("calculatePeriod", func(t *testing.T) {
+		t.Parallel()
 		tests := []struct {
 			name        string
 			frequencies []time.Duration
@@ -1000,6 +1026,7 @@ func TestHelperFunctions(t *testing.T) {
 	})
 
 	t.Run("phaseCorrelation", func(t *testing.T) {
+		t.Parallel()
 		tests := []struct {
 			name        string
 			phases1     []float64

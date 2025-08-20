@@ -56,6 +56,6 @@ func (s *Pulse) Propose(current, target core.State, context core.Context) (core.
 }
 
 // Name returns the strategy's identifier.
-func (s *Pulse) Name() string {
+func (*Pulse) Name() string {
 	return "pulse"
 }

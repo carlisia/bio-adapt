@@ -11,7 +11,7 @@ import (
 type SimpleDecisionMaker struct{}
 
 // Decide selects action with best benefit/cost ratio adjusted by context.
-func (s *SimpleDecisionMaker) Decide(state core.State, options []core.Action) (core.Action, float64) {
+func (*SimpleDecisionMaker) Decide(state core.State, options []core.Action) (core.Action, float64) {
 	if len(options) == 0 {
 		return core.Action{Type: "maintain"}, state.Coherence
 	}

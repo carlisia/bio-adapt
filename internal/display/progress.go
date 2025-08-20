@@ -7,7 +7,7 @@ import (
 
 // DrawProgressBar draws a progress bar with current/target values.
 func DrawProgressBar(current, target float64, width int) {
-	progress := min(current/target, 1.0)
+	progress := minFloat(current/target, 1.0)
 	filled := int(progress * float64(width))
 
 	// Progress indicator
@@ -50,7 +50,7 @@ func getProgressIndicator(progress float64) string {
 }
 
 // min returns the minimum of two float64 values.
-func min(a, b float64) float64 {
+func minFloat(a, b float64) float64 {
 	if a < b {
 		return a
 	}

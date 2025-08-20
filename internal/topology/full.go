@@ -14,10 +14,10 @@ func FullyConnected(s *swarm.Swarm) error {
 		return true
 	})
 
-	for i, agent := range agents {
+	for i, a := range agents {
 		for j, neighbor := range agents {
 			if i != j {
-				agent.ConnectTo(neighbor)
+				a.ConnectTo(neighbor)
 			}
 		}
 	}

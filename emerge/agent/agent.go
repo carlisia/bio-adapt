@@ -3,7 +3,6 @@ package agent
 import (
 	"fmt"
 	"math"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/carlisia/bio-adapt/emerge/decision"
 	"github.com/carlisia/bio-adapt/emerge/goal"
 	"github.com/carlisia/bio-adapt/emerge/strategy"
+	"github.com/carlisia/bio-adapt/internal/random"
 	"github.com/carlisia/bio-adapt/internal/resource"
 )
 
@@ -252,7 +252,7 @@ func (a *Agent) ProposeAdjustment(globalGoal core.State) (core.Action, bool) {
 	}
 
 	// Accept based on confidence
-	if rand.Float64() < confidence*acceptance {
+	if random.Float64() < confidence*acceptance {
 		return chosen, true
 	}
 
@@ -360,7 +360,7 @@ func WithPhase(phase float64) Option {
 // WithRandomPhase sets random initial phase.
 func WithRandomPhase() Option {
 	return func(a *Agent) {
-		a.phase.Store(rand.Float64() * 2 * math.Pi)
+		a.phase.Store(random.Phase())
 	}
 }
 
@@ -375,7 +375,7 @@ func WithFrequency(freq time.Duration) Option {
 func WithRandomFrequency() Option {
 	return func(a *Agent) {
 		baseFreq := 100 * time.Millisecond
-		variation := time.Duration(rand.Float64()*50) * time.Millisecond
+		variation := time.Duration(random.Float64()*50) * time.Millisecond
 		a.frequency.Store(baseFreq + variation)
 	}
 }
@@ -390,7 +390,7 @@ func WithLocalGoal(g float64) Option {
 // WithRandomLocalGoal sets random local goal.
 func WithRandomLocalGoal() Option {
 	return func(a *Agent) {
-		a.localGoal.Store(rand.Float64() * 2 * math.Pi)
+		a.localGoal.Store(random.Phase())
 	}
 }
 
@@ -455,7 +455,7 @@ func WithSwarmInfo(swarmSize, assumedMaxNeighbors int) Option {
 // ============= Private Methods =============
 
 func (a *Agent) rejectsDueToStubbornness() bool {
-	return rand.Float64() < a.stubbornness.Load()
+	return random.Float64() < a.stubbornness.Load()
 }
 
 func (a *Agent) adjustPhase(delta float64) {

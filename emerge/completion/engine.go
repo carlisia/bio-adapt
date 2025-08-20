@@ -108,7 +108,7 @@ func (e *Engine) findBestTemplate(current *core.RhythmicPattern) *core.RhythmicP
 }
 
 // interpolatePattern creates interpolated values toward target.
-func (e *Engine) interpolatePattern(current *core.RhythmicPattern, gaps []core.PatternGap) *CompletedPattern {
+func (*Engine) interpolatePattern(current *core.RhythmicPattern, gaps []core.PatternGap) *CompletedPattern {
 	completed := &CompletedPattern{
 		Base:   current,
 		Filled: make(map[string]interface{}),
@@ -137,19 +137,19 @@ func (e *Engine) interpolatePattern(current *core.RhythmicPattern, gaps []core.P
 }
 
 // blendPhase blends two phases with given weight.
-func (e *Engine) blendPhase(current, template float64, weight float64) float64 {
+func (*Engine) blendPhase(current, template float64, weight float64) float64 {
 	diff := core.PhaseDifference(template, current)
 	return core.WrapPhase(current + diff*weight)
 }
 
 // blendFrequency blends two frequencies.
-func (e *Engine) blendFrequency(current, template time.Duration, weight float64) time.Duration {
+func (*Engine) blendFrequency(current, template time.Duration, weight float64) time.Duration {
 	diff := float64(template - current)
 	return current + time.Duration(diff*weight)
 }
 
 // morphWaveform morphs one waveform toward another.
-func (e *Engine) morphWaveform(current, template []float64, weight float64) []float64 {
+func (*Engine) morphWaveform(current, template []float64, weight float64) []float64 {
 	if len(current) == 0 {
 		return template
 	}

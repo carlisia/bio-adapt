@@ -16,18 +16,32 @@ import (
 	"github.com/carlisia/bio-adapt/internal/display"
 )
 
-func main() {
-	// Configuration
-	numAgents := 20
-	maxIterations := 15
-	checkInterval := 500 * time.Millisecond
-	timeout := 15 * time.Second
-	targetState := core.State{
-		Phase:     0,
-		Frequency: 200 * time.Millisecond, // Batch window size
-		Coherence: 0.75,                   // Target synchronization
-	}
+// batchingConfig holds the batching simulation configuration.
+type batchingConfig struct {
+	numAgents     int
+	maxIterations int
+	checkInterval time.Duration
+	timeout       time.Duration
+	targetState   core.State
+}
 
+// setupBatchingConfig creates the configuration for the batching demo.
+func setupBatchingConfig() batchingConfig {
+	return batchingConfig{
+		numAgents:     20,
+		maxIterations: 15,
+		checkInterval: 500 * time.Millisecond,
+		timeout:       15 * time.Second,
+		targetState: core.State{
+			Phase:     0,
+			Frequency: 200 * time.Millisecond, // Batch window size
+			Coherence: 0.75,                   // Target synchronization
+		},
+	}
+}
+
+// printBatchingIntro prints the introduction and setup information.
+func printBatchingIntro(config batchingConfig) {
 	// 1. Purpose and context
 	display.Banner("LLM API REQUEST BATCHING DEMO")
 
@@ -44,12 +58,23 @@ func main() {
 		"20 independent agents start with random request timing",
 		"Agents gradually align their request phases",
 		"Natural batch windows emerge as phases converge",
-		fmt.Sprintf("Target: %.0f%% synchronization for optimal batching", targetState.Coherence*100),
+		fmt.Sprintf("Target: %.0f%% synchronization for optimal batching", config.targetState.Coherence*100),
 		"Typical 70-85% reduction in total API calls",
 	)
 	fmt.Println()
 
 	// 3. Key concepts
+	printKeyConcepts(config)
+
+	// 4. Simulation setup
+	printSimulationSetup(config)
+
+	// 5. Parameter tradeoffs
+	printParameterTradeoffs()
+}
+
+// printKeyConcepts prints the key concepts section.
+func printKeyConcepts(config batchingConfig) {
 	display.Section("Key Concepts")
 	fmt.Println("REQUEST BATCHING = Multiple requests in single API call")
 	fmt.Println("• Reduces rate limiting pressure")
@@ -58,22 +83,26 @@ func main() {
 	fmt.Println()
 
 	fmt.Println("BATCH WINDOW = Time period for collecting requests")
-	fmt.Printf("• Window size: %dms\n", targetState.Frequency.Milliseconds())
+	fmt.Printf("• Window size: %dms\n", config.targetState.Frequency.Milliseconds())
 	fmt.Println("• Agents aligning = requests clustering")
 	fmt.Println("• Higher coherence = better batching")
 	fmt.Println()
+}
 
-	// 4. Simulation setup
+// printSimulationSetup prints the simulation setup information.
+func printSimulationSetup(config batchingConfig) {
 	display.Section("Simulation Setup")
-	fmt.Printf("• Agents: %d independent workloads\n", numAgents)
-	fmt.Printf("• Batch window: %v\n", targetState.Frequency)
-	fmt.Printf("• Target coherence: %.0f%%\n", targetState.Coherence*100)
-	fmt.Printf("• Max iterations: %d\n", maxIterations)
-	fmt.Printf("• Check interval: %v\n", checkInterval)
+	fmt.Printf("• Agents: %d independent workloads\n", config.numAgents)
+	fmt.Printf("• Batch window: %v\n", config.targetState.Frequency)
+	fmt.Printf("• Target coherence: %.0f%%\n", config.targetState.Coherence*100)
+	fmt.Printf("• Max iterations: %d\n", config.maxIterations)
+	fmt.Printf("• Check interval: %v\n", config.checkInterval)
 	fmt.Println("• Scenario: Each agent represents a service needing LLM API access")
 	fmt.Println()
+}
 
-	// 5. Parameter tradeoffs (using go-pretty table)
+// printParameterTradeoffs prints the parameter tradeoffs table.
+func printParameterTradeoffs() {
 	display.Section("Parameter Tradeoffs")
 	t := display.NewTable()
 	t.AppendHeader(table.Row{"Parameter", "Lower Value", "Higher Value", "Sweet Spot"})
@@ -85,9 +114,168 @@ func main() {
 	})
 	t.Render()
 	fmt.Println()
+}
+
+// monitorBatchingProgress monitors the batching synchronization progress.
+func monitorBatchingProgress(
+	ctx context.Context,
+	s *swarm.Swarm,
+	targetState core.State,
+	errChan chan error,
+	checkInterval time.Duration,
+	maxIterations int,
+) (int, int) {
+	ticker := time.NewTicker(checkInterval)
+	defer ticker.Stop()
+
+	iterations := 0
+	lastCoherence := s.MeasureCoherence()
+	stuckCount := 0
+
+	for {
+		select {
+		case <-ticker.C:
+			iterations++
+
+			if done, stuck := processProgressIteration(s, targetState, iterations, maxIterations, lastCoherence, stuckCount); done {
+				return iterations, stuck
+			} else {
+				stuckCount = stuck
+				lastCoherence = s.MeasureCoherence()
+			}
+
+		case err := <-errChan:
+			fmt.Printf("\nSwarm error: %v\n", err)
+			return iterations, stuckCount
+
+		case <-ctx.Done():
+			fmt.Println("\nTimeout reached")
+			return iterations, stuckCount
+		}
+	}
+}
+
+// processProgressIteration processes a single progress iteration.
+func processProgressIteration(
+	s *swarm.Swarm,
+	targetState core.State,
+	iterations, maxIterations int,
+	lastCoherence float64,
+	stuckCount int,
+) (bool, int) {
+	coherence := s.MeasureCoherence()
+	batches := countBatches(s, 3)
+
+	fmt.Printf("Step %2d/%d: ", iterations, maxIterations)
+	display.DrawProgressBar(coherence, targetState.Coherence, 30)
+	fmt.Printf(" %5.1f%%", coherence*100)
+	fmt.Printf(" (%d batches)", batches)
+
+	// Analyze trend
+	newStuckCount := analyzeTrend(coherence, lastCoherence, stuckCount)
+
+	// Check if target reached
+	if coherence >= targetState.Coherence {
+		if display.UseEmoji() {
+			fmt.Print(" ✅ TARGET REACHED!")
+		} else {
+			fmt.Print(" [OK] TARGET REACHED!")
+		}
+		fmt.Println()
+		return true, newStuckCount
+	}
+
+	if newStuckCount > 5 {
+		fmt.Print(" (plateau)")
+	}
+	fmt.Println()
+
+	if iterations >= maxIterations {
+		fmt.Printf("\nMax iterations reached\n")
+		return true, newStuckCount
+	}
+
+	return false, newStuckCount
+}
+
+// analyzeTrend analyzes the coherence trend.
+func analyzeTrend(coherence, lastCoherence float64, stuckCount int) int {
+	switch {
+	case coherence > lastCoherence+0.01:
+		fmt.Print(" [improving]")
+		return stuckCount
+	case coherence < lastCoherence-0.01:
+		fmt.Print(" [degrading]")
+		return stuckCount
+	default:
+		fmt.Print(" [stable]")
+		return stuckCount + 1
+	}
+}
+
+// printDiagnostics prints diagnostics and suggestions.
+func printDiagnostics(s *swarm.Swarm, config batchingConfig, initialCoherence float64, iterations, stuckCount int) {
+	finalCoherence := s.MeasureCoherence()
+
+	display.Section("Diagnostics and Fixes")
+	stats := analysis.RunStats{
+		Initial:    initialCoherence,
+		Final:      finalCoherence,
+		Iter:       iterations,
+		MaxIter:    config.maxIterations,
+		StuckCount: stuckCount,
+	}
+
+	summary, suggestions := analysis.Diagnose(stats, config.targetState.Coherence, "batch")
+	fmt.Println(summary)
+	if len(suggestions) > 0 {
+		fmt.Println("\nSuggested optimizations:")
+		for _, s := range suggestions {
+			fmt.Printf("• %s\n", s)
+		}
+	}
+	fmt.Println()
+}
+
+// printResults prints the results and interpretation.
+func printResults(s *swarm.Swarm, config batchingConfig, initialCoherence float64) {
+	finalCoherence := s.MeasureCoherence()
+	finalBatches := countBatches(s, 3)
+	improvement := ((finalCoherence - initialCoherence) / initialCoherence) * 100
+
+	display.Section("Results and Interpretation")
+	display.PrintResultsSummary(
+		initialCoherence,
+		finalCoherence,
+		config.targetState.Coherence,
+		improvement,
+		display.WithBatchReduction(config.numAgents, finalBatches),
+	)
+
+	// Final visualization
+	fmt.Println("\nFinal Request Distribution:")
+	visualizeRequestTimeline(s, config.targetState.Frequency)
+	fmt.Printf("Batching Quality: %s\n", analysis.DescribeSyncQuality(finalCoherence, "batch"))
+	fmt.Println()
+
+	// Show batch efficiency
+	if finalBatches < config.numAgents {
+		reduction := float64(config.numAgents-finalBatches) / float64(config.numAgents) * 100
+		fmt.Printf("Batch Efficiency: %.0f%% reduction in API calls\n", reduction)
+		fmt.Printf("Cost Savings: Estimated %.0f%% lower API costs\n", reduction*0.7)
+	}
+	fmt.Println()
+}
+
+func main() {
+	// Configuration
+	config := setupBatchingConfig()
+
+	// Print introduction and setup
+	printBatchingIntro(config)
 
 	// Create swarm
-	s, err := swarm.New(numAgents, targetState)
+	s, err := swarm.New(config.numAgents, config.targetState)
 	if err != nil {
 		fmt.Printf("Error: failed to create swarm: %v\n", err)
 		return
@@ -99,17 +287,17 @@ func main() {
 	// Initial state
 	initialCoherence := s.MeasureCoherence()
 	fmt.Println("Initial Request Distribution:")
-	visualizeRequestTimeline(s, targetState.Frequency)
+	visualizeRequestTimeline(s, config.targetState.Frequency)
 	fmt.Printf("Batching Quality: %.1f%% %s\n", initialCoherence*100,
 		analysis.DescribeSyncQuality(initialCoherence, "batch"))
 
-	fmt.Printf("Current API calls: %d (no batching)\n\n", numAgents)
+	fmt.Printf("Current API calls: %d (no batching)\n\n", config.numAgents)
 
 	// Start synchronization
 	fmt.Println("Starting batch alignment...")
-	fmt.Printf("(Each step = %v of coordination)\n\n", checkInterval)
+	fmt.Printf("(Each step = %v of coordination)\n\n", config.checkInterval)
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), config.timeout)
 	defer cancel()
 
 	errChan := make(chan error, 1)
@@ -120,116 +308,13 @@ func main() {
 	}()
 
 	// Monitor progress
-	ticker := time.NewTicker(checkInterval)
-	defer ticker.Stop()
-
-	iterations := 0
-	lastCoherence := initialCoherence
-	stuckCount := 0
-
-	for {
-		select {
-		case <-ticker.C:
-			iterations++
-			coherence := s.MeasureCoherence()
-			batches := countBatches(s, 3)
-
-			fmt.Printf("Step %2d/%d: ", iterations, maxIterations)
-			display.DrawProgressBar(coherence, targetState.Coherence, 30)
-			fmt.Printf(" %5.1f%%", coherence*100)
-			fmt.Printf(" (%d batches)", batches)
-
-			// Trend
-			switch {
-			case coherence > lastCoherence+0.01:
-				fmt.Print(" [improving]")
-			case coherence < lastCoherence-0.01:
-				fmt.Print(" [degrading]")
-			default:
-				fmt.Print(" [stable]")
-				stuckCount++
-			}
-
-			if coherence >= targetState.Coherence {
-				if display.UseEmoji() {
-					fmt.Print(" ✅ TARGET REACHED!")
-				} else {
-					fmt.Print(" [OK] TARGET REACHED!")
-				}
-				fmt.Println()
-				goto done
-			}
-
-			if stuckCount > 5 {
-				fmt.Print(" (plateau)")
-			}
-			fmt.Println()
-
-			lastCoherence = coherence
-
-			if iterations >= maxIterations {
-				fmt.Printf("\nMax iterations reached\n")
-				goto done
-			}
-
-		case err := <-errChan:
-			fmt.Printf("\nSwarm error: %v\n", err)
-			goto done
-
-		case <-ctx.Done():
-			fmt.Println("\nTimeout reached")
-			goto done
-		}
-	}
-
-done:
+	iterations, stuckCount := monitorBatchingProgress(
+		ctx, s, config.targetState, errChan, config.checkInterval, config.maxIterations)
 	// 7. Diagnostics and fixes
-	finalCoherence := s.MeasureCoherence()
-	finalBatches := countBatches(s, 3)
-	improvement := ((finalCoherence - initialCoherence) / initialCoherence) * 100
-
-	display.Section("Diagnostics and Fixes")
-	stats := analysis.RunStats{
-		Initial:    initialCoherence,
-		Final:      finalCoherence,
-		Iter:       iterations,
-		MaxIter:    maxIterations,
-		StuckCount: stuckCount,
-	}
-
-	summary, suggestions := analysis.Diagnose(stats, targetState.Coherence, "batch")
-	fmt.Println(summary)
-	if len(suggestions) > 0 {
-		fmt.Println("\nSuggested optimizations:")
-		for _, s := range suggestions {
-			fmt.Printf("• %s\n", s)
-		}
-	}
-	fmt.Println()
+	printDiagnostics(s, config, initialCoherence, iterations, stuckCount)
 
 	// 8. Results and interpretation
-	display.Section("Results and Interpretation")
-	display.PrintResultsSummary(
-		initialCoherence,
-		finalCoherence,
-		targetState.Coherence,
-		improvement,
-		display.WithBatchReduction(numAgents, finalBatches),
-	)
-
-	// Final visualization
-	fmt.Println("\nFinal Request Distribution:")
-	visualizeRequestTimeline(s, targetState.Frequency)
-	fmt.Printf("Batching Quality: %s\n", analysis.DescribeSyncQuality(finalCoherence, "batch"))
-	fmt.Println()
-
-	// Show batch efficiency
-	if finalBatches < numAgents {
-		reduction := float64(numAgents-finalBatches) / float64(numAgents) * 100
-		fmt.Printf("Batch Efficiency: %.0f%% reduction in API calls\n", reduction)
-		fmt.Printf("Cost Savings: Estimated %.0f%% lower API costs\n", reduction*0.7)
-	}
-	fmt.Println()
+	printResults(s, config, initialCoherence)
 
 	// 9. Real-world mappings
 	display.Section("Real-World Mappings")

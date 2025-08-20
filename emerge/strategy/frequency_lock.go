@@ -42,6 +42,6 @@ func (s *FrequencyLock) Propose(current, target core.State, context core.Context
 }
 
 // Name returns the strategy's identifier.
-func (s *FrequencyLock) Name() string {
+func (*FrequencyLock) Name() string {
 	return "frequency_lock"
 }

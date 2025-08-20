@@ -1,190 +1,269 @@
-// Energy Management Example
+// Package main demonstrates energy management in agent synchronization.
 // This example demonstrates how agents manage their energy resources
 // and how energy constraints affect synchronization behavior.
-
 package main
 
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/carlisia/bio-adapt/emerge/agent"
 	"github.com/carlisia/bio-adapt/emerge/core"
 	"github.com/carlisia/bio-adapt/emerge/swarm"
+	"github.com/carlisia/bio-adapt/internal/random"
 )
 
-func main() {
-	fmt.Println("=== Energy-Constrained Synchronization Example ===")
-	fmt.Println()
+// energyStats holds energy statistics for the swarm.
+type energyStats struct {
+	totalEnergy     float64
+	minEnergy       float64
+	maxEnergy       float64
+	avgEnergy       float64
+	exhaustedAgents int
+}
 
-	// Create target state
+// setupEnergySwarm creates and configures a swarm with energy profiles.
+func setupEnergySwarm() (*swarm.Swarm, core.State) {
 	target := core.State{
 		Phase:     0,
 		Frequency: 150 * time.Millisecond,
 		Coherence: 0.85,
 	}
 
-	// Create swarm with varying energy levels
 	swarmSize := 30
-	swarm, err := swarm.New(swarmSize, target)
+	s, err := swarm.New(swarmSize, target)
 	if err != nil {
 		fmt.Printf("Error creating swarm: %v\n", err)
-		return
+		panic(err)
 	}
+
 	fmt.Println("Configuring agents with different energy profiles:")
+	configureEnergyProfiles(s)
 
-	// Configure agents with different energy characteristics
+	return s, target
+}
+
+// configureEnergyProfiles sets up agents with different energy levels.
+func configureEnergyProfiles(s *swarm.Swarm) {
 	agentCount := 0
-	for _, agent := range swarm.Agents() {
-		switch {
-		case agentCount < 10:
-			// High energy agents - can afford more adjustments
-			agent.SetEnergy(100)
-			agent.SetInfluence(0.8)
-			idDisplay := agent.ID
-			if len(idDisplay) > 8 {
-				idDisplay = idDisplay[:8]
-			}
-			fmt.Printf("  Agent %s: High energy (100), high influence\n", idDisplay)
-		case agentCount < 20:
-			// Medium energy agents
-			agent.SetEnergy(50)
-			agent.SetInfluence(0.5)
-			idDisplay := agent.ID
-			if len(idDisplay) > 8 {
-				idDisplay = idDisplay[:8]
-			}
-			fmt.Printf("  Agent %s: Medium energy (50), medium influence\n", idDisplay)
-		default:
-			// Low energy agents - must be conservative
-			agent.SetEnergy(20)
-			agent.SetInfluence(0.3)
-			idDisplay := agent.ID
-			if len(idDisplay) > 8 {
-				idDisplay = idDisplay[:8]
-			}
-			fmt.Printf("  Agent %s: Low energy (20), low influence\n", idDisplay)
-		}
-
+	for _, a := range s.Agents() {
+		configureAgent(a, agentCount)
 		agentCount++
 	}
+}
 
-	fmt.Printf("\nInitial coherence: %.3f\n", swarm.MeasureCoherence())
+// configureAgent configures a single agent based on its position.
+func configureAgent(a *agent.Agent, index int) {
+	var energy float64
+	var influence float64
+	var profile string
 
-	// Run synchronization with energy monitoring
+	switch {
+	case index < 10:
+		energy = 100
+		influence = 0.8
+		profile = "High energy (100), high influence"
+	case index < 20:
+		energy = 50
+		influence = 0.5
+		profile = "Medium energy (50), medium influence"
+	default:
+		energy = 20
+		influence = 0.3
+		profile = "Low energy (20), low influence"
+	}
+
+	a.SetEnergy(energy)
+	a.SetInfluence(influence)
+
+	idDisplay := a.ID
+	if len(idDisplay) > 8 {
+		idDisplay = idDisplay[:8]
+	}
+	fmt.Printf("  Agent %s: %s\n", idDisplay, profile)
+}
+
+// runEnergyMonitoring runs the synchronization with energy monitoring.
+func runEnergyMonitoring(s *swarm.Swarm, target core.State) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
 	fmt.Println("\nStarting energy-aware synchronization...")
+
+	// Start swarm
+	errChan := startSwarmAsync(ctx, s)
+
+	// Monitor progress
+	monitorProgress(ctx, s, target, errChan, cancel)
+}
+
+// startSwarmAsync starts the swarm in a goroutine.
+func startSwarmAsync(ctx context.Context, s *swarm.Swarm) chan error {
 	errChan := make(chan error, 1)
 	go func() {
-		if err := swarm.Run(ctx); err != nil {
+		if err := s.Run(ctx); err != nil {
 			errChan <- err
 		}
 	}()
+	return errChan
+}
 
-	// Monitor energy consumption and coherence
+// monitorProgress monitors the swarm progress.
+func monitorProgress(ctx context.Context, s *swarm.Swarm, target core.State, errChan chan error, _ context.CancelFunc) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	iteration := 0
 	startTime := time.Now()
+	swarmSize := len(s.Agents())
 
 	for {
 		select {
 		case err := <-errChan:
 			fmt.Printf("\nError in swarm: %v\n", err)
-			goto done
+			return
 		case <-ticker.C:
 			iteration++
 
-			// Calculate energy statistics
-			var totalEnergy, minEnergy, maxEnergy float64
-			var exhaustedAgents int
-			minEnergy = 100
-
-			for _, agent := range swarm.Agents() {
-				energy := agent.Energy()
-				totalEnergy += energy
-				if energy < minEnergy {
-					minEnergy = energy
-				}
-				if energy > maxEnergy {
-					maxEnergy = energy
-				}
-				if energy < 10 {
-					exhaustedAgents++
-				}
-			}
-
-			avgEnergy := totalEnergy / float64(swarmSize)
-			coherence := swarm.MeasureCoherence()
-
-			fmt.Printf("\n--- Iteration %d (%.1fs) ---\n",
-				iteration, time.Since(startTime).Seconds())
-			fmt.Printf("  Coherence:        %.3f\n", coherence)
-			fmt.Printf("  Avg Energy:       %.1f\n", avgEnergy)
-			fmt.Printf("  Energy Range:     %.1f - %.1f\n", minEnergy, maxEnergy)
-			fmt.Printf("  Exhausted Agents: %d/%d\n", exhaustedAgents, swarmSize)
-
-			// Simulate energy replenishment for some agents
-			if iteration%3 == 0 {
-				replenishEnergy(swarm, 0.2) // Replenish 20% of agents
-				fmt.Println("  [Energy replenished for some agents]")
-			}
-
-			if coherence >= target.Coherence {
-				fmt.Printf("\n✓ Target coherence reached!\n")
-				goto done
-			}
-
-			if iteration >= 15 {
-				fmt.Println("\nMaximum iterations reached")
-				goto done
-			}
-
-			if exhaustedAgents > swarmSize/2 {
-				fmt.Println("\nToo many exhausted agents - system struggling")
+			if !processIteration(s, target, iteration, startTime, swarmSize) {
+				return
 			}
 
 		case <-ctx.Done():
-			goto done
+			return
 		}
 	}
+}
 
-done:
-	cancel()
+// processIteration processes a single monitoring iteration.
+func processIteration(s *swarm.Swarm, target core.State, iteration int, startTime time.Time, swarmSize int) bool {
+	// Calculate energy statistics
+	stats := calculateEnergyStats(s)
+	coherence := s.MeasureCoherence()
 
-	// Final analysis
+	// Print iteration summary
+	printIterationSummary(iteration, startTime, coherence, stats, swarmSize)
+
+	// Simulate energy replenishment for some agents
+	if iteration%3 == 0 {
+		replenishEnergy(s, 0.2) // Replenish 20% of agents
+		fmt.Println("  [Energy replenished for some agents]")
+	}
+
+	// Check termination conditions
+	if coherence >= target.Coherence {
+		fmt.Printf("\n✓ Target coherence reached!\n")
+		return false
+	}
+
+	if iteration >= 15 {
+		fmt.Println("\nMaximum iterations reached")
+		return false
+	}
+
+	if stats.exhaustedAgents > swarmSize/2 {
+		fmt.Println("\nToo many exhausted agents - system struggling")
+	}
+
+	return true
+}
+
+// calculateEnergyStats calculates energy statistics for the swarm.
+func calculateEnergyStats(s *swarm.Swarm) energyStats {
+	stats := energyStats{minEnergy: 100}
+	agentCount := 0
+
+	for _, a := range s.Agents() {
+		energy := a.Energy()
+		stats.totalEnergy += energy
+
+		if energy < stats.minEnergy {
+			stats.minEnergy = energy
+		}
+		if energy > stats.maxEnergy {
+			stats.maxEnergy = energy
+		}
+		if energy < 10 {
+			stats.exhaustedAgents++
+		}
+		agentCount++
+	}
+
+	if agentCount > 0 {
+		stats.avgEnergy = stats.totalEnergy / float64(agentCount)
+	}
+
+	return stats
+}
+
+// printIterationSummary prints the summary for an iteration.
+func printIterationSummary(iteration int, startTime time.Time, coherence float64, stats energyStats, swarmSize int) {
+	fmt.Printf("\n--- Iteration %d (%.1fs) ---\n",
+		iteration, time.Since(startTime).Seconds())
+	fmt.Printf("  Coherence:        %.3f\n", coherence)
+	fmt.Printf("  Avg Energy:       %.1f\n", stats.avgEnergy)
+	fmt.Printf("  Energy Range:     %.1f - %.1f\n", stats.minEnergy, stats.maxEnergy)
+	fmt.Printf("  Exhausted Agents: %d/%d\n", stats.exhaustedAgents, swarmSize)
+}
+
+// printEnergyAnalysis prints the final energy analysis.
+func printEnergyAnalysis(s *swarm.Swarm, target core.State) {
 	fmt.Println("\n=== Energy Analysis ===")
 
 	// Group agents by remaining energy
-	var highEnergy, medEnergy, lowEnergy, exhausted int
+	counts := countAgentsByEnergy(s)
 
-	for _, agent := range swarm.Agents() {
-		energy := agent.Energy()
+	fmt.Printf("High energy (≥70):    %d agents\n", counts["high"])
+	fmt.Printf("Medium energy (30-70): %d agents\n", counts["medium"])
+	fmt.Printf("Low energy (10-30):    %d agents\n", counts["low"])
+	fmt.Printf("Exhausted (<10):       %d agents\n", counts["exhausted"])
+
+	finalCoherence := s.MeasureCoherence()
+	fmt.Printf("\nFinal coherence: %.3f\n", finalCoherence)
+	fmt.Printf("Target achieved: %v\n", finalCoherence >= target.Coherence)
+}
+
+// countAgentsByEnergy counts agents by energy level.
+func countAgentsByEnergy(s *swarm.Swarm) map[string]int {
+	counts := map[string]int{
+		"high":      0,
+		"medium":    0,
+		"low":       0,
+		"exhausted": 0,
+	}
+
+	for _, a := range s.Agents() {
+		energy := a.Energy()
 		switch {
 		case energy >= 70:
-			highEnergy++
+			counts["high"]++
 		case energy >= 30:
-			medEnergy++
+			counts["medium"]++
 		case energy >= 10:
-			lowEnergy++
+			counts["low"]++
 		default:
-			exhausted++
+			counts["exhausted"]++
 		}
 	}
 
-	fmt.Printf("High energy (≥70):    %d agents\n", highEnergy)
-	fmt.Printf("Medium energy (30-70): %d agents\n", medEnergy)
-	fmt.Printf("Low energy (10-30):    %d agents\n", lowEnergy)
-	fmt.Printf("Exhausted (<10):       %d agents\n", exhausted)
+	return counts
+}
 
-	finalCoherence := swarm.MeasureCoherence()
-	fmt.Printf("\nFinal coherence: %.3f\n", finalCoherence)
-	fmt.Printf("Target achieved: %v\n", finalCoherence >= target.Coherence)
+func main() {
+	fmt.Println("=== Energy-Constrained Synchronization Example ===")
+	fmt.Println()
+
+	// Setup swarm with energy profiles
+	s, target := setupEnergySwarm()
+
+	fmt.Printf("\nInitial coherence: %.3f\n", s.MeasureCoherence())
+
+	// Run synchronization with energy monitoring
+	runEnergyMonitoring(s, target)
+
+	// Final analysis
+	printEnergyAnalysis(s, target)
 
 	// Demonstrate energy-based decision making
 	fmt.Println("\n=== Energy-Based Decision Example ===")
@@ -192,15 +271,15 @@ done:
 }
 
 // replenishEnergy simulates energy recovery for a fraction of agents.
-func replenishEnergy(swarm *swarm.Swarm, fraction float64) {
+func replenishEnergy(s *swarm.Swarm, fraction float64) {
 	count := 0
-	for _, agent := range swarm.Agents() {
-		if rand.Float64() < fraction {
-			currentEnergy := agent.Energy()
+	for _, a := range s.Agents() {
+		if random.Float64() < fraction {
+			currentEnergy := a.Energy()
 			// Replenish up to 30 energy units
-			agent.SetEnergy(currentEnergy + 30)
-			if agent.Energy() > 100 {
-				agent.SetEnergy(100)
+			a.SetEnergy(currentEnergy + 30)
+			if a.Energy() > 100 {
+				a.SetEnergy(100)
 			}
 			count++
 		}

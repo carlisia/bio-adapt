@@ -49,7 +49,7 @@ func TestSwarm(size int, g core.State) (*swarm.Swarm, error) {
 
 	return swarm.New(size, g,
 		swarm.WithConfig(swarmCfg),
-		swarm.WithAgentBuilder(func(id string, swarmSize int, sc config.Swarm) *agent.Agent {
+		swarm.WithAgentBuilder(func(id string, swarmSize int, _ config.Swarm) *agent.Agent {
 			cfg := config.TestAgent()
 			cfg.SwarmSize = swarmSize
 			a, err := agent.NewFromConfig(id, cfg)
@@ -66,7 +66,7 @@ func TestSwarm(size int, g core.State) (*swarm.Swarm, error) {
 // BenchmarkSwarm creates a swarm optimized for benchmarking.
 // Uses minimal monitoring and fixed parameters.
 func BenchmarkSwarm(size int) (*swarm.Swarm, error) {
-	goal := core.State{
+	g := core.State{
 		Phase:     0,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.8,
@@ -74,7 +74,7 @@ func BenchmarkSwarm(size int) (*swarm.Swarm, error) {
 
 	swarmCfg := config.DefaultConfig()
 
-	return swarm.New(size, goal,
+	return swarm.New(size, g,
 		swarm.WithConfig(swarmCfg),
 		swarm.WithMonitor(nil), // Disable monitoring for benchmarks
 	)
@@ -165,6 +165,7 @@ type MockDecisionMaker struct {
 	CallCount    int
 }
 
+// Decide implements the DecisionMaker interface for testing.
 func (m *MockDecisionMaker) Decide(current core.State, options []core.Action) (core.Action, float64) {
 	m.CallCount++
 	if m.DecisionFunc != nil {
@@ -185,6 +186,7 @@ type MockResourceManager struct {
 	Energy        float64
 }
 
+// Available implements the ResourceManager interface for testing.
 func (m *MockResourceManager) Available() float64 {
 	if m.AvailableFunc != nil {
 		return m.AvailableFunc()
@@ -192,6 +194,7 @@ func (m *MockResourceManager) Available() float64 {
 	return m.Energy
 }
 
+// Request implements the ResourceManager interface for testing.
 func (m *MockResourceManager) Request(amount float64) float64 {
 	if m.RequestFunc != nil {
 		return m.RequestFunc(amount)
@@ -203,6 +206,7 @@ func (m *MockResourceManager) Request(amount float64) float64 {
 	return 0
 }
 
+// Release implements the ResourceManager interface for testing.
 func (m *MockResourceManager) Release(amount float64) {
 	if m.ReleaseFunc != nil {
 		m.ReleaseFunc(amount)
@@ -217,6 +221,7 @@ type MockSyncStrategy struct {
 	CallCount   int
 }
 
+// Propose implements the SyncStrategy interface for testing.
 func (m *MockSyncStrategy) Propose(current, target core.State, ctx core.Context) (core.Action, float64) {
 	m.CallCount++
 	if m.ProposeFunc != nil {
@@ -230,7 +235,8 @@ func (m *MockSyncStrategy) Propose(current, target core.State, ctx core.Context)
 	}, 0.9
 }
 
-func (m *MockSyncStrategy) Name() string {
+// Name implements the SyncStrategy interface for testing.
+func (*MockSyncStrategy) Name() string {
 	return "mock"
 }
 
@@ -239,6 +245,7 @@ type MockGoalManager struct {
 	BlendFunc func(core.State, core.State, float64) core.State
 }
 
+// Blend implements the GoalManager interface for testing.
 func (m *MockGoalManager) Blend(local, global core.State, weight float64) core.State {
 	if m.BlendFunc != nil {
 		return m.BlendFunc(local, global, weight)

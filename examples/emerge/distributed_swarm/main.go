@@ -1,19 +1,18 @@
-// Distributed Swarm Example
+// Package main demonstrates distributed swarm coordination.
 // This example shows how multiple sub-swarms can operate independently
 // yet achieve global coherence through local interactions.
-
 package main
 
 import (
 	"context"
 	"fmt"
 	"math"
-	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/carlisia/bio-adapt/emerge/core"
 	"github.com/carlisia/bio-adapt/emerge/swarm"
+	"github.com/carlisia/bio-adapt/internal/random"
 )
 
 func main() {
@@ -45,7 +44,7 @@ func main() {
 		for _, agent := range subSwarms[i].Agents() {
 			// Add regional bias to initial phase
 			regionalPhase := float64(i) * 0.5
-			agent.SetPhase(regionalPhase + rand.Float64()*0.5)
+			agent.SetPhase(regionalPhase + random.Float64()*0.5)
 		}
 
 		fmt.Printf("  Sub-swarm %d: %d agents (regional bias: %.2f)\n",
@@ -98,8 +97,8 @@ func main() {
 			fmt.Printf("\n--- Iteration %d (%.1fs) ---\n",
 				iteration, time.Since(startTime).Seconds())
 
-			for i, swarm := range subSwarms {
-				coherence := swarm.MeasureCoherence()
+			for i, s := range subSwarms {
+				coherence := s.MeasureCoherence()
 				fmt.Printf("  Sub-swarm %d: %.3f\n", i+1, coherence)
 			}
 
@@ -133,8 +132,8 @@ done:
 
 	// Final results
 	fmt.Println("\n=== Final Results ===")
-	for i, swarm := range subSwarms {
-		coherence := swarm.MeasureCoherence()
+	for i, s := range subSwarms {
+		coherence := s.MeasureCoherence()
 		fmt.Printf("Sub-swarm %d final coherence: %.3f\n", i+1, coherence)
 	}
 
@@ -147,9 +146,9 @@ done:
 func measureGlobalCoherence(swarms []*swarm.Swarm) float64 {
 	var phases []float64
 
-	for _, swarm := range swarms {
-		for _, agent := range swarm.Agents() {
-			phases = append(phases, agent.Phase())
+	for _, s := range swarms {
+		for _, a := range s.Agents() {
+			phases = append(phases, a.Phase())
 		}
 	}
 

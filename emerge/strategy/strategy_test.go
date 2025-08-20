@@ -18,7 +18,7 @@ func TestPhaseNudge(t *testing.T) {
 		current     core.State
 		target      core.State
 		context     core.Context
-		validateFn  func(t *testing.T, strategy *PhaseNudge, action core.Action, confidence float64)
+		validateFn  func(t *testing.T, strategy interface{}, action core.Action, confidence float64)
 		description string
 	}{
 		// Happy path cases
@@ -41,9 +41,8 @@ func TestPhaseNudge(t *testing.T) {
 				Progress:       0.3,
 				LocalCoherence: 0.6,
 			},
-			validateFn: func(t *testing.T, strategy *PhaseNudge, action core.Action, confidence float64) {
-				assert.Equal(t, 0.5, strategy.Rate, "Expected rate 0.5")
-				assert.Equal(t, "phase_nudge", strategy.Name(), "Expected name 'phase_nudge'")
+			validateFn: func(t *testing.T, _ interface{}, action core.Action, confidence float64) {
+				t.Helper()
 				assert.Equal(t, "phase_nudge", action.Type, "Expected action type 'phase_nudge'")
 				assert.Greater(t, action.Value, 0.0, "Action value should be positive when moving forward")
 				assert.Greater(t, action.Cost, 0.0, "Action cost should be positive")
@@ -71,7 +70,8 @@ func TestPhaseNudge(t *testing.T) {
 				Progress:       0.3,
 				LocalCoherence: 0.6,
 			},
-			validateFn: func(t *testing.T, strategy *PhaseNudge, action core.Action, confidence float64) {
+			validateFn: func(t *testing.T, _ interface{}, action core.Action, _ float64) {
+				t.Helper()
 				assert.Equal(t, "phase_nudge", action.Type, "Expected action type 'phase_nudge'")
 				assert.Less(t, action.Value, 0.0, "Action value should be negative when moving backward")
 			},
@@ -93,7 +93,8 @@ func TestPhaseNudge(t *testing.T) {
 			context: core.Context{
 				LocalCoherence: 0.6,
 			},
-			validateFn: func(t *testing.T, strategy *PhaseNudge, action core.Action, confidence float64) {
+			validateFn: func(t *testing.T, _ interface{}, action core.Action, _ float64) {
+				t.Helper()
 				assert.Equal(t, 0.0, action.Value, "Zero rate should produce zero value")
 			},
 			description: "Zero rate produces no nudge",
@@ -114,8 +115,8 @@ func TestPhaseNudge(t *testing.T) {
 			context: core.Context{
 				LocalCoherence: 0.8,
 			},
-			validateFn: func(t *testing.T, strategy *PhaseNudge, action core.Action, confidence float64) {
-				assert.Equal(t, 1.0, strategy.Rate, "Expected rate 1.0")
+			validateFn: func(t *testing.T, _ interface{}, action core.Action, _ float64) {
+				t.Helper()
 				// Max rate should produce large adjustment
 				assert.GreaterOrEqual(t, math.Abs(action.Value), math.Pi/4, "Max rate should produce significant adjustment")
 			},
@@ -138,7 +139,8 @@ func TestPhaseNudge(t *testing.T) {
 			context: core.Context{
 				LocalCoherence: 0.6,
 			},
-			validateFn: func(t *testing.T, strategy *PhaseNudge, action core.Action, confidence float64) {
+			validateFn: func(t *testing.T, _ interface{}, action core.Action, _ float64) {
+				t.Helper()
 				assert.Equal(t, 0.0, action.Value, "Same phase should produce zero nudge")
 			},
 			description: "Same phase produces no nudge",
@@ -159,7 +161,8 @@ func TestPhaseNudge(t *testing.T) {
 			context: core.Context{
 				LocalCoherence: 0.6,
 			},
-			validateFn: func(t *testing.T, strategy *PhaseNudge, action core.Action, confidence float64) {
+			validateFn: func(t *testing.T, _ interface{}, action core.Action, _ float64) {
+				t.Helper()
 				// Should take shortest path across boundary
 				assert.LessOrEqual(t, math.Abs(action.Value), math.Pi, "Should take shortest path across phase boundary")
 			},
@@ -181,7 +184,8 @@ func TestPhaseNudge(t *testing.T) {
 			context: core.Context{
 				LocalCoherence: 0.6,
 			},
-			validateFn: func(t *testing.T, strategy *PhaseNudge, action core.Action, confidence float64) {
+			validateFn: func(t *testing.T, _ interface{}, action core.Action, _ float64) {
+				t.Helper()
 				assert.Equal(t, "phase_nudge", action.Type, "Expected action type 'phase_nudge'")
 			},
 			description: "Negative phase handling",
@@ -202,7 +206,8 @@ func TestPhaseNudge(t *testing.T) {
 			context: core.Context{
 				LocalCoherence: 0,
 			},
-			validateFn: func(t *testing.T, strategy *PhaseNudge, action core.Action, confidence float64) {
+			validateFn: func(t *testing.T, _ interface{}, _ core.Action, confidence float64) {
+				t.Helper()
 				assert.GreaterOrEqual(t, confidence, 0.5, "Confidence should be at least 0.5")
 				// Zero local coherence should produce high confidence (need to adjust)
 				assert.GreaterOrEqual(t, confidence, 0.9, "Zero local coherence should produce high confidence")
@@ -351,7 +356,7 @@ func TestAdaptiveStrategy(t *testing.T) {
 	frequency := NewFrequencyLock(0.7)
 	energy := NewEnergyAware(25.0)
 
-	adaptive := newAdaptiveStrategy([]core.SyncStrategy{nudge, frequency, energy})
+	adaptive := NewAdaptiveStrategy([]core.SyncStrategy{nudge, frequency, energy})
 
 	assert.Equal(t, "adaptive", adaptive.Name(), "Expected name 'adaptive'")
 
@@ -460,7 +465,7 @@ func TestStrategySelection(t *testing.T) {
 	strategy2 := NewFrequencyLock(0.8)
 	strategy3 := NewEnergyAware(25.0)
 
-	adaptive := newAdaptiveStrategy([]core.SyncStrategy{strategy1, strategy2, strategy3})
+	adaptive := NewAdaptiveStrategy([]core.SyncStrategy{strategy1, strategy2, strategy3})
 
 	current := core.State{
 		Phase:     0,

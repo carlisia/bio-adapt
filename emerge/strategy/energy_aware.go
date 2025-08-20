@@ -20,7 +20,7 @@ func NewEnergyAware(threshold float64) *EnergyAware {
 }
 
 // Propose suggests an energy-aware action.
-func (s *EnergyAware) Propose(current, target core.State, context core.Context) (core.Action, float64) {
+func (*EnergyAware) Propose(current, target core.State, context core.Context) (core.Action, float64) {
 	// Calculate phase difference
 	diff := core.PhaseDifference(target.Phase, current.Phase)
 
@@ -49,6 +49,6 @@ func (s *EnergyAware) Propose(current, target core.State, context core.Context) 
 }
 
 // Name returns the strategy's identifier.
-func (s *EnergyAware) Name() string {
+func (*EnergyAware) Name() string {
 	return "energy_aware"
 }

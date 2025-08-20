@@ -448,6 +448,7 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 				Coherence: 0.5,
 			},
 			validateFn: func(t *testing.T, swarm *Swarm, err error) {
+				t.Helper()
 				// Should fail due to size limit
 				require.Error(t, err, "Expected error for maximum int size")
 				assert.Nil(t, swarm, "Expected nil swarm for maximum int size")
@@ -463,6 +464,7 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 				Coherence: 0.5,
 			},
 			validateFn: func(t *testing.T, swarm *Swarm, err error) {
+				t.Helper()
 				// Should succeed
 				assert.NoError(t, err, "Size limit should allow 1,000,000")
 				assert.NotNil(t, swarm, "Expected valid swarm at size limit")
@@ -478,6 +480,7 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 				Coherence: 0.5,
 			},
 			validateFn: func(t *testing.T, swarm *Swarm, err error) {
+				t.Helper()
 				// Should fail
 				require.Error(t, err, "Expected error for size over limit")
 				assert.Nil(t, swarm, "Expected nil swarm for size over limit")
@@ -493,6 +496,7 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 				Coherence: 0.5,
 			},
 			validateFn: func(t *testing.T, swarm *Swarm, err error) {
+				t.Helper()
 				// Should fail
 				require.Error(t, err, "Expected error for size well over limit")
 				assert.Nil(t, swarm, "Expected nil swarm for size well over limit")
@@ -507,7 +511,8 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 				Frequency: 1, // 1 nanosecond
 				Coherence: 0.5,
 			},
-			validateFn: func(t *testing.T, swarm *Swarm, err error) {
+			validateFn: func(t *testing.T, _ *Swarm, err error) {
+				t.Helper()
 				assert.NoError(t, err, "Should handle minimum frequency")
 			},
 			description: "Minimum frequency handling",
@@ -520,7 +525,8 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 				Frequency: time.Duration(int64(^uint64(0) >> 1)), // Max duration
 				Coherence: 0.5,
 			},
-			validateFn: func(t *testing.T, swarm *Swarm, err error) {
+			validateFn: func(t *testing.T, _ *Swarm, err error) {
+				t.Helper()
 				assert.NoError(t, err, "Should handle maximum frequency")
 			},
 			description: "Maximum frequency handling",
@@ -533,7 +539,8 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 1.0 - 1e-16, // Just under 1.0
 			},
-			validateFn: func(t *testing.T, swarm *Swarm, err error) {
+			validateFn: func(t *testing.T, _ *Swarm, err error) {
+				t.Helper()
 				assert.NoError(t, err, "Should handle coherence near 1.0")
 			},
 			description: "Coherence at boundary handling",
@@ -546,7 +553,8 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 				Frequency: 100 * time.Millisecond,
 				Coherence: 1e-16, // Just above 0
 			},
-			validateFn: func(t *testing.T, swarm *Swarm, err error) {
+			validateFn: func(t *testing.T, _ *Swarm, err error) {
+				t.Helper()
 				assert.NoError(t, err, "Should handle coherence near 0")
 			},
 			description: "Coherence at lower boundary handling",

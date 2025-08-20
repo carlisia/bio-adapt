@@ -24,5 +24,5 @@ func NewTokenResourceManager(maxTokens float64) core.ResourceManager {
 
 // NewAdaptive creates an adaptive synchronization strategy.
 func NewAdaptive(strategies []core.SyncStrategy) core.SyncStrategy {
-	return newAdaptiveStrategy(strategies)
+	return NewAdaptiveStrategy(strategies)
 }

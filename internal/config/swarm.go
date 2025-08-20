@@ -205,8 +205,8 @@ func AutoScaleConfig(swarmSize int) Swarm {
 	return config
 }
 
-// ConfigForBatching returns configuration optimized for request batching scenarios.
-func ConfigForBatching(workloadCount int, batchWindow time.Duration) Swarm {
+// ForBatching returns configuration optimized for request batching scenarios.
+func ForBatching(workloadCount int, batchWindow time.Duration) Swarm {
 	// For batching, we need very strong synchronization
 	// Start with a small swarm config as baseline since batching needs tight coupling
 	var config Swarm
@@ -255,151 +255,138 @@ func ConfigForBatching(workloadCount int, batchWindow time.Duration) Swarm {
 func (c *Swarm) Validate(swarmSize int) error {
 	var errors ValidationErrors
 
-	// Validate swarm size constraints
+	// Validate different categories of parameters
+	c.validateSwarmSize(swarmSize, &errors)
+	c.validateProbabilities(&errors)
+	c.validateNeighborConstraints(swarmSize, &errors)
+	c.validatePositiveParameters(&errors)
+	c.validateConcurrencyParameters(&errors)
+
+	if len(errors) > 0 {
+		return errors
+	}
+	return nil
+}
+
+// validateSwarmSize validates swarm size constraints
+func (c *Swarm) validateSwarmSize(swarmSize int, errors *ValidationErrors) {
 	if swarmSize <= 0 {
-		errors = append(errors, ValidationError{
+		*errors = append(*errors, ValidationError{
 			Field: "swarmSize", Value: swarmSize, Message: "must be positive",
 		})
 	}
 
 	if c.MaxSwarmSize > 0 && swarmSize > c.MaxSwarmSize {
-		errors = append(errors, ValidationError{
+		*errors = append(*errors, ValidationError{
 			Field: "MaxSwarmSize", Value: fmt.Sprintf("swarmSize=%d, MaxSwarmSize=%d", swarmSize, c.MaxSwarmSize),
 			Message: "swarm size exceeds configured maximum",
 		})
 	}
+}
 
-	// Validate probability parameters (must be in [0,1])
-	if c.ConnectionProbability < 0 || c.ConnectionProbability > 1 {
-		errors = append(errors, ValidationError{
-			Field: "ConnectionProbability", Value: c.ConnectionProbability, Message: "must be between 0 and 1",
-		})
+// validateProbabilities validates probability parameters (must be in [0,1])
+func (c *Swarm) validateProbabilities(errors *ValidationErrors) {
+	probabilities := map[string]float64{
+		"ConnectionProbability": c.ConnectionProbability,
+		"CouplingStrength":      c.CouplingStrength,
+		"Stubbornness":          c.Stubbornness,
+		"BasinStrength":         c.BasinStrength,
+		"BaseConfidence":        c.BaseConfidence,
+		"InfluenceDefault":      c.InfluenceDefault,
 	}
 
-	if c.CouplingStrength < 0 || c.CouplingStrength > 1 {
-		errors = append(errors, ValidationError{
-			Field: "CouplingStrength", Value: c.CouplingStrength, Message: "must be between 0 and 1",
-		})
+	for field, value := range probabilities {
+		if value < 0 || value > 1 {
+			*errors = append(*errors, ValidationError{
+				Field: field, Value: value, Message: "must be between 0 and 1",
+			})
+		}
 	}
+}
 
-	if c.Stubbornness < 0 || c.Stubbornness > 1 {
-		errors = append(errors, ValidationError{
-			Field: "Stubbornness", Value: c.Stubbornness, Message: "must be between 0 and 1",
-		})
-	}
-
-	if c.BasinStrength < 0 || c.BasinStrength > 1 {
-		errors = append(errors, ValidationError{
-			Field: "BasinStrength", Value: c.BasinStrength, Message: "must be between 0 and 1",
-		})
-	}
-
-	if c.BaseConfidence < 0 || c.BaseConfidence > 1 {
-		errors = append(errors, ValidationError{
-			Field: "BaseConfidence", Value: c.BaseConfidence, Message: "must be between 0 and 1",
-		})
-	}
-
-	if c.InfluenceDefault < 0 || c.InfluenceDefault > 1 {
-		errors = append(errors, ValidationError{
-			Field: "InfluenceDefault", Value: c.InfluenceDefault, Message: "must be between 0 and 1",
-		})
-	}
-
-	// Validate neighbor constraints
+// validateNeighborConstraints validates neighbor-related constraints
+func (c *Swarm) validateNeighborConstraints(swarmSize int, errors *ValidationErrors) {
 	maxPossibleNeighbors := swarmSize - 1
 	if swarmSize > 0 && maxPossibleNeighbors <= 0 {
 		// Single agent swarm - MaxNeighbors must be 0
 		if c.MaxNeighbors != 0 {
-			errors = append(errors, ValidationError{
+			*errors = append(*errors, ValidationError{
 				Field: "MaxNeighbors", Value: c.MaxNeighbors, Message: "must be 0 for single agent swarm",
 			})
 		}
 	} else {
 		// Multi-agent swarm - MaxNeighbors must be at least 1
 		if c.MaxNeighbors < 1 {
-			errors = append(errors, ValidationError{
+			*errors = append(*errors, ValidationError{
 				Field: "MaxNeighbors", Value: c.MaxNeighbors, Message: "must be at least 1",
 			})
 		}
 	}
 
 	if swarmSize > 0 && c.MaxNeighbors > swarmSize-1 {
-		errors = append(errors, ValidationError{
+		*errors = append(*errors, ValidationError{
 			Field: "MaxNeighbors", Value: fmt.Sprintf("MaxNeighbors=%d, swarmSize=%d", c.MaxNeighbors, swarmSize),
 			Message: "cannot exceed swarm size - 1",
 		})
 	}
 
 	if c.MinNeighbors < 0 {
-		errors = append(errors, ValidationError{
+		*errors = append(*errors, ValidationError{
 			Field: "MinNeighbors", Value: c.MinNeighbors, Message: "cannot be negative",
 		})
 	}
 
 	if c.MinNeighbors > c.MaxNeighbors {
-		errors = append(errors, ValidationError{
+		*errors = append(*errors, ValidationError{
 			Field: "MinNeighbors", Value: fmt.Sprintf("MinNeighbors=%d, MaxNeighbors=%d", c.MinNeighbors, c.MaxNeighbors),
 			Message: "cannot exceed MaxNeighbors",
 		})
 	}
+}
 
-	// Validate energy and time parameters
-	if c.InitialEnergy <= 0 {
-		errors = append(errors, ValidationError{
-			Field: "InitialEnergy", Value: c.InitialEnergy, Message: "must be positive",
-		})
+// validatePositiveParameters validates parameters that must be positive
+func (c *Swarm) validatePositiveParameters(errors *ValidationErrors) {
+	positiveParams := map[string]interface{}{
+		"InitialEnergy":       c.InitialEnergy,
+		"BasinWidth":          c.BasinWidth,
+		"AgentUpdateInterval": c.AgentUpdateInterval,
+		"MonitoringInterval":  c.MonitoringInterval,
 	}
 
-	if c.BasinWidth <= 0 {
-		errors = append(errors, ValidationError{
-			Field: "BasinWidth", Value: c.BasinWidth, Message: "must be positive",
-		})
+	for field, value := range positiveParams {
+		switch v := value.(type) {
+		case float64:
+			if v <= 0 {
+				*errors = append(*errors, ValidationError{
+					Field: field, Value: v, Message: "must be positive",
+				})
+			}
+		case time.Duration:
+			if v <= 0 {
+				*errors = append(*errors, ValidationError{
+					Field: field, Value: v, Message: "must be positive",
+				})
+			}
+		}
+	}
+}
+
+// validateConcurrencyParameters validates concurrency-related parameters
+func (c *Swarm) validateConcurrencyParameters(errors *ValidationErrors) {
+	concurrencyParams := map[string]int{
+		"MaxConcurrentAgents":      c.MaxConcurrentAgents,
+		"BatchSize":                c.BatchSize,
+		"WorkerPoolSize":           c.WorkerPoolSize,
+		"ConnectionOptimThreshold": c.ConnectionOptimThreshold,
 	}
 
-	if c.AgentUpdateInterval <= 0 {
-		errors = append(errors, ValidationError{
-			Field: "AgentUpdateInterval", Value: c.AgentUpdateInterval, Message: "must be positive",
-		})
+	for field, value := range concurrencyParams {
+		if value < 0 {
+			*errors = append(*errors, ValidationError{
+				Field: field, Value: value, Message: "cannot be negative",
+			})
+		}
 	}
-
-	if c.MonitoringInterval <= 0 {
-		errors = append(errors, ValidationError{
-			Field: "MonitoringInterval", Value: c.MonitoringInterval, Message: "must be positive",
-		})
-	}
-
-	// Validate concurrency parameters
-	if c.MaxConcurrentAgents < 0 {
-		errors = append(errors, ValidationError{
-			Field: "MaxConcurrentAgents", Value: c.MaxConcurrentAgents, Message: "cannot be negative",
-		})
-	}
-
-	if c.BatchSize < 0 {
-		errors = append(errors, ValidationError{
-			Field: "BatchSize", Value: c.BatchSize, Message: "cannot be negative",
-		})
-	}
-
-	if c.WorkerPoolSize < 0 {
-		errors = append(errors, ValidationError{
-			Field: "WorkerPoolSize", Value: c.WorkerPoolSize, Message: "cannot be negative",
-		})
-	}
-
-	if c.ConnectionOptimThreshold < 0 {
-		errors = append(errors, ValidationError{
-			Field: "ConnectionOptimThreshold", Value: c.ConnectionOptimThreshold, Message: "cannot be negative",
-		})
-	}
-
-	// Return errors if any
-	if len(errors) > 0 {
-		return errors
-	}
-
-	return nil
 }
 
 // NormalizeAndValidate performs validation and auto-corrects values where possible.
@@ -423,15 +410,25 @@ func (c *Swarm) NormalizeAndValidate(swarmSize int) error {
 
 // normalize applies auto-corrections and auto-calculations.
 func (c *Swarm) normalize(swarmSize int) {
-	// Clamp probability values to [0,1]
-	c.ConnectionProbability = clamp(c.ConnectionProbability, 0, 1)
-	c.CouplingStrength = clamp(c.CouplingStrength, 0, 1)
-	c.Stubbornness = clamp(c.Stubbornness, 0, 1)
-	c.BasinStrength = clamp(c.BasinStrength, 0, 1)
-	c.BaseConfidence = clamp(c.BaseConfidence, 0, 1)
-	c.InfluenceDefault = clamp(c.InfluenceDefault, 0, 1)
+	c.normalizeProbabilities()
+	c.normalizeNeighborConstraints(swarmSize)
+	c.normalizePositiveDefaults()
+	c.normalizeConcurrencyParameters()
+	c.autoCalculateBatchParameters(swarmSize)
+}
 
-	// Fix neighbor constraints
+// normalizeProbabilities clamps probability values to [0,1]
+func (c *Swarm) normalizeProbabilities() {
+	c.ConnectionProbability = clampProbability(c.ConnectionProbability)
+	c.CouplingStrength = clampProbability(c.CouplingStrength)
+	c.Stubbornness = clampProbability(c.Stubbornness)
+	c.BasinStrength = clampProbability(c.BasinStrength)
+	c.BaseConfidence = clampProbability(c.BaseConfidence)
+	c.InfluenceDefault = clampProbability(c.InfluenceDefault)
+}
+
+// normalizeNeighborConstraints fixes neighbor-related constraints
+func (c *Swarm) normalizeNeighborConstraints(swarmSize int) {
 	if swarmSize > 0 {
 		maxPossibleNeighbors := swarmSize - 1
 		if maxPossibleNeighbors <= 0 {
@@ -456,8 +453,10 @@ func (c *Swarm) normalize(swarmSize int) {
 	if c.MinNeighbors < 0 {
 		c.MinNeighbors = 0
 	}
+}
 
-	// Fix energy and time parameters
+// normalizePositiveDefaults sets default values for parameters that must be positive
+func (c *Swarm) normalizePositiveDefaults() {
 	if c.InitialEnergy <= 0 {
 		c.InitialEnergy = 100.0
 	}
@@ -470,8 +469,10 @@ func (c *Swarm) normalize(swarmSize int) {
 	if c.MonitoringInterval <= 0 {
 		c.MonitoringInterval = 100 * time.Millisecond
 	}
+}
 
-	// Fix concurrency parameters
+// normalizeConcurrencyParameters fixes concurrency-related parameters
+func (c *Swarm) normalizeConcurrencyParameters() {
 	if c.MaxConcurrentAgents < 0 {
 		c.MaxConcurrentAgents = 0
 	}
@@ -484,25 +485,25 @@ func (c *Swarm) normalize(swarmSize int) {
 	if c.ConnectionOptimThreshold < 0 {
 		c.ConnectionOptimThreshold = 0
 	}
+}
 
-	// Auto-calculate batch size if needed
+// autoCalculateBatchParameters auto-calculates batch and worker pool sizes
+func (c *Swarm) autoCalculateBatchParameters(swarmSize int) {
 	if c.UseBatchProcessing && c.BatchSize == 0 {
 		c.BatchSize = maxInt(10, swarmSize/50)
 	}
-
-	// Auto-calculate worker pool size if needed
 	if c.UseBatchProcessing && c.WorkerPoolSize == 0 {
 		c.WorkerPoolSize = maxInt(4, minInt(100, swarmSize/20))
 	}
 }
 
-// clamp returns value clamped between min and max.
-func clamp(value, min, max float64) float64 {
-	if value < min {
-		return min
+// clampProbability returns value clamped between 0 and 1.
+func clampProbability(value float64) float64 {
+	if value < 0 {
+		return 0
 	}
-	if value > max {
-		return max
+	if value > 1 {
+		return 1
 	}
 	return value
 }

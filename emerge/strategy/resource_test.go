@@ -451,6 +451,7 @@ func TestTokenResourceManagerStressPatterns(t *testing.T) {
 				}
 			},
 			validateFn: func(t *testing.T, rm core.ResourceManager) {
+				t.Helper()
 				assert.Equal(t, 0.0, rm.Available(), "After burst, should have 0 available")
 			},
 			description: "Burst request pattern",
@@ -465,6 +466,7 @@ func TestTokenResourceManagerStressPatterns(t *testing.T) {
 				}
 			},
 			validateFn: func(t *testing.T, rm core.ResourceManager) {
+				t.Helper()
 				assert.Equal(t, 0.0, rm.Available(), "After gradual drain, should have 0 available")
 			},
 			description: "Gradual drain pattern",
@@ -480,6 +482,7 @@ func TestTokenResourceManagerStressPatterns(t *testing.T) {
 				}
 			},
 			validateFn: func(t *testing.T, rm core.ResourceManager) {
+				t.Helper()
 				// After first 3 cycles: 100 → 80 → 60 → 40
 				// Then stabilizes at: request gets 30-40, release adds 30
 				// Final state after 10 cycles: 30 available
@@ -498,6 +501,7 @@ func TestTokenResourceManagerStressPatterns(t *testing.T) {
 				}
 			},
 			validateFn: func(t *testing.T, rm core.ResourceManager) {
+				t.Helper()
 				// Sum of amounts = 129, max = 100
 				// So should have 0 available
 				assert.Equal(t, 0.0, rm.Available(), "After random requests, should have 0 available")
@@ -514,6 +518,7 @@ func TestTokenResourceManagerStressPatterns(t *testing.T) {
 				rm.Release(math.Inf(1)) // Try to release infinity
 			},
 			validateFn: func(t *testing.T, rm core.ResourceManager) {
+				t.Helper()
 				// After releasing infinity, should be back at max
 				assert.Equal(t, 100.0, rm.Available(), "After reset pattern, should have max available")
 			},
@@ -543,6 +548,7 @@ func TestTokenResourceManagerBoundaryConditions(t *testing.T) {
 			name:      "machine epsilon precision",
 			maxTokens: 1.0,
 			validateFn: func(t *testing.T, rm core.ResourceManager) {
+				t.Helper()
 				epsilon := math.Nextafter(1, 2) - 1
 				granted := rm.Request(epsilon)
 				assert.Equal(t, epsilon, granted, "Should handle machine epsilon")
@@ -553,6 +559,7 @@ func TestTokenResourceManagerBoundaryConditions(t *testing.T) {
 			name:      "denormalized numbers",
 			maxTokens: math.SmallestNonzeroFloat64 * 100,
 			validateFn: func(t *testing.T, rm core.ResourceManager) {
+				t.Helper()
 				granted := rm.Request(math.SmallestNonzeroFloat64)
 				assert.Equal(t, math.SmallestNonzeroFloat64, granted, "Should handle denormalized numbers")
 			},
@@ -562,6 +569,7 @@ func TestTokenResourceManagerBoundaryConditions(t *testing.T) {
 			name:      "maximum finite value",
 			maxTokens: math.MaxFloat64,
 			validateFn: func(t *testing.T, rm core.ResourceManager) {
+				t.Helper()
 				granted := rm.Request(math.MaxFloat64 / 2)
 				assert.Equal(t, math.MaxFloat64/2, granted, "Should handle maximum finite values")
 				// Check we can still request more
@@ -574,6 +582,7 @@ func TestTokenResourceManagerBoundaryConditions(t *testing.T) {
 			name:      "negative zero",
 			maxTokens: 100,
 			validateFn: func(t *testing.T, rm core.ResourceManager) {
+				t.Helper()
 				negZero := math.Copysign(0, -1)
 				granted := rm.Request(negZero)
 				// Negative zero should be treated as zero

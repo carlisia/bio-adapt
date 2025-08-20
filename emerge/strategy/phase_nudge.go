@@ -40,6 +40,6 @@ func (s *PhaseNudge) Propose(current, target core.State, context core.Context) (
 }
 
 // Name returns the strategy's identifier.
-func (s *PhaseNudge) Name() string {
+func (*PhaseNudge) Name() string {
 	return "phase_nudge"
 }

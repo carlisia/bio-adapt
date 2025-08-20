@@ -3,8 +3,6 @@ package swarm
 import (
 	"context"
 	"fmt"
-	"math"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -13,6 +11,7 @@ import (
 	"github.com/carlisia/bio-adapt/emerge/monitoring"
 	"github.com/carlisia/bio-adapt/internal/config"
 	"github.com/carlisia/bio-adapt/internal/emerge"
+	"github.com/carlisia/bio-adapt/internal/random"
 )
 
 // Swarm represents a collection of autonomous agents achieving
@@ -83,7 +82,7 @@ func New(size int, goal core.State, opts ...Option) (*Swarm, error) {
 
 	// Create agents if not already created by options
 	agentCount := 0
-	s.agents.Range(func(key, value any) bool {
+	s.agents.Range(func(_, _ any) bool {
 		agentCount++
 		return false // Just need to check if any exist
 	})
@@ -150,11 +149,11 @@ func (s *Swarm) createDefaultAgents() error {
 	agentConfig.SwarmSize = s.size
 
 	for i := range s.size {
-		agent, err := agent.NewFromConfig(fmt.Sprintf("agent-%d", i), agentConfig)
+		a, err := agent.NewFromConfig(fmt.Sprintf("agent-%d", i), agentConfig)
 		if err != nil {
 			return fmt.Errorf("failed to create agent %d: %w", i, err)
 		}
-		s.agents.Store(agent.ID, agent)
+		s.agents.Store(a.ID, a)
 	}
 	return nil
 }
@@ -184,8 +183,8 @@ func WithMonitor(monitor *monitoring.Monitor) Option {
 func WithAgentBuilder(builder func(id string, swarmSize int, cfg config.Swarm) *agent.Agent) Option {
 	return func(s *Swarm) error {
 		for i := range s.size {
-			agent := builder(fmt.Sprintf("agent-%d", i), s.size, s.config)
-			s.agents.Store(agent.ID, agent)
+			a := builder(fmt.Sprintf("agent-%d", i), s.size, s.config)
+			s.agents.Store(a.ID, a)
 		}
 		return nil
 	}
@@ -204,75 +203,91 @@ func WithTopology(builder func(*Swarm) error) Option {
 
 // establishConnections creates network topology based on configuration.
 func (s *Swarm) establishConnections() {
-	// Collect all agents first
+	agents := s.collectAgents()
+
+	if s.config.EnableConnectionOptim && len(agents) > s.config.ConnectionOptimThreshold {
+		s.establishMinimalConnections(agents)
+	} else {
+		s.establishProbabilisticConnections(agents)
+	}
+}
+
+// collectAgents gathers all agents from the swarm
+func (s *Swarm) collectAgents() []*agent.Agent {
 	var agents []*agent.Agent
-	s.agents.Range(func(key, value any) bool {
+	s.agents.Range(func(_, value any) bool {
 		if a, ok := value.(*agent.Agent); ok {
 			agents = append(agents, a)
 		}
 		return true
 	})
+	return agents
+}
 
-	// Use configurable threshold for connection optimization
-	if s.config.EnableConnectionOptim && len(agents) > s.config.ConnectionOptimThreshold {
-		// Just establish minimal random connections for large swarms
-		for _, agent := range agents {
-			for i := 0; i < s.config.MinNeighbors && i < len(agents)-1; i++ {
-				idx := rand.Intn(len(agents))
-				if agents[idx].ID != agent.ID {
-					agent.Neighbors().Store(agents[idx].ID, agents[idx])
-					agents[idx].Neighbors().Store(agent.ID, agent)
-				}
+// establishMinimalConnections creates minimal random connections for large swarms
+func (s *Swarm) establishMinimalConnections(agents []*agent.Agent) {
+	for _, a := range agents {
+		for i := 0; i < s.config.MinNeighbors && i < len(agents)-1; i++ {
+			idx := random.Intn(len(agents))
+			if agents[idx].ID != a.ID {
+				a.Neighbors().Store(agents[idx].ID, agents[idx])
+				agents[idx].Neighbors().Store(a.ID, a)
 			}
 		}
-		return
+	}
+}
+
+// establishProbabilisticConnections creates connections based on probability for smaller swarms
+func (s *Swarm) establishProbabilisticConnections(agents []*agent.Agent) {
+	for i, a := range agents {
+		connected := s.connectToNeighbors(a, agents, i)
+		s.ensureMinimumConnectivity(a, agents, connected)
+	}
+}
+
+// connectToNeighbors connects an agent to neighbors based on probability
+func (s *Swarm) connectToNeighbors(a *agent.Agent, agents []*agent.Agent, agentIndex int) int {
+	connected := 0
+
+	for j, neighbor := range agents {
+		if j == agentIndex {
+			continue
+		}
+
+		if connected >= s.config.MaxNeighbors {
+			break
+		}
+
+		if _, exists := a.Neighbors().Load(neighbor.ID); exists {
+			connected++
+			continue
+		}
+
+		if random.Float64() < s.config.ConnectionProbability {
+			a.Neighbors().Store(neighbor.ID, neighbor)
+			neighbor.Neighbors().Store(a.ID, a)
+			connected++
+		}
 	}
 
-	// Connect agents based on configuration for smaller swarms
-	for i, agent := range agents {
-		connected := 0
+	return connected
+}
 
-		// Try to connect to other agents
-		for j, neighbor := range agents {
-			if i == j {
+// ensureMinimumConnectivity forces connections to meet minimum neighbor requirements
+func (s *Swarm) ensureMinimumConnectivity(a *agent.Agent, agents []*agent.Agent, connected int) {
+	if connected < s.config.MinNeighbors && len(agents) > s.config.MinNeighbors {
+		for connected < s.config.MinNeighbors {
+			idx := random.Intn(len(agents))
+			neighbor := agents[idx]
+
+			if neighbor.ID == a.ID {
 				continue
 			}
 
-			// Check if we've reached max neighbors
-			if connected >= s.config.MaxNeighbors {
-				break
-			}
-
-			// Check if already connected
-			if _, exists := agent.Neighbors().Load(neighbor.ID); exists {
+			if _, exists := a.Neighbors().Load(neighbor.ID); !exists {
+				a.Neighbors().Store(neighbor.ID, neighbor)
+				neighbor.Neighbors().Store(a.ID, a)
 				connected++
-				continue
-			}
-
-			// Connect based on probability
-			if rand.Float64() < s.config.ConnectionProbability {
-				agent.Neighbors().Store(neighbor.ID, neighbor)
-				neighbor.Neighbors().Store(agent.ID, agent)
-				connected++
-			}
-		}
-
-		// Ensure minimum connectivity
-		if connected < s.config.MinNeighbors && len(agents) > s.config.MinNeighbors {
-			// Force connect to random neighbors
-			for connected < s.config.MinNeighbors {
-				idx := rand.Intn(len(agents))
-				neighbor := agents[idx]
-
-				if neighbor.ID == agent.ID {
-					continue
-				}
-
-				if _, exists := agent.Neighbors().Load(neighbor.ID); !exists {
-					agent.Neighbors().Store(neighbor.ID, neighbor)
-					neighbor.Neighbors().Store(agent.ID, agent)
-					connected++
-				}
 			}
 		}
 	}
@@ -299,9 +314,9 @@ func (s *Swarm) Run(ctx context.Context) error {
 func (s *Swarm) MeasureCoherence() float64 {
 	var phases []float64
 
-	s.agents.Range(func(key, value any) bool {
-		if agent, ok := value.(*agent.Agent); ok {
-			phases = append(phases, agent.Phase())
+	s.agents.Range(func(_, value any) bool {
+		if a, ok := value.(*agent.Agent); ok {
+			phases = append(phases, a.Phase())
 		}
 		return true
 	})
@@ -365,13 +380,13 @@ func (s *Swarm) DisruptAgents(percentage float64) {
 	targetCount := int(float64(s.Size()) * percentage)
 	disrupted := 0
 
-	s.agents.Range(func(key, value any) bool {
+	s.agents.Range(func(_, value any) bool {
 		if disrupted >= targetCount {
 			return false
 		}
 
-		if agent, ok := value.(*agent.Agent); ok {
-			agent.SetPhase(rand.Float64() * 2 * math.Pi)
+		if a, ok := value.(*agent.Agent); ok {
+			a.SetPhase(random.Phase())
 			disrupted++
 		}
 		return true
@@ -381,7 +396,7 @@ func (s *Swarm) DisruptAgents(percentage float64) {
 // ForEachAgent applies a function to each agent in the swarm.
 // This provides controlled access to agents without exposing the internal map.
 func (s *Swarm) ForEachAgent(fn func(*agent.Agent) bool) {
-	s.agents.Range(func(key, value any) bool {
+	s.agents.Range(func(_, value any) bool {
 		if agent, ok := value.(*agent.Agent); ok {
 			return fn(agent)
 		}
@@ -396,5 +411,5 @@ func AutoScaleConfig(swarmSize int) config.Swarm {
 
 // ConfigForBatching returns configuration optimized for request batching scenarios.
 func ConfigForBatching(workloadCount int, batchWindow time.Duration) config.Swarm {
-	return config.ConfigForBatching(workloadCount, batchWindow)
+	return config.ForBatching(workloadCount, batchWindow)
 }

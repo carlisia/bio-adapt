@@ -8,7 +8,7 @@ import (
 type WeightedManager struct{}
 
 // Blend combines local and global goals based on weight.
-func (w *WeightedManager) Blend(local, global core.State, weight float64) core.State {
+func (*WeightedManager) Blend(local, global core.State, weight float64) core.State {
 	// Clamp weight to [0, 1]
 	if weight < 0 {
 		weight = 0

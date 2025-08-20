@@ -22,14 +22,14 @@ func Ring(s *swarm.Swarm) error {
 		return fmt.Errorf("%w for ring topology: got %d, need at least 2", core.ErrInsufficientAgents, n)
 	}
 
-	for i, agent := range agents {
+	for i, a := range agents {
 		// Connect to previous neighbor
 		prev := agents[(i-1+n)%n]
-		agent.ConnectTo(prev)
+		a.ConnectTo(prev)
 
 		// Connect to next neighbor
 		next := agents[(i+1)%n]
-		agent.ConnectTo(next)
+		a.ConnectTo(next)
 	}
 
 	return nil

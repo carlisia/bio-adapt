@@ -148,24 +148,24 @@ func TestSwarmConvergenceConsistency(t *testing.T) {
 	}
 
 	// Calculate statistics across runs
-	var sum, min, max float64
-	min = finalCoherences[0]
-	max = finalCoherences[0]
+	var sum, minVal, maxVal float64
+	minVal = finalCoherences[0]
+	maxVal = finalCoherences[0]
 
 	for _, coherence := range finalCoherences {
 		sum += coherence
-		if coherence < min {
-			min = coherence
+		if coherence < minVal {
+			minVal = coherence
 		}
-		if coherence > max {
-			max = coherence
+		if coherence > maxVal {
+			maxVal = coherence
 		}
 	}
 
 	avg := sum / float64(runs)
-	variance := max - min
+	variance := maxVal - minVal
 
-	t.Logf("Consistency: avg=%.3f, min=%.3f, max=%.3f, variance=%.3f", avg, min, max, variance)
+	t.Logf("Consistency: avg=%.3f, min=%.3f, max=%.3f, variance=%.3f", avg, minVal, maxVal, variance)
 
 	// Results should be reasonably consistent
 	if variance > 0.3 {

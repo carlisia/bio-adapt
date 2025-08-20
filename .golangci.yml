@@ -113,11 +113,6 @@ linters:
       threshold: 150
     nakedret:
       max-func-lines: 30
-    gocritic:
-      enabled-checks:
-        - appendAssign
-        - assignOp
-        - singleCaseSwitch
   exclusions:
     generated: lax
     rules:

@@ -303,6 +303,7 @@ func TestWeightedGoalManagerPhaseWrapping(t *testing.T) {
 			},
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
+				t.Helper()
 				// Shortest path from 0.1 to 2π-0.1 is backwards across 0
 				// So halfway should be around 0 (or 2π)
 				assert.True(t, blended.Phase <= 0.2 || blended.Phase >= 2*math.Pi-0.2, "Phase wrapping not working correctly, got %f", blended.Phase)
@@ -322,6 +323,7 @@ func TestWeightedGoalManagerPhaseWrapping(t *testing.T) {
 			},
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
+				t.Helper()
 				// Should be very close to π
 				assert.InDelta(t, math.Pi, blended.Phase, 0.01, "Expected phase near π, got %f", blended.Phase)
 			},
@@ -340,6 +342,7 @@ func TestWeightedGoalManagerPhaseWrapping(t *testing.T) {
 			},
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
+				t.Helper()
 				// Should take shortest path
 				expected := 3 * math.Pi / 4
 				assert.InDelta(t, expected, blended.Phase, 0.01, "Expected phase %f, got %f", expected, blended.Phase)
@@ -359,6 +362,7 @@ func TestWeightedGoalManagerPhaseWrapping(t *testing.T) {
 			},
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
+				t.Helper()
 				// Should be around 0
 				assert.True(t, math.Abs(blended.Phase) <= 0.01 || math.Abs(blended.Phase-2*math.Pi) <= 0.01, "Expected phase near 0, got %f", blended.Phase)
 			},
@@ -377,6 +381,7 @@ func TestWeightedGoalManagerPhaseWrapping(t *testing.T) {
 			},
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
+				t.Helper()
 				// 4π is same as 0, so blend should be 0
 				assert.True(t, math.Abs(blended.Phase) <= 0.01 || math.Abs(blended.Phase-2*math.Pi) <= 0.01, "Expected phase near 0, got %f", blended.Phase)
 			},
@@ -671,6 +676,7 @@ func TestWeightedGoalManagerEdgeCases(t *testing.T) {
 			},
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
+				t.Helper()
 				assert.Equal(t, time.Duration(0), blended.Frequency, "Frequency should be preserved from local state")
 			},
 		},
@@ -688,6 +694,7 @@ func TestWeightedGoalManagerEdgeCases(t *testing.T) {
 			},
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
+				t.Helper()
 				assert.Equal(t, -100*time.Millisecond, blended.Frequency, "Frequency should be preserved even if negative")
 			},
 		},
@@ -705,6 +712,7 @@ func TestWeightedGoalManagerEdgeCases(t *testing.T) {
 			},
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
+				t.Helper()
 				// Should blend even invalid coherence values
 				expected := 1.75
 				assert.InDelta(t, expected, blended.Coherence, 0.01, "Coherence should match expected")
@@ -724,6 +732,7 @@ func TestWeightedGoalManagerEdgeCases(t *testing.T) {
 			},
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
+				t.Helper()
 				// Should blend to 0
 				assert.InDelta(t, 0.0, blended.Coherence, 0.01, "Coherence should be 0")
 			},
@@ -742,6 +751,7 @@ func TestWeightedGoalManagerEdgeCases(t *testing.T) {
 			},
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
+				t.Helper()
 				assert.Equal(t, 0.0, blended.Phase, "Phase should be 0")
 				assert.Equal(t, time.Duration(0), blended.Frequency, "Frequency should be 0")
 				assert.Equal(t, 0.0, blended.Coherence, "Coherence should be 0")

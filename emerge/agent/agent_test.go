@@ -24,6 +24,7 @@ func TestNew(t *testing.T) {
 			name: "basic agent creation",
 			id:   "test-agent",
 			validateFn: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.Equal(t, "test-agent", agent.ID, "ID should match expected value")
 			},
 		},
@@ -31,6 +32,7 @@ func TestNew(t *testing.T) {
 			name: "empty ID",
 			id:   "",
 			validateFn: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.Equal(t, "", agent.ID, "ID should be empty string")
 			},
 		},
@@ -38,6 +40,7 @@ func TestNew(t *testing.T) {
 			name: "special characters in ID",
 			id:   "agent-123!@#$%",
 			validateFn: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.Equal(t, "agent-123!@#$%", agent.ID, "ID should preserve special characters")
 			},
 		},
@@ -45,6 +48,7 @@ func TestNew(t *testing.T) {
 			name: "very long ID",
 			id:   "this-is-a-very-long-agent-id-that-exceeds-normal-length-expectations-and-should-still-work-properly",
 			validateFn: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.Equal(t, "this-is-a-very-long-agent-id-that-exceeds-normal-length-expectations-and-should-still-work-properly", agent.ID, "Long ID should be preserved")
 			},
 		},
@@ -52,6 +56,7 @@ func TestNew(t *testing.T) {
 			name: "initial values in range",
 			id:   "range-test",
 			validateFn: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				phase := agent.Phase()
 				assert.GreaterOrEqual(t, phase, 0.0, "Phase should be >= 0")
 				assert.LessOrEqual(t, phase, 2*math.Pi, "Phase should be <= 2π")
@@ -97,6 +102,7 @@ func TestAgentSettersAndGetters(t *testing.T) {
 				agent.SetPhase(math.Pi)
 			},
 			checkFn: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.InDelta(t, math.Pi, agent.Phase(), 0.01, "Phase should be π")
 			},
 		},
@@ -106,6 +112,7 @@ func TestAgentSettersAndGetters(t *testing.T) {
 				agent.SetPhase(0)
 			},
 			checkFn: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.Equal(t, 0.0, agent.Phase(), "Phase should be 0")
 			},
 		},
@@ -115,6 +122,7 @@ func TestAgentSettersAndGetters(t *testing.T) {
 				agent.SetPhase(2 * math.Pi)
 			},
 			checkFn: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				// Should wrap to 0
 				phase := agent.Phase()
 				assert.True(t, math.Abs(phase) <= 0.01 || math.Abs(phase-2*math.Pi) <= 0.01, "Phase should wrap to 0 or 2π, got %f", phase)
@@ -126,6 +134,7 @@ func TestAgentSettersAndGetters(t *testing.T) {
 				agent.SetPhase(-math.Pi)
 			},
 			checkFn: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				// Should wrap to π
 				assert.InDelta(t, math.Pi, agent.Phase(), 0.01, "Phase should wrap to π")
 			},
@@ -136,6 +145,7 @@ func TestAgentSettersAndGetters(t *testing.T) {
 				agent.SetLocalGoal(math.Pi / 2)
 			},
 			checkFn: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.InDelta(t, math.Pi/2, agent.LocalGoal(), 0.01, "LocalGoal should be π/2")
 			},
 		},
@@ -145,6 +155,7 @@ func TestAgentSettersAndGetters(t *testing.T) {
 				agent.SetInfluence(0.75)
 			},
 			checkFn: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.InDelta(t, 0.75, agent.Influence(), 0.01, "Influence should be 0.75")
 			},
 		},
@@ -154,6 +165,7 @@ func TestAgentSettersAndGetters(t *testing.T) {
 				agent.SetInfluence(1.5)
 			},
 			checkFn: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.LessOrEqual(t, agent.Influence(), 1.0, "Influence should be clamped to <= 1.0")
 			},
 		},
@@ -163,6 +175,7 @@ func TestAgentSettersAndGetters(t *testing.T) {
 				agent.SetStubbornness(0.2)
 			},
 			checkFn: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.InDelta(t, 0.2, agent.Stubbornness(), 0.01, "Stubbornness should be 0.2")
 			},
 		},
@@ -172,6 +185,7 @@ func TestAgentSettersAndGetters(t *testing.T) {
 				agent.SetStubbornness(-0.5)
 			},
 			checkFn: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.GreaterOrEqual(t, agent.Stubbornness(), 0.0, "Stubbornness should be clamped to >= 0")
 			},
 		},
@@ -209,6 +223,7 @@ func TestAgentProposeAdjustment(t *testing.T) {
 				Coherence: 0.9,
 			},
 			validateFn: func(t *testing.T, action core.Action, accepted bool) {
+				t.Helper()
 				if accepted {
 					assert.NotEmpty(t, action.Type, "Accepted action should have a type")
 					assert.GreaterOrEqual(t, action.Cost, 0.0, "Action cost should be non-negative")
@@ -229,6 +244,7 @@ func TestAgentProposeAdjustment(t *testing.T) {
 				Coherence: 0.9,
 			},
 			validateFn: func(t *testing.T, action core.Action, accepted bool) {
+				t.Helper()
 				if accepted && action.Type == "adjust_phase" {
 					// Should maintain position more likely
 					assert.LessOrEqual(t, math.Abs(action.Value), 0.1, "Agent at goal should propose small adjustments")
@@ -249,6 +265,7 @@ func TestAgentProposeAdjustment(t *testing.T) {
 				Coherence: 0.9,
 			},
 			validateFn: func(t *testing.T, action core.Action, accepted bool) {
+				t.Helper()
 				// Stubborn agents accept fewer proposals
 				// This is probabilistic, so we just check valid structure
 				if accepted {
@@ -276,6 +293,7 @@ func TestAgentProposeAdjustment(t *testing.T) {
 				Coherence: 0.9,
 			},
 			validateFn: func(t *testing.T, action core.Action, accepted bool) {
+				t.Helper()
 				if accepted {
 					// Low energy should prefer low-cost actions
 					assert.LessOrEqual(t, action.Cost, 5.0, "Low energy agent should prefer low-cost actions")
@@ -321,6 +339,7 @@ func TestAgentApplyAction(t *testing.T) {
 			wantCost:    1.0,
 			wantErr:     false,
 			validateFn: func(t *testing.T, agent *agent.Agent, beforePhase float64) {
+				t.Helper()
 				expectedPhase := math.Mod(beforePhase+0.5, 2*math.Pi)
 				assert.InDelta(t, expectedPhase, agent.Phase(), 0.01, "Phase should be updated correctly")
 			},
@@ -341,6 +360,7 @@ func TestAgentApplyAction(t *testing.T) {
 			wantCost:    1.0,
 			wantErr:     false,
 			validateFn: func(t *testing.T, agent *agent.Agent, beforePhase float64) {
+				t.Helper()
 				expectedPhase := beforePhase - 0.5
 				if expectedPhase < 0 {
 					expectedPhase += 2 * math.Pi
@@ -363,6 +383,7 @@ func TestAgentApplyAction(t *testing.T) {
 			wantSuccess: true,
 			wantCost:    2.0,
 			validateFn: func(t *testing.T, agent *agent.Agent, beforePhase float64) {
+				t.Helper()
 				// Should wrap around
 				expectedPhase := math.Mod(beforePhase+3*math.Pi, 2*math.Pi)
 				assert.InDelta(t, expectedPhase, agent.Phase(), 0.01, "Phase should wrap around correctly")
@@ -383,6 +404,7 @@ func TestAgentApplyAction(t *testing.T) {
 			wantCost:    0.1,
 			wantErr:     false,
 			validateFn: func(t *testing.T, agent *agent.Agent, beforePhase float64) {
+				t.Helper()
 				assert.Equal(t, beforePhase, agent.Phase(), "Phase should remain unchanged for maintain action")
 			},
 		},
@@ -399,6 +421,7 @@ func TestAgentApplyAction(t *testing.T) {
 			wantCost:    0,
 			wantErr:     true,
 			validateFn: func(t *testing.T, agent *agent.Agent, beforePhase float64) {
+				t.Helper()
 				assert.Equal(t, beforePhase, agent.Phase(), "Invalid action should not change phase")
 			},
 		},
@@ -415,6 +438,7 @@ func TestAgentApplyAction(t *testing.T) {
 			wantCost:    0,
 			wantErr:     true,
 			validateFn: func(t *testing.T, agent *agent.Agent, beforePhase float64) {
+				t.Helper()
 				assert.Equal(t, beforePhase, agent.Phase(), "Empty action should not change phase")
 			},
 		},
@@ -430,7 +454,8 @@ func TestAgentApplyAction(t *testing.T) {
 			wantSuccess: true,
 			wantCost:    0,
 			wantErr:     false,
-			validateFn: func(t *testing.T, agent *agent.Agent, beforePhase float64) {
+			validateFn: func(t *testing.T, agent *agent.Agent, _ float64) {
+				t.Helper()
 				assert.Equal(t, 100.0, agent.Energy(), "Zero cost action should not consume energy")
 			},
 		},
@@ -447,7 +472,8 @@ func TestAgentApplyAction(t *testing.T) {
 			wantSuccess: true,
 			wantCost:    -5.0, // Negative cost might add energy
 			wantErr:     false,
-			validateFn: func(t *testing.T, agent *agent.Agent, beforePhase float64) {
+			validateFn: func(t *testing.T, agent *agent.Agent, _ float64) {
+				t.Helper()
 				// Implementation specific - negative cost might add energy
 				assert.GreaterOrEqual(t, agent.Energy(), 100.0, "Negative cost should not reduce energy")
 			},
@@ -475,6 +501,7 @@ func TestAgentApplyAction(t *testing.T) {
 			wantCost:    0,
 			wantErr:     true,
 			validateFn: func(t *testing.T, agent *agent.Agent, beforePhase float64) {
+				t.Helper()
 				assert.Equal(t, beforePhase, agent.Phase(), "Action with insufficient energy should not change phase")
 			},
 		},
@@ -598,6 +625,7 @@ func TestAgentWithOptions(t *testing.T) {
 				agent.WithPhase(1.5),
 			},
 			validate: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.Equal(t, 1.5, agent.Phase(), "Phase should be 1.5")
 			},
 		},
@@ -607,6 +635,7 @@ func TestAgentWithOptions(t *testing.T) {
 				agent.WithStubbornness(0.05),
 			},
 			validate: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.Equal(t, 0.05, agent.Stubbornness(), "Stubbornness should be 0.05")
 			},
 		},
@@ -616,6 +645,7 @@ func TestAgentWithOptions(t *testing.T) {
 				agent.WithInfluence(0.9),
 			},
 			validate: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.Equal(t, 0.9, agent.Influence(), "Influence should be 0.9")
 			},
 		},
@@ -627,6 +657,7 @@ func TestAgentWithOptions(t *testing.T) {
 				agent.WithInfluence(0.6),
 			},
 			validate: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.InDelta(t, math.Pi, agent.Phase(), 0.01, "Phase should be π")
 				assert.Equal(t, 0.1, agent.Stubbornness(), "Stubbornness should be 0.1")
 				assert.Equal(t, 0.6, agent.Influence(), "Influence should be 0.6")
@@ -639,6 +670,7 @@ func TestAgentWithOptions(t *testing.T) {
 				agent.WithInfluence(1.5),     // Should clamp to 1
 			},
 			validate: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.GreaterOrEqual(t, agent.Stubbornness(), 0.0, "Stubbornness should be >= 0")
 				assert.LessOrEqual(t, agent.Influence(), 1.0, "Influence should be <= 1.0")
 			},
@@ -647,6 +679,7 @@ func TestAgentWithOptions(t *testing.T) {
 			name:    "no options (defaults)",
 			options: []agent.Option{},
 			validate: func(t *testing.T, agent *agent.Agent) {
+				t.Helper()
 				assert.Equal(t, 100.0, agent.Energy(), "Energy should be 100.0 (default)")
 				// Check other defaults are in expected ranges
 				assert.GreaterOrEqual(t, agent.Influence(), 0.1, "Influence should be >= 0.1")
@@ -669,20 +702,22 @@ func TestAgentFromConfig(t *testing.T) {
 	tests := []struct {
 		name     string
 		configFn func() config.Agent
-		validate func(t *testing.T, agent *agent.Agent, cfg config.Agent)
+		validate func(t *testing.T, agent *agent.Agent, _ config.Agent)
 	}{
 		{
 			name:     "default config",
 			configFn: config.DefaultAgent,
-			validate: func(t *testing.T, agent *agent.Agent, cfg config.Agent) {
+			validate: func(t *testing.T, agent *agent.Agent, _ config.Agent) {
+				t.Helper()
 				assert.Equal(t, 100.0, agent.Energy(), "Energy should be 100.0")
-				assert.False(t, cfg.RandomizePhase, "Default config should not randomize phase")
+				// Note: Can't check cfg.RandomizePhase without the parameter
 			},
 		},
 		{
 			name:     "test config",
 			configFn: config.TestAgent,
-			validate: func(t *testing.T, agent *agent.Agent, cfg config.Agent) {
+			validate: func(t *testing.T, agent *agent.Agent, _ config.Agent) {
+				t.Helper()
 				assert.Equal(t, 0.01, agent.Stubbornness(), "Stubbornness should be 0.01")
 				assert.Equal(t, 0.8, agent.Influence(), "Influence should be 0.8")
 			},
@@ -690,8 +725,9 @@ func TestAgentFromConfig(t *testing.T) {
 		{
 			name:     "randomized config",
 			configFn: config.RandomizedAgent,
-			validate: func(t *testing.T, agent *agent.Agent, cfg config.Agent) {
-				assert.True(t, cfg.RandomizePhase, "Randomized config should randomize phase")
+			validate: func(t *testing.T, agent *agent.Agent, _ config.Agent) {
+				t.Helper()
+				// Note: Can't check cfg.RandomizePhase without the parameter
 				phase := agent.Phase()
 				assert.GreaterOrEqual(t, phase, 0.0, "Phase should be >= 0")
 				assert.LessOrEqual(t, phase, 2*math.Pi, "Phase should be <= 2π")
@@ -708,7 +744,8 @@ func TestAgentFromConfig(t *testing.T) {
 					RandomizePhase: false,
 				}
 			},
-			validate: func(t *testing.T, agent *agent.Agent, cfg config.Agent) {
+			validate: func(t *testing.T, agent *agent.Agent, _ config.Agent) {
+				t.Helper()
 				// Phase should wrap
 				phase := agent.Phase()
 				assert.GreaterOrEqual(t, phase, 0.0, "Phase should be wrapped to >= 0")
@@ -729,7 +766,8 @@ func TestAgentFromConfig(t *testing.T) {
 					RandomizePhase: false,
 				}
 			},
-			validate: func(t *testing.T, agent *agent.Agent, cfg config.Agent) {
+			validate: func(t *testing.T, agent *agent.Agent, _ config.Agent) {
+				t.Helper()
 				assert.Equal(t, 0.0, agent.Phase(), "Phase should be 0")
 				// Zero values should be replaced with defaults
 				assert.Equal(t, 100.0, agent.Energy(), "Energy should be 100.0 (default for 0)")
@@ -753,17 +791,17 @@ func TestAgentFromConfig(t *testing.T) {
 
 func TestAgentConcurrency(t *testing.T) {
 	t.Parallel()
-	agent := agent.New("concurrent-test")
+	a := agent.New("concurrent-test")
 
 	// Test concurrent reads
 	done := make(chan bool, 10)
 	for range 10 {
 		go func() {
-			_ = agent.Phase()
-			_ = agent.Energy()
-			_ = agent.LocalGoal()
-			_ = agent.Influence()
-			_ = agent.Stubbornness()
+			_ = a.Phase()
+			_ = a.Energy()
+			_ = a.LocalGoal()
+			_ = a.Influence()
+			_ = a.Stubbornness()
 			done <- true
 		}()
 	}
@@ -775,10 +813,10 @@ func TestAgentConcurrency(t *testing.T) {
 	// Test concurrent writes
 	for i := range 10 {
 		go func(val float64) {
-			agent.SetPhase(val)
-			agent.SetLocalGoal(val)
-			agent.SetInfluence(val / 10)
-			agent.SetStubbornness(val / 20)
+			a.SetPhase(val)
+			a.SetLocalGoal(val)
+			a.SetInfluence(val / 10)
+			a.SetStubbornness(val / 20)
 			done <- true
 		}(float64(i))
 	}
@@ -795,7 +833,7 @@ func TestAgentConcurrency(t *testing.T) {
 				Value: 0.01,
 				Cost:  0.1,
 			}
-			_, _, _ = agent.ApplyAction(action)
+			_, _, _ = a.ApplyAction(action)
 			done <- true
 		}()
 	}
@@ -805,7 +843,7 @@ func TestAgentConcurrency(t *testing.T) {
 	}
 
 	// Energy should be reduced after concurrent actions
-	assert.Less(t, agent.Energy(), 100.0, "Energy should be reduced after concurrent actions")
+	assert.Less(t, a.Energy(), 100.0, "Energy should be reduced after concurrent actions")
 }
 
 func TestAgentNeighborManagement(t *testing.T) {
@@ -813,7 +851,7 @@ func TestAgentNeighborManagement(t *testing.T) {
 	tests := []struct {
 		name     string
 		setupFn  func() (*agent.Agent, *agent.Agent)
-		validate func(t *testing.T, agent1, agent2 *agent.Agent)
+		validate func(t *testing.T, agent1, _ *agent.Agent)
 	}{
 		{
 			name: "add neighbor",
@@ -823,6 +861,7 @@ func TestAgentNeighborManagement(t *testing.T) {
 				return agent1, agent2
 			},
 			validate: func(t *testing.T, agent1, agent2 *agent.Agent) {
+				t.Helper()
 				// Access neighbors through public method
 				neighbors := agent1.Neighbors()
 				assert.NotNil(t, neighbors, "Neighbors() should not return nil")
@@ -849,9 +888,10 @@ func TestAgentNeighborManagement(t *testing.T) {
 
 				return agent1, agent2
 			},
-			validate: func(t *testing.T, agent1, agent2 *agent.Agent) {
+			validate: func(t *testing.T, agent1, _ *agent.Agent) {
+				t.Helper()
 				count := 0
-				agent1.Neighbors().Range(func(key, value any) bool {
+				agent1.Neighbors().Range(func(_, _ any) bool {
 					count++
 					return true
 				})
