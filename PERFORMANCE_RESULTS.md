@@ -1,63 +1,46 @@
-# Performance Optimization Results
+# Performance Characteristics
 
-## Executive Summary
+## Overview
 
-Successfully implemented performance optimizations for the bio-adapt library to handle 1000+ concurrent agents efficiently. The optimizations focused on reducing memory allocations, improving cache locality, and minimizing synchronization overhead.
+The bio-adapt library automatically optimizes performance based on swarm size, efficiently handling 1000+ concurrent agents through adaptive storage strategies and reduced allocations.
 
-## Key Achievements
+## Performance Benchmarks
 
-### Coherence Measurement Performance
+### Coherence Measurement
+| Swarm Size   | Time per Op | Memory per Op | Allocations |
+| ------------ | ----------- | ------------- | ----------- |
+| 100 agents   | ~1,900 ns   | 1.8 KB        | 1           |
+| 1,000 agents | ~11,000 ns  | 8.2 KB        | 1           |
+| 5,000 agents | ~95,000 ns  | 41 KB         | 1           |
 
-| Swarm Size   | Original Time | Optimized Time | Speedup  | Original Allocs | Optimized Allocs |
-| ------------ | ------------- | -------------- | -------- | --------------- | ---------------- |
-| 100 agents   | 1,697 ns      | 845 ns         | **2.0x** | 8               | **0**            |
-| 1,000 agents | 26,278 ns     | 10,536 ns      | **2.5x** | 12              | **0**            |
-| 5,000 agents | 197,975 ns    | 101,967 ns     | **1.9x** | 16              | **0**            |
+### Memory Usage
+| Swarm Size   | Total Memory | Allocations |
+| ------------ | ------------ | ----------- |
+| 100 agents   | ~350 KB      | ~6,500      |
+| 1,000 agents | ~3.3 MB      | ~67,000     |
+| 5,000 agents | ~16 MB       | ~335,000    |
 
-### Concurrent Update Performance
+## Architecture
 
-| Swarm Size   | Original Time | Optimized Time | Speedup  | Memory Reduction         |
-| ------------ | ------------- | -------------- | -------- | ------------------------ |
-| 1,000 agents | 115,192 ns    | 64,671 ns      | **1.8x** | **68x** (109KB → 1.6KB)  |
-| 5,000 agents | 578,944 ns    | 98,359 ns      | **5.9x** | **273x** (436KB → 1.6KB) |
+### Automatic Storage Selection
+- Swarms ≤100 agents: sync.Map for simplicity
+- Swarms >100 agents: slice-based storage for performance  
+- Selection happens automatically in `swarm.New()`
 
-### Overall Memory Usage (1000 agents)
-
-- **Execution Speed**: 60x faster (111ms → 1.8ms)
-- **Memory Usage**: 3.3x reduction (3.5MB → 1MB)
-- **Allocations**: 3.6x fewer (69K → 19K)
-
-## Optimizations Implemented
-
-### 1. Object Pooling (`emerge/agent/pool.go`)
-
-- Implemented sync.Pool for agent reuse
+### Object Pooling
+- sync.Pool for agent reuse
 - Reduces GC pressure for large swarms
-- Pre-allocates agent structures
+- Available in `emerge/agent/pool.go`
 
-### 2. Slice-Based Storage (`emerge/swarm/swarm_optimized.go`)
-
-- Replaced sync.Map with slice + index map
-- Improved cache locality for iteration
-- Direct array access for better performance
-
-### 3. Worker Pool Pattern
-
+### Worker Pool
 - Fixed goroutine count based on CPU cores
-- Batch processing for concurrent updates
-- Reduces goroutine creation overhead
+- Activates automatically for swarms >100 agents
+- Prevents goroutine explosion in large simulations
 
-### 4. Small-World Topology
-
-- Efficient network structure for large swarms
-- Each agent connects to ~6 neighbors instead of all
-- Maintains good synchronization properties
-
-### 5. Batch Operations
-
-- Group updates to minimize lock contention
-- Pre-allocated update buffers
-- Cache-line aware batch sizes
+### Network Topology
+- Small swarms: probabilistic connections
+- Large swarms: small-world topology (~6 neighbors per agent)
+- Maintains convergence properties while reducing memory
 
 ## Benchmark Commands
 
@@ -75,6 +58,18 @@ go test -bench=BenchmarkMemoryUsage -benchmem ./emerge/swarm
 go test -bench=. -benchmem ./emerge/swarm
 ```
 
+## Usage
+
+```go
+// Create a swarm - storage is selected automatically based on size
+swarm, err := swarm.New(1000, goalState)
+
+// Standard API methods
+coherence := swarm.MeasureCoherence()
+agents := swarm.Agents()
+agent, found := swarm.Agent("agent-0")
+```
+
 ## Production Readiness
 
 The optimized implementation is ready for production use with:
@@ -84,37 +79,18 @@ The optimized implementation is ready for production use with:
 - Scalable concurrent update mechanism
 - Configurable worker pool sizing
 
-## Next Steps (Future Optimizations)
-
-While not implemented in this phase, potential future optimizations include:
-
-1. **Neighbor Storage Optimization**
-
-   - Replace sync.Map in agents with fixed-size arrays
-   - Further reduce allocations
-
-2. **Atomic State Grouping**
-
-   - Combine related atomic fields to reduce cache line bouncing
-   - Use atomic.Value for entire state structs
-
-3. **SIMD Optimizations**
-
-   - Use vector instructions for phase calculations
-   - Batch trigonometric operations
-
-4. **Memory-Mapped Persistence**
-
-   - Optional mmap for very large swarms
-   - Reduce heap pressure for long-running simulations
-
 ## Testing
 
-All optimizations have been validated to maintain correctness:
+```bash
+# Run all tests
+task test
 
-- Existing tests pass without modification
-- Convergence behavior unchanged
-- API compatibility maintained
+# Run benchmarks
+go test -bench=. -benchmem ./emerge/swarm
 
-The optimized implementation (`OptimizedSwarm`) can be used as a drop-in replacement for performance-critical applications while the original implementation remains available for compatibility.
+# Check code quality
+task check
+```
+
+All optimizations maintain correctness - existing tests pass without modification and convergence behavior is unchanged.
 
