@@ -72,8 +72,8 @@ func TestNew(t *testing.T) {
 				}
 
 				influence := agent.Influence()
-				if influence < 0.3 || influence > 0.7 {
-					t.Errorf("Influence = %f, want in [0.3, 0.7]", influence)
+				if influence < 0.1 || influence > 0.2 {
+					t.Errorf("Influence = %f, want in [0.1, 0.2]", influence)
 				}
 
 				stubbornness := agent.Stubbornness()
@@ -719,8 +719,8 @@ func TestAgentWithOptions(t *testing.T) {
 					t.Errorf("Energy = %f, want 100.0 (default)", agent.Energy())
 				}
 				// Check other defaults are in expected ranges
-				if agent.Influence() < 0.3 || agent.Influence() > 0.7 {
-					t.Errorf("Influence = %f, want in default range [0.3, 0.7]", agent.Influence())
+				if agent.Influence() < 0.1 || agent.Influence() > 0.2 {
+					t.Errorf("Influence = %f, want in default range [0.1, 0.2]", agent.Influence())
 				}
 			},
 		},

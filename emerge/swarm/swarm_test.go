@@ -115,7 +115,8 @@ func TestSwarmScalability(t *testing.T) {
 			cancel()
 			select {
 			case err := <-done:
-				if err != nil {
+				// Context cancellation is expected and not an error
+				if err != nil && err != context.Canceled && err != context.DeadlineExceeded {
 					t.Errorf("Swarm run failed: %v", err)
 				}
 			case <-time.After(5 * time.Second):
