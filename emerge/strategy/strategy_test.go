@@ -11,6 +11,7 @@ import (
 )
 
 func TestPhaseNudge(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		rate        float64
@@ -212,6 +213,7 @@ func TestPhaseNudge(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			strategy := NewPhaseNudge(tt.rate)
 			action, confidence := strategy.Propose(tt.current, tt.target, tt.context)
 			tt.validateFn(t, strategy, action, confidence)
@@ -220,6 +222,7 @@ func TestPhaseNudge(t *testing.T) {
 }
 
 func TestPhaseNudgeRateClamping(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		rate        float64
@@ -240,6 +243,7 @@ func TestPhaseNudgeRateClamping(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			strategy := NewPhaseNudge(tt.rate)
 
 			// Special handling for NaN
@@ -255,6 +259,7 @@ func TestPhaseNudgeRateClamping(t *testing.T) {
 }
 
 func TestFrequencyLockStrategy(t *testing.T) {
+	t.Parallel()
 	strategy := NewFrequencyLock(0.8)
 
 	assert.Equal(t, 0.8, strategy.SyncRate, "Expected strength 0.8")
@@ -292,6 +297,7 @@ func TestFrequencyLockStrategy(t *testing.T) {
 }
 
 func TestEnergyAwareStrategy(t *testing.T) {
+	t.Parallel()
 	strategy := NewEnergyAware(20.0)
 
 	assert.Equal(t, 20.0, strategy.Threshold, "Expected threshold 20.0")
@@ -340,6 +346,7 @@ func TestEnergyAwareStrategy(t *testing.T) {
 }
 
 func TestAdaptiveStrategy(t *testing.T) {
+	t.Parallel()
 	nudge := NewPhaseNudge(0.3)
 	frequency := NewFrequencyLock(0.7)
 	energy := NewEnergyAware(25.0)
@@ -375,6 +382,7 @@ func TestAdaptiveStrategy(t *testing.T) {
 }
 
 func TestPulseStrategy(t *testing.T) {
+	t.Parallel()
 	strategy := NewPulse(100*time.Millisecond, 0.5)
 
 	assert.Equal(t, "pulse", strategy.Name(), "Expected name 'pulse'")
@@ -407,6 +415,7 @@ func TestPulseStrategy(t *testing.T) {
 }
 
 func TestStrategyIntegration(t *testing.T) {
+	t.Parallel()
 	// Test that all strategies work together
 	strategies := []core.SyncStrategy{
 		NewPhaseNudge(0.5),
@@ -445,6 +454,7 @@ func TestStrategyIntegration(t *testing.T) {
 }
 
 func TestStrategySelection(t *testing.T) {
+	t.Parallel()
 	// Test adaptive strategy selection
 	strategy1 := NewPhaseNudge(0.5)
 	strategy2 := NewFrequencyLock(0.8)

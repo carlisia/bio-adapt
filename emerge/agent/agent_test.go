@@ -14,6 +14,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		id         string
@@ -75,6 +76,7 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			agent := agent.New(tt.id)
 			require.NotNil(t, agent, "New should not return nil")
 			tt.validateFn(t, agent)
@@ -83,6 +85,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestAgentSettersAndGetters(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		setupFn func(agent *agent.Agent)
@@ -176,6 +179,7 @@ func TestAgentSettersAndGetters(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			agent := agent.New("test")
 			tt.setupFn(agent)
 			tt.checkFn(t, agent)
@@ -184,6 +188,7 @@ func TestAgentSettersAndGetters(t *testing.T) {
 }
 
 func TestAgentProposeAdjustment(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		setupFn    func() *agent.Agent
@@ -281,6 +286,7 @@ func TestAgentProposeAdjustment(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			agent := tt.setupFn()
 			action, accepted := agent.ProposeAdjustment(tt.globalGoal)
 			tt.validateFn(t, action, accepted)
@@ -289,6 +295,7 @@ func TestAgentProposeAdjustment(t *testing.T) {
 }
 
 func TestAgentApplyAction(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		setupFn     func() *agent.Agent
@@ -475,6 +482,7 @@ func TestAgentApplyAction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			agent := tt.setupFn()
 			beforePhase := agent.Phase()
 
@@ -494,6 +502,7 @@ func TestAgentApplyAction(t *testing.T) {
 }
 
 func TestAgentEnergyManagement(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		actions     []core.Action
@@ -563,6 +572,7 @@ func TestAgentEnergyManagement(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			agent := agent.New("test")
 
 			for _, action := range tt.actions {
@@ -576,6 +586,7 @@ func TestAgentEnergyManagement(t *testing.T) {
 }
 
 func TestAgentWithOptions(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		options  []agent.Option
@@ -646,6 +657,7 @@ func TestAgentWithOptions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			agent := agent.New("test", tt.options...)
 			tt.validate(t, agent)
 		})
@@ -653,6 +665,7 @@ func TestAgentWithOptions(t *testing.T) {
 }
 
 func TestAgentFromConfig(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		configFn func() config.Agent
@@ -728,6 +741,7 @@ func TestAgentFromConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			config := tt.configFn()
 			agent, err := agent.NewFromConfig("test", config)
 			require.NoError(t, err, "NewFromConfig should not fail")
@@ -738,6 +752,7 @@ func TestAgentFromConfig(t *testing.T) {
 }
 
 func TestAgentConcurrency(t *testing.T) {
+	t.Parallel()
 	agent := agent.New("concurrent-test")
 
 	// Test concurrent reads
@@ -794,6 +809,7 @@ func TestAgentConcurrency(t *testing.T) {
 }
 
 func TestAgentNeighborManagement(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		setupFn  func() (*agent.Agent, *agent.Agent)
@@ -847,6 +863,7 @@ func TestAgentNeighborManagement(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			agent1, agent2 := tt.setupFn()
 			tt.validate(t, agent1, agent2)
 		})

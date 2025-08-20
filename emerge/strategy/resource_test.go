@@ -11,6 +11,7 @@ import (
 )
 
 func TestTokenResourceManager(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		maxTokens  float64
@@ -293,6 +294,7 @@ func TestTokenResourceManager(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			rm := NewTokenResourceManager(tt.maxTokens)
 
 			// Check initial state
@@ -334,6 +336,7 @@ func TestTokenResourceManager(t *testing.T) {
 }
 
 func TestTokenResourceManagerConcurrency(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name                 string
 		maxTokens            float64
@@ -378,6 +381,7 @@ func TestTokenResourceManagerConcurrency(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			rm := NewTokenResourceManager(tt.maxTokens)
 
 			var wg sync.WaitGroup
@@ -427,6 +431,7 @@ func TestTokenResourceManagerConcurrency(t *testing.T) {
 }
 
 func TestTokenResourceManagerStressPatterns(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		pattern     func(rm core.ResourceManager)
@@ -518,6 +523,7 @@ func TestTokenResourceManagerStressPatterns(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			rm := NewTokenResourceManager(tt.maxTokens)
 			tt.pattern(rm)
 			tt.validateFn(t, rm)
@@ -526,6 +532,7 @@ func TestTokenResourceManagerStressPatterns(t *testing.T) {
 }
 
 func TestTokenResourceManagerBoundaryConditions(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		maxTokens   float64
@@ -581,6 +588,7 @@ func TestTokenResourceManagerBoundaryConditions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			rm := NewTokenResourceManager(tt.maxTokens)
 			tt.validateFn(t, rm)
 		})

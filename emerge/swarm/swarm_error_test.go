@@ -12,6 +12,7 @@ import (
 )
 
 func TestNewSwarmErrors(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		size        int
@@ -323,6 +324,7 @@ func TestNewSwarmErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			swarm, err := New(tt.size, tt.goal)
 
 			if tt.wantError {
@@ -344,6 +346,7 @@ func TestNewSwarmErrors(t *testing.T) {
 }
 
 func TestSwarmErrorRecovery(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		setupFn     func() (*Swarm, error)
@@ -405,6 +408,7 @@ func TestSwarmErrorRecovery(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			defer func() {
 				r := recover()
 				if tt.expectPanic {
@@ -427,6 +431,7 @@ func TestSwarmErrorRecovery(t *testing.T) {
 }
 
 func TestSwarmBoundaryConditions(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		size        int
@@ -550,6 +555,7 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			swarm, err := New(tt.size, tt.goal)
 			tt.validateFn(t, swarm, err)
 		})
@@ -557,6 +563,7 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 }
 
 func TestSwarmValidationConsistency(t *testing.T) {
+	t.Parallel()
 	// Test that validation is consistent across multiple calls
 	invalidConfigs := []struct {
 		size int
@@ -590,6 +597,7 @@ func TestSwarmValidationConsistency(t *testing.T) {
 
 	for i, config := range invalidConfigs {
 		t.Run(string(rune(i)), func(t *testing.T) {
+			t.Parallel()
 			// Try creating the same invalid swarm multiple times
 			var errors []error
 			for range 10 {

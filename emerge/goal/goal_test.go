@@ -13,6 +13,7 @@ import (
 )
 
 func TestWeightedGoalManagerBlend(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name              string
 		local             core.State
@@ -258,6 +259,7 @@ func TestWeightedGoalManagerBlend(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			gm := &goal.WeightedManager{}
 			blended := gm.Blend(tt.local, tt.global, tt.weight)
 
@@ -279,6 +281,7 @@ func TestWeightedGoalManagerBlend(t *testing.T) {
 }
 
 func TestWeightedGoalManagerPhaseWrapping(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		local      core.State
@@ -382,6 +385,7 @@ func TestWeightedGoalManagerPhaseWrapping(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			gm := &goal.WeightedManager{}
 			blended := gm.Blend(tt.local, tt.global, tt.weight)
 			tt.validateFn(t, blended)
@@ -390,6 +394,7 @@ func TestWeightedGoalManagerPhaseWrapping(t *testing.T) {
 }
 
 func TestWeightedGoalManagerWeightClamping(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name              string
 		local             core.State
@@ -522,6 +527,7 @@ func TestWeightedGoalManagerWeightClamping(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			gm := &goal.WeightedManager{}
 			blended := gm.Blend(tt.local, tt.global, tt.weight)
 
@@ -537,6 +543,7 @@ func TestWeightedGoalManagerWeightClamping(t *testing.T) {
 }
 
 func TestWeightedGoalManagerSymmetry(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		state1 core.State
@@ -617,6 +624,7 @@ func TestWeightedGoalManagerSymmetry(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			gm := &goal.WeightedManager{}
 
 			// Blend 1->2 with weight w
@@ -641,6 +649,7 @@ func TestWeightedGoalManagerSymmetry(t *testing.T) {
 }
 
 func TestWeightedGoalManagerEdgeCases(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		local      core.State
@@ -742,6 +751,7 @@ func TestWeightedGoalManagerEdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			gm := &goal.WeightedManager{}
 			blended := gm.Blend(tt.local, tt.global, tt.weight)
 			tt.validateFn(t, blended)
@@ -750,6 +760,7 @@ func TestWeightedGoalManagerEdgeCases(t *testing.T) {
 }
 
 func TestWeightedGoalManagerConcurrency(t *testing.T) {
+	t.Parallel()
 	gm := &goal.WeightedManager{}
 
 	local := core.State{

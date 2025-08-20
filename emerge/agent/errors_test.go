@@ -11,7 +11,9 @@ import (
 )
 
 func TestErrorSentinelValues(t *testing.T) {
+	t.Parallel()
 	t.Run("insufficient energy error", func(t *testing.T) {
+		t.Parallel()
 		a := agent.New("test")
 		a.SetEnergy(1.0)
 		_, _, err := a.ApplyAction(core.Action{
@@ -25,6 +27,7 @@ func TestErrorSentinelValues(t *testing.T) {
 	})
 
 	t.Run("unknown action type error", func(t *testing.T) {
+		t.Parallel()
 		a := agent.New("test")
 		_, _, err := a.ApplyAction(core.Action{
 			Type: "unknown_action",
@@ -38,6 +41,7 @@ func TestErrorSentinelValues(t *testing.T) {
 }
 
 func TestErrorSentinelValuesUnwrapping(t *testing.T) {
+	t.Parallel()
 	// Test that wrapped errors can be checked with errors.Is()
 	a := agent.New("test")
 	a.SetEnergy(1.0)

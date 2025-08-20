@@ -9,6 +9,7 @@ import (
 )
 
 func TestNewRhythmicPattern(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		phases      []float64
@@ -133,6 +134,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			pattern := NewRhythmicPattern(tt.phases, tt.frequencies)
 			tt.validateFn(t, pattern)
 		})
@@ -140,6 +142,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 }
 
 func TestPatternDetectGaps(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		phases      []float64
@@ -232,6 +235,7 @@ func TestPatternDetectGaps(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			pattern := NewRhythmicPattern(tt.phases, tt.frequencies)
 			gaps := pattern.Detect()
 			tt.validateFn(t, gaps)
@@ -240,6 +244,7 @@ func TestPatternDetectGaps(t *testing.T) {
 }
 
 func TestPatternComplete(t *testing.T) {
+	t.Parallel()
 	basePhases := []float64{0, math.Pi / 4, math.Pi / 2, 3 * math.Pi / 4, math.Pi}
 	baseFrequencies := []time.Duration{
 		100 * time.Millisecond,
@@ -378,6 +383,7 @@ func TestPatternComplete(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			completed := pattern.Complete(tt.gap)
 			tt.validateFn(t, completed)
 		})
@@ -385,6 +391,7 @@ func TestPatternComplete(t *testing.T) {
 }
 
 func TestPatternSimilarity(t *testing.T) {
+	t.Parallel()
 	phases1 := []float64{0, math.Pi / 4, math.Pi / 2, 3 * math.Pi / 4}
 	frequencies1 := []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond}
 	pattern1 := NewRhythmicPattern(phases1, frequencies1)
@@ -523,6 +530,7 @@ func TestPatternSimilarity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			similarity := pattern1.Similarity(tt.other)
 			// Handle NaN and infinity cases specially
 			if math.IsNaN(similarity) || math.IsInf(similarity, 0) {
@@ -537,6 +545,7 @@ func TestPatternSimilarity(t *testing.T) {
 }
 
 func TestPatternTemplate(t *testing.T) {
+	t.Parallel()
 	basePattern := RhythmicPattern{
 		Phases:      []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 		Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
@@ -697,6 +706,7 @@ func TestPatternTemplate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			matches := tt.template.Matches(tt.pattern)
 			assert.Equal(t, tt.expected, matches, "%s: Matches() should return expected result", tt.description)
 		})
@@ -704,6 +714,7 @@ func TestPatternTemplate(t *testing.T) {
 }
 
 func TestPatternLibrary(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		setupFn     func() *PatternLibrary
@@ -830,6 +841,7 @@ func TestPatternLibrary(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			library := tt.setupFn()
 			name, similarity := library.Identify(tt.testPattern)
 
@@ -840,6 +852,7 @@ func TestPatternLibrary(t *testing.T) {
 }
 
 func TestHelperFunctions(t *testing.T) {
+	t.Parallel()
 	t.Run("calculateAmplitude", func(t *testing.T) {
 		tests := []struct {
 			name        string
@@ -908,6 +921,7 @@ func TestHelperFunctions(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
 				amp := calculateAmplitude(tt.phases)
 				if math.IsNaN(amp) || math.IsInf(amp, 0) {
 					// For NaN/infinity cases, just check that we get a reasonable result
@@ -978,6 +992,7 @@ func TestHelperFunctions(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
 				period := calculatePeriod(tt.frequencies)
 				assert.Equal(t, tt.expected, period, "%s: Period should match expected", tt.description)
 			})
@@ -1061,6 +1076,7 @@ func TestHelperFunctions(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
 				corr := phaseCorrelation(tt.phases1, tt.phases2)
 				if math.IsNaN(corr) || math.IsInf(corr, 0) {
 					// For NaN/infinity cases, just check that we get a reasonable result
@@ -1075,6 +1091,7 @@ func TestHelperFunctions(t *testing.T) {
 }
 
 func TestPatternConcurrency(t *testing.T) {
+	t.Parallel()
 	pattern := NewRhythmicPattern(
 		[]float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 		[]time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},

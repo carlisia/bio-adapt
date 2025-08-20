@@ -16,6 +16,7 @@ import (
 )
 
 func TestSwarmScalability(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("Skipping scalability test in short mode")
 	}
@@ -59,6 +60,7 @@ func TestSwarmScalability(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// Measure memory before
 			var memBefore runtime.MemStats
 			runtime.GC()
@@ -143,6 +145,7 @@ func TestSwarmScalability(t *testing.T) {
 }
 
 func TestConfigurableLimits(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name          string
 		config        config.Swarm
@@ -232,6 +235,7 @@ func TestConfigurableLimits(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			swarm, err := New(tt.size, core.State{
 				Phase:     0,
 				Frequency: 200 * time.Millisecond,

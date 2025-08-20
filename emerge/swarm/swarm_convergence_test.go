@@ -15,6 +15,7 @@ import (
 
 // TestSwarmConvergence tests that swarms actually achieve synchronization.
 func TestSwarmConvergence(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name            string
 		size            int
@@ -47,6 +48,7 @@ func TestSwarmConvergence(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// Create swarm with target coherence
 			swarm, err := New(tt.size, core.State{
 				Phase:     0,
@@ -99,6 +101,7 @@ func TestSwarmConvergence(t *testing.T) {
 
 // TestSwarmConvergenceConsistency tests that convergence is consistent across runs.
 func TestSwarmConvergenceConsistency(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("Skipping consistency test in short mode")
 	}
@@ -177,6 +180,7 @@ func TestSwarmConvergenceConsistency(t *testing.T) {
 
 // TestSwarmNonRegression tests that we don't regress to the old broken behavior.
 func TestSwarmNonRegression(t *testing.T) {
+	t.Parallel()
 	// This test ensures we never go back to the old broken synchronization
 	// where swarms would get stuck at very low coherence (~7%)
 
@@ -223,10 +227,12 @@ func TestSwarmNonRegression(t *testing.T) {
 
 // TestSwarmTargetAchievement tests that swarms can achieve their specific target.
 func TestSwarmTargetAchievement(t *testing.T) {
+	t.Parallel()
 	targets := []float64{0.5, 0.6, 0.7, 0.8}
 
 	for _, target := range targets {
 		t.Run(fmt.Sprintf("target_%.1f", target), func(t *testing.T) {
+			t.Parallel()
 			swarm, err := New(25, core.State{
 				Phase:     0,
 				Frequency: 200 * time.Millisecond,
