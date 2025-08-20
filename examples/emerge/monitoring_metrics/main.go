@@ -351,11 +351,12 @@ func sampleDecisions(swarm *swarm.Swarm, metrics *MetricsCollector) {
 		}
 
 		// Simulate decision tracking
-		if agent.Energy() < 20 {
+		switch {
+		case agent.Energy() < 20:
 			metrics.IncrementDecision("energy_conserve")
-		} else if agent.Influence() > 0.7 {
+		case agent.Influence() > 0.7:
 			metrics.IncrementDecision("high_influence")
-		} else {
+		default:
 			metrics.IncrementDecision("normal")
 		}
 

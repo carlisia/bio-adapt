@@ -135,11 +135,12 @@ func main() {
 			fmt.Printf(" %5.1f%%", coherence*100)
 
 			// Trend indicator
-			if coherence > lastCoherence+0.01 {
+			switch {
+			case coherence > lastCoherence+0.01:
 				fmt.Print(" [rising]")
-			} else if coherence < lastCoherence-0.01 {
+			case coherence < lastCoherence-0.01:
 				fmt.Print(" [falling]")
-			} else {
+			default:
 				fmt.Print(" [stable]")
 				stuckCount++
 			}

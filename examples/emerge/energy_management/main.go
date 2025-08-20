@@ -38,7 +38,8 @@ func main() {
 	// Configure agents with different energy characteristics
 	agentCount := 0
 	for _, agent := range swarm.Agents() {
-		if agentCount < 10 {
+		switch {
+		case agentCount < 10:
 			// High energy agents - can afford more adjustments
 			agent.SetEnergy(100)
 			agent.SetInfluence(0.8)
@@ -47,7 +48,7 @@ func main() {
 				idDisplay = idDisplay[:8]
 			}
 			fmt.Printf("  Agent %s: High energy (100), high influence\n", idDisplay)
-		} else if agentCount < 20 {
+		case agentCount < 20:
 			// Medium energy agents
 			agent.SetEnergy(50)
 			agent.SetInfluence(0.5)
@@ -56,7 +57,7 @@ func main() {
 				idDisplay = idDisplay[:8]
 			}
 			fmt.Printf("  Agent %s: Medium energy (50), medium influence\n", idDisplay)
-		} else {
+		default:
 			// Low energy agents - must be conservative
 			agent.SetEnergy(20)
 			agent.SetInfluence(0.3)
@@ -229,14 +230,15 @@ func demonstrateEnergyDecisions() {
 	if accepted1 {
 		fmt.Printf("Accepts adjustment (cost: %.1f)\n", action1.Cost)
 		success, energyCost, err := richAgent.ApplyAction(action1)
-		if err != nil {
+		switch {
+		case err != nil:
 			// Action failed - could be insufficient energy or invalid action
 			// This demonstrates the energy constraints in action - continue with demo
 			fmt.Printf("  Action failed: %v\n", err)
-		} else if !success {
+		case !success:
 			// Action was valid but unsuccessful - continue with demo
 			fmt.Printf("  Action unsuccessful (cost: %.1f)\n", energyCost)
-		} else {
+		default:
 			fmt.Printf("  Action successful (cost: %.1f)\n", energyCost)
 		}
 	} else {
@@ -250,14 +252,15 @@ func demonstrateEnergyDecisions() {
 	if accepted2 {
 		fmt.Printf("Accepts adjustment (cost: %.1f)\n", action2.Cost)
 		success, energyCost, err := poorAgent.ApplyAction(action2)
-		if err != nil {
+		switch {
+		case err != nil:
 			// Action failed - this is exactly what we want to demonstrate!
 			// Poor agents failing due to energy constraints is the point of this example
 			fmt.Printf("  Action failed: %v\n", err)
-		} else if !success {
+		case !success:
 			// Action was valid but unsuccessful - part of the demonstration
 			fmt.Printf("  Action unsuccessful (cost: %.1f)\n", energyCost)
-		} else {
+		default:
 			fmt.Printf("  Action successful (cost: %.1f)\n", energyCost)
 		}
 	} else {

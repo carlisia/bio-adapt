@@ -49,27 +49,28 @@ func describeSyncMode(coherence float64, useEmoji bool) string {
 }
 
 func describeBatchMode(coherence float64, useEmoji bool) string {
-	if coherence < 0.2 {
+	switch {
+	case coherence < 0.2:
 		if useEmoji {
 			return "(🌪️  Chaos - no batching)"
 		}
 		return "(Chaos - no batching)"
-	} else if coherence < 0.4 {
+	case coherence < 0.4:
 		if useEmoji {
 			return "(🌊 Weak batching emerging)"
 		}
 		return "(Weak batching emerging)"
-	} else if coherence < 0.6 {
+	case coherence < 0.6:
 		if useEmoji {
 			return "(⚡ Moderate batching)"
 		}
 		return "(Moderate batching)"
-	} else if coherence < 0.8 {
+	case coherence < 0.8:
 		if useEmoji {
 			return "(📦 Good batching)"
 		}
 		return "(Good batching)"
-	} else {
+	default:
 		if useEmoji {
 			return "(🚀 Excellent batching!)"
 		}
@@ -79,15 +80,16 @@ func describeBatchMode(coherence float64, useEmoji bool) string {
 
 // InterpretCoherenceLevel provides a simple coherence level description.
 func InterpretCoherenceLevel(coherence float64) string {
-	if coherence < 0.2 {
+	switch {
+	case coherence < 0.2:
 		return "Very Low"
-	} else if coherence < 0.4 {
+	case coherence < 0.4:
 		return "Low"
-	} else if coherence < 0.6 {
+	case coherence < 0.6:
 		return "Moderate"
-	} else if coherence < 0.8 {
+	case coherence < 0.8:
 		return "Good"
-	} else {
+	default:
 		return "Excellent"
 	}
 }

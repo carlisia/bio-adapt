@@ -139,11 +139,12 @@ func main() {
 			fmt.Printf(" (%d batches)", batches)
 
 			// Trend
-			if coherence > lastCoherence+0.01 {
+			switch {
+			case coherence > lastCoherence+0.01:
 				fmt.Print(" [improving]")
-			} else if coherence < lastCoherence-0.01 {
+			case coherence < lastCoherence-0.01:
 				fmt.Print(" [degrading]")
-			} else {
+			default:
 				fmt.Print(" [stable]")
 				stuckCount++
 			}

@@ -800,10 +800,8 @@ func TestPatternLibrary(t *testing.T) {
 			description: "Should return empty for no match",
 		},
 		{
-			name: "empty library",
-			setupFn: func() *PatternLibrary {
-				return NewPatternLibrary()
-			},
+			name:    "empty library",
+			setupFn: NewPatternLibrary,
 			testPattern: &RhythmicPattern{
 				Phases:      []float64{0, math.Pi},
 				Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond},

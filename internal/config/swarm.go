@@ -134,7 +134,8 @@ func AutoScaleConfig(swarmSize int) Swarm {
 	}
 
 	// Scale parameters based on swarm size
-	if swarmSize < 10 {
+	switch {
+	case swarmSize < 10:
 		// Very small swarm - need strong connectivity and coupling
 		config.ConnectionProbability = 1.0 // Fully connected
 		config.MaxNeighbors = swarmSize - 1
@@ -153,17 +154,17 @@ func AutoScaleConfig(swarmSize int) Swarm {
 		config.MonitoringInterval = 25 * time.Millisecond
 		config.ConnectionOptimThreshold = 1000
 		config.EnableConnectionOptim = false
-	} else if swarmSize < 20 {
+	case swarmSize < 20:
 		// Small swarm
 		config = SmallSwarmConfig()
 		config.MaxNeighbors = minInt(10, swarmSize-1)
 		config.AutoScale = true
-	} else if swarmSize < 100 {
+	case swarmSize < 100:
 		// Medium swarm
 		config = MediumSwarmConfig()
 		config.MaxNeighbors = minInt(15, swarmSize/5)
 		config.AutoScale = true
-	} else if swarmSize < 1000 {
+	case swarmSize < 1000:
 		// Large swarm
 		config = DefaultConfig()
 		config.MaxNeighbors = minInt(20, swarmSize/10)
@@ -177,7 +178,7 @@ func AutoScaleConfig(swarmSize int) Swarm {
 		config.UseBatchProcessing = swarmSize > 200
 		config.BatchSize = maxInt(10, swarmSize/50)
 		config.WorkerPoolSize = minInt(50, swarmSize/20)
-	} else {
+	default:
 		// Very large swarm (1000+)
 		config = DefaultConfig()
 		config.MaxNeighbors = minInt(10, swarmSize/100) // Fewer neighbors for very large swarms
@@ -230,7 +231,7 @@ func ConfigForBatching(workloadCount int, batchWindow time.Duration) Swarm {
 		config = AutoScaleConfig(workloadCount)
 		config.ConnectionProbability = minFloat(0.75, config.ConnectionProbability*1.5)
 		config.CouplingStrength = minFloat(0.8, config.CouplingStrength*1.3)
-		config.Stubbornness = config.Stubbornness * 0.2
+		config.Stubbornness *= 0.2
 		config.BaseConfidence = 0.85
 		config.InfluenceDefault = 0.8
 		config.BasinStrength = 0.9
@@ -241,10 +242,10 @@ func ConfigForBatching(workloadCount int, batchWindow time.Duration) Swarm {
 	if batchWindow < 100*time.Millisecond {
 		// Fast batching - need very quick convergence
 		config.CouplingStrength = minFloat(0.95, config.CouplingStrength*1.2)
-		config.Stubbornness = config.Stubbornness * 0.5
+		config.Stubbornness *= 0.5
 	} else if batchWindow > 500*time.Millisecond {
 		// Slower batching - can be slightly more gradual
-		config.CouplingStrength = config.CouplingStrength * 0.95
+		config.CouplingStrength *= 0.95
 	}
 
 	return config
@@ -445,11 +446,9 @@ func (c *Swarm) normalize(swarmSize int) {
 				c.MaxNeighbors = 1
 			}
 		}
-	} else {
+	} else if c.MaxNeighbors < 1 {
 		// If swarmSize is invalid, set minimal neighbors
-		if c.MaxNeighbors < 1 {
-			c.MaxNeighbors = 1
-		}
+		c.MaxNeighbors = 1
 	}
 	if c.MinNeighbors > c.MaxNeighbors {
 		c.MinNeighbors = c.MaxNeighbors
