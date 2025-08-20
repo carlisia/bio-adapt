@@ -244,7 +244,7 @@ func phaseCorrelation(phases1, phases2 []float64) float64 {
 
 	// Calculate correlation coefficient
 	var sum float64
-	for i := range len(phases1) {
+	for i := range phases1 {
 		diff := math.Abs(core.PhaseDifference(phases1[i], phases2[i]))
 		sum += 1.0 - (diff / math.Pi) // Normalize to [0, 1]
 	}

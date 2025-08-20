@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/carlisia/bio-adapt/emerge/core"
 )
 
@@ -385,25 +387,15 @@ func TestSimpleDecisionMaker(t *testing.T) {
 			dm := &SimpleDecisionMaker{}
 			action, confidence := dm.Decide(tt.state, tt.options)
 
-			if action.Type != tt.expectedType {
-				t.Errorf("%s: Type = %s, expected %s",
-					tt.description, action.Type, tt.expectedType)
-			}
-
-			if math.Abs(action.Value-tt.expectedValue) > 0.001 {
-				t.Errorf("%s: Value = %f, expected %f",
-					tt.description, action.Value, tt.expectedValue)
-			}
+			assert.Equal(t, tt.expectedType, action.Type, tt.description)
+			assert.InDelta(t, tt.expectedValue, action.Value, 0.001, tt.description)
 
 			// Skip confidence check for NaN cases
 			if math.IsNaN(tt.expectedConfidence) && math.IsNaN(confidence) {
 				return
 			}
 
-			if math.Abs(confidence-tt.expectedConfidence) > tt.confTolerance {
-				t.Errorf("%s: Confidence = %f, expected %f±%f",
-					tt.description, confidence, tt.expectedConfidence, tt.confTolerance)
-			}
+			assert.InDelta(t, tt.expectedConfidence, confidence, tt.confTolerance, tt.description)
 		})
 	}
 }
@@ -491,18 +483,9 @@ func TestSimpleDecisionMakerConsistency(t *testing.T) {
 					firstAction = action
 					firstConfidence = confidence
 				} else {
-					if action.Type != firstAction.Type {
-						t.Errorf("%s: Iteration %d returned different type: %s vs %s",
-							tt.description, i, action.Type, firstAction.Type)
-					}
-					if math.Abs(action.Value-firstAction.Value) > 0.001 {
-						t.Errorf("%s: Iteration %d returned different value: %f vs %f",
-							tt.description, i, action.Value, firstAction.Value)
-					}
-					if math.Abs(confidence-firstConfidence) > 0.001 {
-						t.Errorf("%s: Iteration %d returned different confidence: %f vs %f",
-							tt.description, i, confidence, firstConfidence)
-					}
+					assert.Equal(t, firstAction.Type, action.Type, "%s: Iteration %d should return consistent type", tt.description, i)
+					assert.InDelta(t, firstAction.Value, action.Value, 0.001, "%s: Iteration %d should return consistent value", tt.description, i)
+					assert.InDelta(t, firstConfidence, confidence, 0.001, "%s: Iteration %d should return consistent confidence", tt.description, i)
 				}
 			}
 		})
@@ -544,9 +527,7 @@ func TestSimpleDecisionMakerBoundaryConditions(t *testing.T) {
 				return opts
 			}(),
 			validateFn: func(t *testing.T, action core.Action, confidence float64) {
-				if action.Type != "best" {
-					t.Errorf("Should select best option even among many")
-				}
+				assert.Equal(t, "best", action.Type, "Should select best option even among many")
 			},
 			description: "Should handle many options efficiently",
 		},
@@ -563,12 +544,8 @@ func TestSimpleDecisionMakerBoundaryConditions(t *testing.T) {
 				{Type: "same3", Value: 1.0, Cost: 1.0, Benefit: 1.0},
 			},
 			validateFn: func(t *testing.T, action core.Action, confidence float64) {
-				if action.Type != "same1" {
-					t.Errorf("Should select first of identical options")
-				}
-				if math.Abs(confidence-0.5) > 0.01 {
-					t.Errorf("Confidence should be 0.5 for ratio 1.0")
-				}
+				assert.Equal(t, "same1", action.Type, "Should select first of identical options")
+				assert.InDelta(t, 0.5, confidence, 0.01, "Confidence should be 0.5 for ratio 1.0")
 			},
 			description: "Should handle identical options",
 		},
@@ -583,9 +560,7 @@ func TestSimpleDecisionMakerBoundaryConditions(t *testing.T) {
 				{Type: "action", Value: 1.0, Cost: 1.0, Benefit: 1.0},
 			},
 			validateFn: func(t *testing.T, action core.Action, confidence float64) {
-				if action.Type != "action" {
-					t.Errorf("Should work with zero state values")
-				}
+				assert.Equal(t, "action", action.Type, "Should work with zero state values")
 			},
 			description: "Should work with zero state values",
 		},
@@ -600,9 +575,7 @@ func TestSimpleDecisionMakerBoundaryConditions(t *testing.T) {
 				{Type: "action", Value: 1.0, Cost: 1.0, Benefit: 1.0},
 			},
 			validateFn: func(t *testing.T, action core.Action, confidence float64) {
-				if action.Type != "action" {
-					t.Errorf("Should work with negative phase")
-				}
+				assert.Equal(t, "action", action.Type, "Should work with negative phase")
 			},
 			description: "Should work with negative phase",
 		},
@@ -617,9 +590,7 @@ func TestSimpleDecisionMakerBoundaryConditions(t *testing.T) {
 				{Type: "action", Value: 1.0, Cost: 1.0, Benefit: 1.0},
 			},
 			validateFn: func(t *testing.T, action core.Action, confidence float64) {
-				if action.Type != "action" {
-					t.Errorf("Should work with negative frequency")
-				}
+				assert.Equal(t, "action", action.Type, "Should work with negative frequency")
 			},
 			description: "Should work with negative frequency",
 		},

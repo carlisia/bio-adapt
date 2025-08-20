@@ -2,9 +2,11 @@ package swarm
 
 import (
 	"math"
-	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/carlisia/bio-adapt/emerge/core"
 )
@@ -324,31 +326,18 @@ func TestNewSwarmErrors(t *testing.T) {
 			swarm, err := New(tt.size, tt.goal)
 
 			if tt.wantError {
-				if err == nil {
-					t.Errorf("%s: Expected error but got nil", tt.description)
-				} else if tt.errorMsg != "" && !strings.Contains(err.Error(), tt.errorMsg) {
-					t.Errorf("%s: Expected error containing '%s', got '%v'",
-						tt.description, tt.errorMsg, err)
+				require.Error(t, err, "%s: Expected error but got nil", tt.description)
+				if tt.errorMsg != "" {
+					assert.Contains(t, err.Error(), tt.errorMsg, "%s: Expected error containing '%s'", tt.description, tt.errorMsg)
 				}
-				if swarm != nil {
-					t.Errorf("%s: Expected nil swarm on error, got %v",
-						tt.description, swarm)
-				}
+				assert.Nil(t, swarm, "%s: Expected nil swarm on error", tt.description)
 			} else {
-				if err != nil {
-					t.Errorf("%s: Unexpected error: %v", tt.description, err)
-				}
-				if swarm == nil {
-					t.Errorf("%s: Expected valid swarm, got nil", tt.description)
-				} else {
-					if swarm.Size() != tt.size {
-						t.Errorf("%s: Expected swarm size %d, got %d",
-							tt.description, tt.size, swarm.Size())
-					}
-					// Verify goal state was set correctly
-					// Note: This assumes swarm has a way to get the goal state
-					// If not, this check can be removed
-				}
+				assert.NoError(t, err, "%s: Unexpected error", tt.description)
+				require.NotNil(t, swarm, "%s: Expected valid swarm, got nil", tt.description)
+				assert.Equal(t, tt.size, swarm.Size(), "%s: Expected swarm size %d", tt.description, tt.size)
+				// Verify goal state was set correctly
+				// Note: This assumes swarm has a way to get the goal state
+				// If not, this check can be removed
 			}
 		})
 	}
@@ -418,16 +407,16 @@ func TestSwarmErrorRecovery(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			defer func() {
 				r := recover()
-				if tt.expectPanic && r == nil {
-					t.Errorf("%s: Expected panic but didn't get one", tt.description)
-				} else if !tt.expectPanic && r != nil {
-					t.Errorf("%s: Unexpected panic: %v", tt.description, r)
+				if tt.expectPanic {
+					assert.NotNil(t, r, "%s: Expected panic but didn't get one", tt.description)
+				} else {
+					assert.Nil(t, r, "%s: Unexpected panic: %v", tt.description, r)
 				}
 			}()
 
 			swarm, err := tt.setupFn()
-			if err != nil && swarm != nil {
-				t.Errorf("%s: Expected nil swarm when error occurs", tt.description)
+			if err != nil {
+				assert.Nil(t, swarm, "%s: Expected nil swarm when error occurs", tt.description)
 			}
 
 			if tt.actionFn != nil {
@@ -455,12 +444,8 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 			},
 			validateFn: func(t *testing.T, swarm *Swarm, err error) {
 				// Should fail due to size limit
-				if err == nil {
-					t.Error("Expected error for maximum int size, but got none")
-				}
-				if swarm != nil {
-					t.Error("Expected nil swarm for maximum int size")
-				}
+				require.Error(t, err, "Expected error for maximum int size")
+				assert.Nil(t, swarm, "Expected nil swarm for maximum int size")
 			},
 			description: "Maximum int size handling",
 		},
@@ -474,12 +459,8 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 			},
 			validateFn: func(t *testing.T, swarm *Swarm, err error) {
 				// Should succeed
-				if err != nil {
-					t.Errorf("Size limit should allow 1,000,000: %v", err)
-				}
-				if swarm == nil {
-					t.Error("Expected valid swarm at size limit")
-				}
+				assert.NoError(t, err, "Size limit should allow 1,000,000")
+				assert.NotNil(t, swarm, "Expected valid swarm at size limit")
 			},
 			description: "Exactly at size limit should work",
 		},
@@ -493,12 +474,8 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 			},
 			validateFn: func(t *testing.T, swarm *Swarm, err error) {
 				// Should fail
-				if err == nil {
-					t.Error("Expected error for size over limit")
-				}
-				if swarm != nil {
-					t.Error("Expected nil swarm for size over limit")
-				}
+				require.Error(t, err, "Expected error for size over limit")
+				assert.Nil(t, swarm, "Expected nil swarm for size over limit")
 			},
 			description: "One over size limit should fail",
 		},
@@ -512,12 +489,8 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 			},
 			validateFn: func(t *testing.T, swarm *Swarm, err error) {
 				// Should fail
-				if err == nil {
-					t.Error("Expected error for size well over limit")
-				}
-				if swarm != nil {
-					t.Error("Expected nil swarm for size well over limit")
-				}
+				require.Error(t, err, "Expected error for size well over limit")
+				assert.Nil(t, swarm, "Expected nil swarm for size well over limit")
 			},
 			description: "Well over size limit should fail",
 		},
@@ -530,9 +503,7 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 				Coherence: 0.5,
 			},
 			validateFn: func(t *testing.T, swarm *Swarm, err error) {
-				if err != nil {
-					t.Errorf("Should handle minimum frequency: %v", err)
-				}
+				assert.NoError(t, err, "Should handle minimum frequency")
 			},
 			description: "Minimum frequency handling",
 		},
@@ -545,9 +516,7 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 				Coherence: 0.5,
 			},
 			validateFn: func(t *testing.T, swarm *Swarm, err error) {
-				if err != nil {
-					t.Errorf("Should handle maximum frequency: %v", err)
-				}
+				assert.NoError(t, err, "Should handle maximum frequency")
 			},
 			description: "Maximum frequency handling",
 		},
@@ -560,9 +529,7 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 				Coherence: 1.0 - 1e-16, // Just under 1.0
 			},
 			validateFn: func(t *testing.T, swarm *Swarm, err error) {
-				if err != nil {
-					t.Errorf("Should handle coherence near 1.0: %v", err)
-				}
+				assert.NoError(t, err, "Should handle coherence near 1.0")
 			},
 			description: "Coherence at boundary handling",
 		},
@@ -575,9 +542,7 @@ func TestSwarmBoundaryConditions(t *testing.T) {
 				Coherence: 1e-16, // Just above 0
 			},
 			validateFn: func(t *testing.T, swarm *Swarm, err error) {
-				if err != nil {
-					t.Errorf("Should handle coherence near 0: %v", err)
-				}
+				assert.NoError(t, err, "Should handle coherence near 0")
 			},
 			description: "Coherence at lower boundary handling",
 		},
@@ -627,7 +592,7 @@ func TestSwarmValidationConsistency(t *testing.T) {
 		t.Run(string(rune(i)), func(t *testing.T) {
 			// Try creating the same invalid swarm multiple times
 			var errors []error
-			for j := 0; j < 10; j++ {
+			for range 10 {
 				_, err := New(config.size, config.goal)
 				errors = append(errors, err)
 			}
@@ -635,14 +600,11 @@ func TestSwarmValidationConsistency(t *testing.T) {
 			// All errors should be consistent
 			firstErr := errors[0]
 			for j, err := range errors {
-				if firstErr == nil && err != nil {
-					t.Errorf("Iteration %d: Inconsistent validation, first was nil, got %v", j, err)
-				} else if firstErr != nil && err == nil {
-					t.Errorf("Iteration %d: Inconsistent validation, first was %v, got nil", j, firstErr)
-				} else if firstErr != nil && err != nil {
-					if firstErr.Error() != err.Error() {
-						t.Errorf("Iteration %d: Different error messages: %v vs %v", j, firstErr, err)
-					}
+				if firstErr == nil {
+					assert.NoError(t, err, "Iteration %d: Inconsistent validation, first was nil", j)
+				} else {
+					require.Error(t, err, "Iteration %d: Inconsistent validation, first was %v", j, firstErr)
+					assert.Equal(t, firstErr.Error(), err.Error(), "Iteration %d: Different error messages", j)
 				}
 			}
 		})

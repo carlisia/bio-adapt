@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/carlisia/bio-adapt/emerge/core"
 )
 
@@ -294,11 +296,8 @@ func TestTokenResourceManager(t *testing.T) {
 			rm := NewTokenResourceManager(tt.maxTokens)
 
 			// Check initial state
-			if math.IsNaN(tt.maxTokens) || tt.maxTokens < 0 {
-				// Skip initial check for invalid max tokens
-			} else if rm.Available() != tt.maxTokens {
-				t.Errorf("%s: Initial tokens = %f, expected %f",
-					tt.description, rm.Available(), tt.maxTokens)
+			if !math.IsNaN(tt.maxTokens) && tt.maxTokens >= 0 {
+				assert.Equal(t, tt.maxTokens, rm.Available(), "%s: Initial tokens should match max", tt.description)
 			}
 
 			// Execute operations
@@ -318,9 +317,8 @@ func TestTokenResourceManager(t *testing.T) {
 					continue
 				}
 
-				if math.Abs(result-op.expected) > 0.001 {
-					t.Errorf("%s: Operation %d (%s %f) = %f, expected %f",
-						tt.description, i, op.op, op.amount, result, op.expected)
+				if !math.IsNaN(op.expected) {
+					assert.InDelta(t, op.expected, result, 0.001, "%s: Operation %d (%s %f) should return expected result", tt.description, i, op.op, op.amount)
 				}
 			}
 
@@ -328,9 +326,8 @@ func TestTokenResourceManager(t *testing.T) {
 			if math.IsNaN(tt.finalAvailable) && math.IsNaN(rm.Available()) {
 				return
 			}
-			if math.Abs(rm.Available()-tt.finalAvailable) > 0.001 {
-				t.Errorf("%s: Final available = %f, expected %f",
-					tt.description, rm.Available(), tt.finalAvailable)
+			if !math.IsNaN(tt.finalAvailable) {
+				assert.InDelta(t, tt.finalAvailable, rm.Available(), 0.001, "%s: Final available should match expected", tt.description)
 			}
 		})
 	}
@@ -420,20 +417,11 @@ func TestTokenResourceManagerConcurrency(t *testing.T) {
 			// With request/release pattern, we can't predict exact total
 			// but it should be non-negative and not exceed theoretical max
 			theoreticalMax := float64(tt.numGoroutines) * float64(tt.requestsPerGoroutine) * tt.amountPerRequest
-			if totalAcquired < 0 {
-				t.Errorf("%s: Total acquired is negative: %f",
-					tt.description, totalAcquired)
-			}
-			if totalAcquired > theoreticalMax {
-				t.Errorf("%s: Total acquired %f exceeds theoretical max %f",
-					tt.description, totalAcquired, theoreticalMax)
-			}
+			assert.GreaterOrEqual(t, totalAcquired, 0.0, "%s: Total acquired should be non-negative", tt.description)
+			assert.LessOrEqual(t, totalAcquired, theoreticalMax, "%s: Total acquired should not exceed theoretical max", tt.description)
 
 			// Final available should be non-negative
-			if rm.Available() < 0 {
-				t.Errorf("%s: Final available is negative: %f",
-					tt.description, rm.Available())
-			}
+			assert.GreaterOrEqual(t, rm.Available(), 0.0, "%s: Final available should be non-negative", tt.description)
 		})
 	}
 }
@@ -453,14 +441,12 @@ func TestTokenResourceManagerStressPatterns(t *testing.T) {
 				// Burst request all tokens
 				rm.Request(100)
 				// Then many small requests (should all fail)
-				for i := 0; i < 100; i++ {
+				for range 100 {
 					rm.Request(1)
 				}
 			},
 			validateFn: func(t *testing.T, rm core.ResourceManager) {
-				if rm.Available() != 0 {
-					t.Errorf("After burst, should have 0 available")
-				}
+				assert.Equal(t, 0.0, rm.Available(), "After burst, should have 0 available")
 			},
 			description: "Burst request pattern",
 		},
@@ -469,14 +455,12 @@ func TestTokenResourceManagerStressPatterns(t *testing.T) {
 			maxTokens: 100,
 			pattern: func(rm core.ResourceManager) {
 				// Gradually drain tokens
-				for i := 0; i < 100; i++ {
+				for range 100 {
 					rm.Request(1)
 				}
 			},
 			validateFn: func(t *testing.T, rm core.ResourceManager) {
-				if rm.Available() != 0 {
-					t.Errorf("After gradual drain, should have 0 available")
-				}
+				assert.Equal(t, 0.0, rm.Available(), "After gradual drain, should have 0 available")
 			},
 			description: "Gradual drain pattern",
 		},
@@ -485,7 +469,7 @@ func TestTokenResourceManagerStressPatterns(t *testing.T) {
 			maxTokens: 100,
 			pattern: func(rm core.ResourceManager) {
 				// Oscillate between request and release
-				for i := 0; i < 10; i++ {
+				for range 10 {
 					rm.Request(50)
 					rm.Release(30)
 				}
@@ -495,9 +479,7 @@ func TestTokenResourceManagerStressPatterns(t *testing.T) {
 				// Then stabilizes at: request gets 30-40, release adds 30
 				// Final state after 10 cycles: 30 available
 				expected := 30.0
-				if math.Abs(rm.Available()-expected) > 0.001 {
-					t.Errorf("After oscillation, expected %f available, got %f", expected, rm.Available())
-				}
+				assert.InDelta(t, expected, rm.Available(), 0.001, "After oscillation, should have expected available")
 			},
 			description: "Oscillating request/release pattern",
 		},
@@ -513,9 +495,7 @@ func TestTokenResourceManagerStressPatterns(t *testing.T) {
 			validateFn: func(t *testing.T, rm core.ResourceManager) {
 				// Sum of amounts = 129, max = 100
 				// So should have 0 available
-				if rm.Available() != 0 {
-					t.Errorf("After random requests, should have 0 available")
-				}
+				assert.Equal(t, 0.0, rm.Available(), "After random requests, should have 0 available")
 			},
 			description: "Random amount pattern",
 		},
@@ -530,9 +510,7 @@ func TestTokenResourceManagerStressPatterns(t *testing.T) {
 			},
 			validateFn: func(t *testing.T, rm core.ResourceManager) {
 				// After releasing infinity, should be back at max
-				if rm.Available() != 100 {
-					t.Errorf("After reset pattern, should have max available")
-				}
+				assert.Equal(t, 100.0, rm.Available(), "After reset pattern, should have max available")
 			},
 			description: "Reset pattern with infinity release",
 		},
@@ -560,9 +538,7 @@ func TestTokenResourceManagerBoundaryConditions(t *testing.T) {
 			validateFn: func(t *testing.T, rm core.ResourceManager) {
 				epsilon := math.Nextafter(1, 2) - 1
 				granted := rm.Request(epsilon)
-				if granted != epsilon {
-					t.Errorf("Should handle machine epsilon: got %v", granted)
-				}
+				assert.Equal(t, epsilon, granted, "Should handle machine epsilon")
 			},
 			description: "Machine epsilon handling",
 		},
@@ -571,9 +547,7 @@ func TestTokenResourceManagerBoundaryConditions(t *testing.T) {
 			maxTokens: math.SmallestNonzeroFloat64 * 100,
 			validateFn: func(t *testing.T, rm core.ResourceManager) {
 				granted := rm.Request(math.SmallestNonzeroFloat64)
-				if granted != math.SmallestNonzeroFloat64 {
-					t.Errorf("Should handle denormalized numbers")
-				}
+				assert.Equal(t, math.SmallestNonzeroFloat64, granted, "Should handle denormalized numbers")
 			},
 			description: "Denormalized number handling",
 		},
@@ -582,14 +556,10 @@ func TestTokenResourceManagerBoundaryConditions(t *testing.T) {
 			maxTokens: math.MaxFloat64,
 			validateFn: func(t *testing.T, rm core.ResourceManager) {
 				granted := rm.Request(math.MaxFloat64 / 2)
-				if granted != math.MaxFloat64/2 {
-					t.Errorf("Should handle maximum finite values")
-				}
+				assert.Equal(t, math.MaxFloat64/2, granted, "Should handle maximum finite values")
 				// Check we can still request more
 				granted2 := rm.Request(math.MaxFloat64 / 2)
-				if granted2 != math.MaxFloat64/2 {
-					t.Errorf("Should handle maximum finite values (second request)")
-				}
+				assert.Equal(t, math.MaxFloat64/2, granted2, "Should handle maximum finite values (second request)")
 			},
 			description: "Maximum finite value handling",
 		},
@@ -600,14 +570,10 @@ func TestTokenResourceManagerBoundaryConditions(t *testing.T) {
 				negZero := math.Copysign(0, -1)
 				granted := rm.Request(negZero)
 				// Negative zero should be treated as zero
-				if granted != 0 {
-					t.Errorf("Negative zero should return 0, got %v", granted)
-				}
+				assert.Equal(t, 0.0, granted, "Negative zero should return 0")
 				rm.Release(negZero)
 				// Available should still be 100
-				if rm.Available() != 100 {
-					t.Errorf("Negative zero release should not change available")
-				}
+				assert.Equal(t, 100.0, rm.Available(), "Negative zero release should not change available")
 			},
 			description: "Negative zero handling",
 		},

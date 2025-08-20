@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/carlisia/bio-adapt/emerge/core"
 	"github.com/carlisia/bio-adapt/emerge/goal"
 )
@@ -265,21 +267,13 @@ func TestWeightedGoalManagerBlend(t *testing.T) {
 			if phaseDiff > math.Pi {
 				phaseDiff = 2*math.Pi - phaseDiff
 			}
-			if phaseDiff > tt.phaseTolerance {
-				t.Errorf("%s: Phase = %f, expected %f±%f",
-					tt.description, blended.Phase, tt.expectedPhase, tt.phaseTolerance)
-			}
+			assert.LessOrEqual(t, phaseDiff, tt.phaseTolerance, "%s: Phase = %f, expected %f±%f", tt.description, blended.Phase, tt.expectedPhase, tt.phaseTolerance)
 
 			// Check coherence
-			if math.Abs(blended.Coherence-tt.expectedCoherence) > tt.cohTolerance {
-				t.Errorf("%s: Coherence = %f, expected %f±%f",
-					tt.description, blended.Coherence, tt.expectedCoherence, tt.cohTolerance)
-			}
+			assert.InDelta(t, tt.expectedCoherence, blended.Coherence, tt.cohTolerance, "%s: Coherence should match expected", tt.description)
 
 			// Check frequency preservation
-			if blended.Frequency != tt.local.Frequency {
-				t.Errorf("%s: Frequency should be preserved from local state", tt.description)
-			}
+			assert.Equal(t, tt.local.Frequency, blended.Frequency, "%s: Frequency should be preserved from local state", tt.description)
 		})
 	}
 }
@@ -308,9 +302,7 @@ func TestWeightedGoalManagerPhaseWrapping(t *testing.T) {
 			validateFn: func(t *testing.T, blended core.State) {
 				// Shortest path from 0.1 to 2π-0.1 is backwards across 0
 				// So halfway should be around 0 (or 2π)
-				if blended.Phase > 0.2 && blended.Phase < 2*math.Pi-0.2 {
-					t.Errorf("Phase wrapping not working correctly, got %f", blended.Phase)
-				}
+				assert.True(t, blended.Phase <= 0.2 || blended.Phase >= 2*math.Pi-0.2, "Phase wrapping not working correctly, got %f", blended.Phase)
 			},
 		},
 		{
@@ -328,9 +320,7 @@ func TestWeightedGoalManagerPhaseWrapping(t *testing.T) {
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
 				// Should be very close to π
-				if math.Abs(blended.Phase-math.Pi) > 0.01 {
-					t.Errorf("Expected phase near π, got %f", blended.Phase)
-				}
+				assert.InDelta(t, math.Pi, blended.Phase, 0.01, "Expected phase near π, got %f", blended.Phase)
 			},
 		},
 		{
@@ -349,9 +339,7 @@ func TestWeightedGoalManagerPhaseWrapping(t *testing.T) {
 			validateFn: func(t *testing.T, blended core.State) {
 				// Should take shortest path
 				expected := 3 * math.Pi / 4
-				if math.Abs(blended.Phase-expected) > 0.01 {
-					t.Errorf("Expected phase %f, got %f", expected, blended.Phase)
-				}
+				assert.InDelta(t, expected, blended.Phase, 0.01, "Expected phase %f, got %f", expected, blended.Phase)
 			},
 		},
 		{
@@ -369,9 +357,7 @@ func TestWeightedGoalManagerPhaseWrapping(t *testing.T) {
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
 				// Should be around 0
-				if math.Abs(blended.Phase) > 0.01 && math.Abs(blended.Phase-2*math.Pi) > 0.01 {
-					t.Errorf("Expected phase near 0, got %f", blended.Phase)
-				}
+				assert.True(t, math.Abs(blended.Phase) <= 0.01 || math.Abs(blended.Phase-2*math.Pi) <= 0.01, "Expected phase near 0, got %f", blended.Phase)
 			},
 		},
 		{
@@ -389,9 +375,7 @@ func TestWeightedGoalManagerPhaseWrapping(t *testing.T) {
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
 				// 4π is same as 0, so blend should be 0
-				if math.Abs(blended.Phase) > 0.01 && math.Abs(blended.Phase-2*math.Pi) > 0.01 {
-					t.Errorf("Expected phase near 0, got %f", blended.Phase)
-				}
+				assert.True(t, math.Abs(blended.Phase) <= 0.01 || math.Abs(blended.Phase-2*math.Pi) <= 0.01, "Expected phase near 0, got %f", blended.Phase)
 			},
 		},
 	}
@@ -546,15 +530,8 @@ func TestWeightedGoalManagerWeightClamping(t *testing.T) {
 				t.Skip("NaN weight produces NaN result")
 			}
 
-			if math.Abs(blended.Phase-tt.expectedPhase) > 0.01 {
-				t.Errorf("%s: Phase = %f, expected %f",
-					tt.description, blended.Phase, tt.expectedPhase)
-			}
-
-			if math.Abs(blended.Coherence-tt.expectedCoherence) > 0.01 {
-				t.Errorf("%s: Coherence = %f, expected %f",
-					tt.description, blended.Coherence, tt.expectedCoherence)
-			}
+			assert.InDelta(t, tt.expectedPhase, blended.Phase, 0.01, "%s: Phase should match expected", tt.description)
+			assert.InDelta(t, tt.expectedCoherence, blended.Coherence, 0.01, "%s: Coherence should match expected", tt.description)
 		})
 	}
 }
@@ -655,15 +632,8 @@ func TestWeightedGoalManagerSymmetry(t *testing.T) {
 				phaseDiff = 2*math.Pi - phaseDiff
 			}
 
-			if phaseDiff > 0.01 {
-				t.Errorf("Blending not symmetric for phase: %f vs %f (diff: %f)",
-					blend12.Phase, blend21.Phase, phaseDiff)
-			}
-
-			if math.Abs(blend12.Coherence-blend21.Coherence) > 0.01 {
-				t.Errorf("Blending not symmetric for coherence: %f vs %f",
-					blend12.Coherence, blend21.Coherence)
-			}
+			assert.LessOrEqual(t, phaseDiff, 0.01, "Blending not symmetric for phase: %f vs %f (diff: %f)", blend12.Phase, blend21.Phase, phaseDiff)
+			assert.InDelta(t, blend12.Coherence, blend21.Coherence, 0.01, "Blending not symmetric for coherence: %f vs %f", blend12.Coherence, blend21.Coherence)
 
 			// Note: Frequency might not be symmetric since it's taken from local state
 		})
@@ -692,9 +662,7 @@ func TestWeightedGoalManagerEdgeCases(t *testing.T) {
 			},
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
-				if blended.Frequency != 0 {
-					t.Error("Frequency should be preserved from local state")
-				}
+				assert.Equal(t, time.Duration(0), blended.Frequency, "Frequency should be preserved from local state")
 			},
 		},
 		{
@@ -711,9 +679,7 @@ func TestWeightedGoalManagerEdgeCases(t *testing.T) {
 			},
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
-				if blended.Frequency != -100*time.Millisecond {
-					t.Error("Frequency should be preserved even if negative")
-				}
+				assert.Equal(t, -100*time.Millisecond, blended.Frequency, "Frequency should be preserved even if negative")
 			},
 		},
 		{
@@ -732,9 +698,7 @@ func TestWeightedGoalManagerEdgeCases(t *testing.T) {
 			validateFn: func(t *testing.T, blended core.State) {
 				// Should blend even invalid coherence values
 				expected := 1.75
-				if math.Abs(blended.Coherence-expected) > 0.01 {
-					t.Errorf("Coherence = %f, expected %f", blended.Coherence, expected)
-				}
+				assert.InDelta(t, expected, blended.Coherence, 0.01, "Coherence should match expected")
 			},
 		},
 		{
@@ -752,9 +716,7 @@ func TestWeightedGoalManagerEdgeCases(t *testing.T) {
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
 				// Should blend to 0
-				if math.Abs(blended.Coherence) > 0.01 {
-					t.Errorf("Coherence = %f, expected 0", blended.Coherence)
-				}
+				assert.InDelta(t, 0.0, blended.Coherence, 0.01, "Coherence should be 0")
 			},
 		},
 		{
@@ -771,9 +733,9 @@ func TestWeightedGoalManagerEdgeCases(t *testing.T) {
 			},
 			weight: 0.5,
 			validateFn: func(t *testing.T, blended core.State) {
-				if blended.Phase != 0 || blended.Frequency != 0 || blended.Coherence != 0 {
-					t.Error("All zero states should blend to zero")
-				}
+				assert.Equal(t, 0.0, blended.Phase, "Phase should be 0")
+				assert.Equal(t, time.Duration(0), blended.Frequency, "Frequency should be 0")
+				assert.Equal(t, 0.0, blended.Coherence, "Coherence should be 0")
 			},
 		},
 	}

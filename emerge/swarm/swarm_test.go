@@ -7,6 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/carlisia/bio-adapt/emerge/core"
 	"github.com/carlisia/bio-adapt/internal/config"
 )
@@ -68,30 +71,19 @@ func TestSwarmScalability(t *testing.T) {
 				Coherence: 0.7,
 			}, WithConfig(config))
 
-			if err != nil {
-				t.Fatalf("Failed to create swarm: %v", err)
-			}
+			require.NoError(t, err, "Failed to create swarm")
 
 			// Verify configuration
-			if config.UseBatchProcessing != tt.expectedBatching {
-				t.Errorf("Expected batching %v, got %v", tt.expectedBatching, config.UseBatchProcessing)
-			}
-
-			if (config.MaxConcurrentAgents > 0) != tt.expectedWorkerPool {
-				t.Errorf("Expected worker pool %v, got %v (MaxConcurrentAgents: %d)",
-					tt.expectedWorkerPool, config.MaxConcurrentAgents > 0, config.MaxConcurrentAgents)
-			}
+			assert.Equal(t, tt.expectedBatching, config.UseBatchProcessing, "Expected batching %v", tt.expectedBatching)
+			assert.Equal(t, tt.expectedWorkerPool, config.MaxConcurrentAgents > 0, "Expected worker pool %v (MaxConcurrentAgents: %d)", tt.expectedWorkerPool, config.MaxConcurrentAgents)
 
 			// Verify swarm was created with correct size
-			if swarm.Size() != tt.size {
-				t.Errorf("Expected swarm size %d, got %d", tt.size, swarm.Size())
-			}
+			assert.Equal(t, tt.size, swarm.Size(), "Expected swarm size %d", tt.size)
 
 			// Measure initial coherence
 			initialCoherence := swarm.MeasureCoherence()
-			if initialCoherence < 0 || initialCoherence > 1 {
-				t.Errorf("Invalid initial coherence: %f", initialCoherence)
-			}
+			assert.GreaterOrEqual(t, initialCoherence, 0.0, "Initial coherence should be >= 0")
+			assert.LessOrEqual(t, initialCoherence, 1.0, "Initial coherence should be <= 1")
 
 			// Run swarm with timeout
 			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
@@ -107,17 +99,16 @@ func TestSwarmScalability(t *testing.T) {
 
 			// Measure coherence after running
 			finalCoherence := swarm.MeasureCoherence()
-			if finalCoherence < 0 || finalCoherence > 1 {
-				t.Errorf("Invalid final coherence: %f", finalCoherence)
-			}
+			assert.GreaterOrEqual(t, finalCoherence, 0.0, "Final coherence should be >= 0")
+			assert.LessOrEqual(t, finalCoherence, 1.0, "Final coherence should be <= 1")
 
 			// Cancel and wait for completion
 			cancel()
 			select {
 			case err := <-done:
 				// Context cancellation is expected and not an error
-				if err != nil && err != context.Canceled && err != context.DeadlineExceeded {
-					t.Errorf("Swarm run failed: %v", err)
+				if err != nil {
+					assert.True(t, err == context.Canceled || err == context.DeadlineExceeded, "Swarm run failed: %v", err)
 				}
 			case <-time.After(5 * time.Second):
 				t.Error("Swarm failed to shutdown within timeout")
@@ -247,49 +238,20 @@ func TestConfigurableLimits(t *testing.T) {
 			}, WithConfig(tt.config))
 
 			if tt.expectError {
-				if err == nil {
-					t.Error("Expected error but got none")
-					return
-				}
-				if tt.errorContains != "" && !contains(err.Error(), tt.errorContains) {
-					t.Errorf("Expected error to contain '%s', but got: %v", tt.errorContains, err)
+				require.Error(t, err, "Expected error but got none")
+				if tt.errorContains != "" {
+					assert.Contains(t, err.Error(), tt.errorContains, "Expected error to contain '%s'", tt.errorContains)
 				}
 				return
 			}
 
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
+			assert.NoError(t, err, "Unexpected error")
 
 			// Verify the configuration was applied
-			if swarm.config.MaxSwarmSize != tt.config.MaxSwarmSize {
-				t.Errorf("MaxSwarmSize not applied correctly: got %d, want %d",
-					swarm.config.MaxSwarmSize, tt.config.MaxSwarmSize)
-			}
-
-			if swarm.config.UseBatchProcessing != tt.config.UseBatchProcessing {
-				t.Errorf("UseBatchProcessing not applied correctly: got %v, want %v",
-					swarm.config.UseBatchProcessing, tt.config.UseBatchProcessing)
-			}
+			assert.Equal(t, tt.config.MaxSwarmSize, swarm.config.MaxSwarmSize, "MaxSwarmSize not applied correctly")
+			assert.Equal(t, tt.config.UseBatchProcessing, swarm.config.UseBatchProcessing, "UseBatchProcessing not applied correctly")
 		})
 	}
-}
-
-// Helper function to check if a string contains a substring
-func contains(s, substr string) bool {
-	return len(substr) <= len(s) && s[len(s)-len(substr):] == substr ||
-		len(substr) <= len(s) && s[:len(substr)] == substr ||
-		(len(substr) < len(s) && containsMiddle(s, substr))
-}
-
-func containsMiddle(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
 
 func BenchmarkSwarmCreationScalability(b *testing.B) {
@@ -306,9 +268,7 @@ func BenchmarkSwarmCreationScalability(b *testing.B) {
 					Coherence: 0.7,
 				}, WithConfig(config))
 
-				if err != nil {
-					b.Fatal(err)
-				}
+				require.NoError(b, err, "Failed to create swarm in benchmark")
 
 				// Measure initial coherence to ensure swarm is fully initialized
 				_ = swarm.MeasureCoherence()

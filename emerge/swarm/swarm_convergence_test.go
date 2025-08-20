@@ -6,6 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/carlisia/bio-adapt/emerge/core"
 )
 
@@ -49,9 +52,7 @@ func TestSwarmConvergence(t *testing.T) {
 				Frequency: 200 * time.Millisecond,
 				Coherence: tt.targetCoherence,
 			})
-			if err != nil {
-				t.Fatalf("Failed to create swarm: %v", err)
-			}
+			require.NoError(t, err, "Failed to create swarm")
 
 			// Measure initial coherence
 			initialCoherence := swarm.MeasureCoherence()
@@ -83,23 +84,14 @@ func TestSwarmConvergence(t *testing.T) {
 
 			// Test 1: Coherence should improve significantly
 			improvement := finalCoherence - initialCoherence
-			if improvement < tt.minImprovement {
-				t.Errorf("Insufficient improvement: %.3f, expected at least %.3f",
-					improvement, tt.minImprovement)
-			}
+			assert.GreaterOrEqual(t, improvement, tt.minImprovement, "Insufficient improvement: %.3f, expected at least %.3f", improvement, tt.minImprovement)
 
 			// Test 2: Should achieve or get close to target coherence
 			tolerance := 0.15 // Allow 15% tolerance
-			if finalCoherence < tt.targetCoherence-tolerance {
-				t.Errorf("Failed to approach target coherence: got %.3f, want >= %.3f",
-					finalCoherence, tt.targetCoherence-tolerance)
-			}
+			assert.GreaterOrEqual(t, finalCoherence, tt.targetCoherence-tolerance, "Failed to approach target coherence: got %.3f, want >= %.3f", finalCoherence, tt.targetCoherence-tolerance)
 
 			// Test 3: Final coherence should be reasonable (not too high to be suspicious)
-			if finalCoherence > 0.95 {
-				t.Errorf("Final coherence suspiciously high: %.3f, may indicate test error",
-					finalCoherence)
-			}
+			assert.LessOrEqual(t, finalCoherence, 0.95, "Final coherence suspiciously high: %.3f, may indicate test error", finalCoherence)
 		})
 	}
 }
@@ -119,7 +111,7 @@ func TestSwarmConvergenceConsistency(t *testing.T) {
 
 	var finalCoherences []float64
 
-	for i := 0; i < runs; i++ {
+	for i := range runs {
 		t.Logf("Run %d/%d", i+1, runs)
 
 		swarm, err := New(swarmSize, core.State{
@@ -127,9 +119,7 @@ func TestSwarmConvergenceConsistency(t *testing.T) {
 			Frequency: 200 * time.Millisecond,
 			Coherence: targetCoherence,
 		})
-		if err != nil {
-			t.Fatalf("Run %d: Failed to create swarm: %v", i, err)
-		}
+		require.NoError(t, err, "Run %d: Failed to create swarm", i)
 
 		initialCoherence := swarm.MeasureCoherence()
 
@@ -241,9 +231,7 @@ func TestSwarmTargetAchievement(t *testing.T) {
 				Frequency: 200 * time.Millisecond,
 				Coherence: target,
 			})
-			if err != nil {
-				t.Fatalf("Failed to create swarm: %v", err)
-			}
+			require.NoError(t, err, "Failed to create swarm")
 
 			ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 			defer cancel()

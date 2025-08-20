@@ -1,68 +1,40 @@
 package agent_test
 
 import (
-	"errors"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/carlisia/bio-adapt/emerge/agent"
 	"github.com/carlisia/bio-adapt/emerge/core"
 )
 
 func TestErrorSentinelValues(t *testing.T) {
-	tests := []struct {
-		name          string
-		setupFn       func() error
-		expectedError error
-		description   string
-	}{
-		{
-			name: "insufficient energy error",
-			setupFn: func() error {
-				a := agent.New("test")
-				a.SetEnergy(1.0)
-				_, _, err := a.ApplyAction(core.Action{
-					Type: "adjust_phase",
-					Cost: 5.0,
-				})
-				return err
-			},
-			expectedError: core.ErrInsufficientEnergy,
-			description:   "should return ErrInsufficientEnergy when agent lacks energy",
-		},
-		{
-			name: "unknown action type error",
-			setupFn: func() error {
-				a := agent.New("test")
-				_, _, err := a.ApplyAction(core.Action{
-					Type: "unknown_action",
-					Cost: 1.0,
-				})
-				return err
-			},
-			expectedError: core.ErrUnknownActionType,
-			description:   "should return ErrUnknownActionType for invalid action",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.setupFn()
-
-			if err == nil {
-				t.Errorf("%s: expected error, got nil", tt.description)
-				return
-			}
-
-			if !errors.Is(err, tt.expectedError) {
-				t.Errorf("%s: expected error to be %v, got %v", tt.description, tt.expectedError, err)
-			}
-
-			// Verify the error has meaningful context
-			if err.Error() == tt.expectedError.Error() {
-				t.Errorf("%s: error should have additional context beyond sentinel value", tt.description)
-			}
+	t.Run("insufficient energy error", func(t *testing.T) {
+		a := agent.New("test")
+		a.SetEnergy(1.0)
+		_, _, err := a.ApplyAction(core.Action{
+			Type: "adjust_phase",
+			Cost: 5.0,
 		})
-	}
+
+		require.Error(t, err, "should return error when agent lacks energy")
+		assert.ErrorIs(t, err, core.ErrInsufficientEnergy, "should return ErrInsufficientEnergy")
+		assert.NotEqual(t, err.Error(), core.ErrInsufficientEnergy.Error(), "error should have additional context")
+	})
+
+	t.Run("unknown action type error", func(t *testing.T) {
+		a := agent.New("test")
+		_, _, err := a.ApplyAction(core.Action{
+			Type: "unknown_action",
+			Cost: 1.0,
+		})
+
+		require.Error(t, err, "should return error for invalid action")
+		assert.ErrorIs(t, err, core.ErrUnknownActionType, "should return ErrUnknownActionType")
+		assert.NotEqual(t, err.Error(), core.ErrUnknownActionType.Error(), "error should have additional context")
+	})
 }
 
 func TestErrorSentinelValuesUnwrapping(t *testing.T) {
@@ -74,38 +46,12 @@ func TestErrorSentinelValuesUnwrapping(t *testing.T) {
 		Cost: 10.0,
 	})
 
-	if err == nil {
-		t.Fatal("expected error for insufficient energy")
-	}
-
-	// Test that errors.Is works with wrapped errors
-	if !errors.Is(err, core.ErrInsufficientEnergy) {
-		t.Errorf("errors.Is should find ErrInsufficientEnergy in wrapped error")
-	}
+	require.Error(t, err, "expected error for insufficient energy")
+	assert.ErrorIs(t, err, core.ErrInsufficientEnergy, "errors.Is should find ErrInsufficientEnergy in wrapped error")
 
 	// Test that the error message contains context
-	expectedSubstrings := []string{"insufficient energy", "required", "available"}
-	for _, substr := range expectedSubstrings {
-		if !containsString(err.Error(), substr) {
-			t.Errorf("error message should contain '%s', got: %s", substr, err.Error())
-		}
-	}
-}
-
-func containsString(s, substr string) bool {
-	return len(s) >= len(substr) &&
-		(s == substr ||
-			(len(s) > len(substr) &&
-				(s[:len(substr)] == substr ||
-					s[len(s)-len(substr):] == substr ||
-					containsStringHelper(s, substr))))
-}
-
-func containsStringHelper(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
+	errorMsg := err.Error()
+	assert.Contains(t, errorMsg, "insufficient energy", "error message should contain 'insufficient energy'")
+	assert.Contains(t, errorMsg, "required", "error message should contain 'required'")
+	assert.Contains(t, errorMsg, "available", "error message should contain 'available'")
 }
