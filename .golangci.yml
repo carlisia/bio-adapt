@@ -1,0 +1,151 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+  go: "1.22"
+output:
+  formats:
+    text:
+      path: stdout
+      print-linter-name: true
+      print-issued-lines: true
+linters:
+  enable:
+    # Default linters
+    - errcheck # Check for unchecked errors
+    - govet # Reports suspicious constructs
+    - ineffassign # Detects ineffectual assignments
+    - staticcheck # Advanced static analysis
+    - unused # Find unused code
+    - unparam
+
+    # Error handling
+    - errorlint # Problems with error wrapping (Go 1.13+)
+
+    # Code quality
+    - intrange # Loops that could use range over int (Go 1.22+)
+    - unconvert # Remove unnecessary type conversions
+    - bodyclose # Check HTTP response body is closed
+    - copyloopvar # Detect loop variable copies
+    - misspell # Find commonly misspelled words
+    - goconst # Find repeated strings that could be constants
+    - prealloc # Find slices that could be preallocated
+
+    # Additional useful linters
+    - nakedret # Find naked returns in large functions
+    - nolintlint # Reports ill-formed or insufficient nolint directives
+    - whitespace # Detects leading and trailing whitespace
+    - dupl # Check for duplicated code
+    # Commented out for future enablement when we want stricter checks
+    - gosec # Security issues
+    - gocritic # Various opinionated checks
+
+    - depguard
+    - exhaustive
+    - gocyclo # Check cyclomatic complexity
+    - govet
+    - lll
+    - paralleltest
+    - promlinter
+    - revive
+    - thelper
+    - tparallel
+  settings:
+    depguard:
+      rules:
+        prevent_unmaintained_packages:
+          list-mode: lax
+          files:
+            - $all
+            - "!$test"
+          deny:
+            - pkg: io/ioutil
+              desc: this is deprecated
+    gocyclo:
+      min-complexity: 15
+    gosec:
+      excludes:
+        - G601
+    lll:
+      line-length: 130
+    revive:
+      severity: warning
+      rules:
+        - name: blank-imports
+          severity: warning
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: duplicated-imports
+        - name: error-naming
+        - name: error-return
+        - name: exported
+          severity: error
+        - name: if-return
+        - name: identical-branches
+        - name: indent-error-flow
+        - name: import-shadowing
+        - name: package-comments
+        - name: redefines-builtin-id
+        - name: struct-tag
+        - name: unconditional-recursion
+        - name: unnecessary-stmt
+        - name: unreachable-code
+        - name: unused-parameter
+        - name: unused-receiver
+        - name: unhandled-error
+          disabled: true
+    misspell:
+      locale: US
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    staticcheck:
+      checks: ["all"]
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+    dupl:
+      threshold: 150
+    nakedret:
+      max-func-lines: 30
+    gocritic:
+      enabled-checks:
+        - appendAssign
+        - assignOp
+        - singleCaseSwitch
+  exclusions:
+    generated: lax
+    rules:
+      - linters:
+          - lll
+          - gocyclo
+          - errcheck
+          - dupl
+          - gosec
+        path: (.+)_test\.go
+      - linters:
+          - lll
+        path: .golangci.yml
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gci
+    - gofmt
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 50
+  max-same-issues: 10
+
