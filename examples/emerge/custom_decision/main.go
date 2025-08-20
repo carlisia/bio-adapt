@@ -289,16 +289,27 @@ func processCycle(agents []*agent.Agent, target core.State, agentStats []stats, 
 
 // processAcceptedAction processes an accepted action.
 func processAcceptedAction(a *agent.Agent, s *stats, action core.Action, cycle int) {
+	success, energyCost, err := a.ApplyAction(action)
+
+	if err != nil {
+		// Always handle errors, log periodically
+		if cycle%25 == 0 {
+			fmt.Printf("Agent %s action failed: %v\n", a.ID, err)
+		}
+		return // Don't update stats for failed actions
+	}
+
+	if !success {
+		if cycle%25 == 0 {
+			fmt.Printf("Agent %s action unsuccessful (cost: %.1f)\n", a.ID, energyCost)
+		}
+		return // Don't update stats for unsuccessful actions
+	}
+
+	// Only update stats for successful actions
 	s.accepted++
 	s.totalCost += action.Cost
 	s.totalBenefit += action.Benefit
-
-	success, energyCost, err := a.ApplyAction(action)
-	if err != nil && cycle%25 == 0 { // Only log occasionally
-		fmt.Printf("Agent %s action failed: %v\n", a.ID, err)
-	} else if !success && cycle%25 == 0 {
-		fmt.Printf("Agent %s action unsuccessful (cost: %.1f)\n", a.ID, energyCost)
-	}
 }
 
 // replenishEnergy replenishes agent energy.
