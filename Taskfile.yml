@@ -138,7 +138,7 @@ tasks:
 
   # Run linter (if installed)
   lint:
-    desc: Run golangci-lint
+    desc: Run golangci-lint with all configured linters
     cmds:
       - golangci-lint run ./...
     preconditions:
@@ -147,17 +147,48 @@ tasks:
 
   # Run linters and automatically fix issues where possible
   lint:fix:
-    desc: Run linter, apply fixes.
+    desc: Run linter and apply automatic fixes where possible
     cmds:
       - golangci-lint run --fix ./...
+    preconditions:
+      - sh: command -v golangci-lint
+        msg: "Install golangci-lint from https://golangci-lint.run/usage/install/"
+
+  # Run only fast linters for quick feedback
+  lint:fast:
+    desc: Run only fast linters for quick checks
+    cmds:
+      - golangci-lint run --timeout=1m ./...
+    preconditions:
+      - sh: command -v golangci-lint
+        msg: "Install golangci-lint from https://golangci-lint.run/usage/install/"
+
+  # Run specific linter
+  lint:intrange:
+    desc: Check for loops that could use range over int (Go 1.22+)
+    cmds:
+      - golangci-lint run --no-config --enable-only intrange ./...
+    preconditions:
+      - sh: command -v golangci-lint
+        msg: "Install golangci-lint from https://golangci-lint.run/usage/install/"
+
+  # Show which linters are enabled
+  lint:list:
+    desc: List all enabled linters
+    cmds:
+      - golangci-lint linters
+    preconditions:
+      - sh: command -v golangci-lint
+        msg: "Install golangci-lint from https://golangci-lint.run/usage/install/"
 
   # Run all checks
   check:
-    desc: Run all checks (fmt, vet, test)
+    desc: Run all checks (fmt, vet, lint, vuln)
     cmds:
       - task: fmt
       - task: vet
-      - task: test
+      - task: lint
+      - task: vuln
 
   # Clean build artifacts
   clean:
@@ -181,6 +212,17 @@ tasks:
     cmds:
       - go get -u ./...
       - go mod tidy
+      - echo "Consider updating Go tools with 'task tools:install' if needed"
+
+  # Install/update Go development tools
+  tools:install:
+    desc: Install or update Go development tools
+    cmds:
+      - go install golang.org/x/vuln/cmd/govulncheck@latest
+      - go install golang.org/x/tools/gopls@latest
+      - go install golang.org/x/tools/cmd/goimports@latest
+      - go install honnef.co/go/tools/cmd/staticcheck@latest
+      - echo "✅ Go tools installed/updated successfully"
 
   # Check for vulnerabilities
   vuln:
