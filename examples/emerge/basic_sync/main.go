@@ -16,7 +16,7 @@ import (
 
 func main() {
 	// Configuration
-	swarmSize := 150
+	swarmSize := 1500 // Standard demo size
 	maxIterations := 20
 	checkInterval := 500 * time.Millisecond
 	timeout := 10 * time.Second
