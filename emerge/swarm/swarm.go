@@ -207,22 +207,35 @@ func (s *Swarm) createOptimizedAgents() error {
 	agentConfig := config.AgentFromSwarm(s.config)
 	agentConfig.SwarmSize = s.size
 
+	// Determine max neighbors for optimized agents
+	maxNeighbors := s.config.MaxNeighbors
+	if maxNeighbors == 0 {
+		if s.size > 100 {
+			maxNeighbors = 20 // Small-world topology
+		} else {
+			maxNeighbors = s.size - 1
+		}
+	}
+
 	// Pre-allocate the slice
 	s.agentSlice = make([]*agent.Agent, s.size)
 
-	// Batch create agents for better performance
+	// Batch create optimized agents for better performance
 	batchSize := 100
 	for i := 0; i < s.size; i += batchSize {
 		end := minInt(i+batchSize, s.size)
 
 		for j := i; j < end; j++ {
 			id := fmt.Sprintf("agent-%d", j)
-			a, err := agent.NewFromConfig(id, agentConfig)
+
+			// Create optimized agent with pre-allocated neighbor storage
+			oa, err := agent.NewOptimizedFromConfig(id, agentConfig)
 			if err != nil {
 				return fmt.Errorf("failed to create agent %d: %w", j, err)
 			}
 
-			s.agentSlice[j] = a
+			// Store the OptimizedAgent directly - it embeds Agent so it satisfies the interface
+			s.agentSlice[j] = oa.Agent
 			s.agentIndex[id] = j
 		}
 	}
@@ -308,13 +321,25 @@ func (s *Swarm) collectAgents() []*agent.Agent {
 
 // establishMinimalConnections creates minimal random connections for large swarms
 func (s *Swarm) establishMinimalConnections(agents []*agent.Agent) {
+	// For optimized agents, use ConnectTo method which handles optimized storage
 	for _, a := range agents {
-		for i := 0; i < s.config.MinNeighbors && i < len(agents)-1; i++ {
+		connected := 0
+		attempts := 0
+		maxAttempts := len(agents) * 2
+
+		for connected < s.config.MinNeighbors && connected < len(agents)-1 && attempts < maxAttempts {
 			idx := random.Intn(len(agents))
-			if agents[idx].ID != a.ID {
-				a.Neighbors().Store(agents[idx].ID, agents[idx])
-				agents[idx].Neighbors().Store(a.ID, a)
+			neighbor := agents[idx]
+
+			if neighbor.ID != a.ID {
+				// Check if already connected
+				if _, exists := a.Neighbors().Load(neighbor.ID); !exists {
+					a.Neighbors().Store(neighbor.ID, neighbor)
+					neighbor.Neighbors().Store(a.ID, a)
+					connected++
+				}
 			}
+			attempts++
 		}
 	}
 }
