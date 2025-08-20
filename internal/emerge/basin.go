@@ -4,7 +4,6 @@ import (
 	"math"
 
 	"github.com/carlisia/bio-adapt/emerge/core"
-	"github.com/carlisia/bio-adapt/emerge/util"
 )
 
 // AttractorBasin represents a stable state that the system converges toward.
@@ -97,7 +96,7 @@ func (b *AttractorBasin) ConvergenceRate(state core.State) float64 {
 // OptimalAdjustment suggests the best phase adjustment to move toward the target.
 func (b *AttractorBasin) OptimalAdjustment(current core.State) float64 {
 	// Calculate shortest path considering phase wrapping using PhaseDifference
-	diff := util.PhaseDifference(b.target.Phase, current.Phase)
+	diff := core.PhaseDifference(b.target.Phase, current.Phase)
 
 	// Get attraction force
 	force := b.AttractionForce(current)

@@ -4,7 +4,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/carlisia/bio-adapt/emerge/util"
+	"github.com/carlisia/bio-adapt/emerge/core"
 )
 
 // RhythmicPattern represents a temporal pattern of phases and frequencies.
@@ -47,7 +47,7 @@ func (p *RhythmicPattern) Detect() []PatternGap {
 
 	// Simple gap detection: look for sudden phase jumps
 	for i := 1; i < len(p.Phases); i++ {
-		diff := math.Abs(util.PhaseDifference(p.Phases[i], p.Phases[i-1]))
+		diff := math.Abs(core.PhaseDifference(p.Phases[i], p.Phases[i-1]))
 
 		// If phase jump is too large, likely a gap
 		if diff > math.Pi/2 {
@@ -79,11 +79,11 @@ func (p *RhythmicPattern) Complete(gap PatternGap) []float64 {
 	}
 
 	completed := make([]float64, steps)
-	diff := util.PhaseDifference(endPhase, startPhase)
+	diff := core.PhaseDifference(endPhase, startPhase)
 
 	for i := range steps {
 		fraction := float64(i+1) / float64(steps+1)
-		completed[i] = util.WrapPhase(startPhase + diff*fraction)
+		completed[i] = core.WrapPhase(startPhase + diff*fraction)
 	}
 
 	return completed
@@ -198,7 +198,7 @@ func calculateAmplitude(phases []float64) float64 {
 	// Normalize phases to [0, 2π] for circular data
 	normalizedPhases := make([]float64, len(phases))
 	for i, p := range phases {
-		normalizedPhases[i] = util.WrapPhase(p)
+		normalizedPhases[i] = core.WrapPhase(p)
 	}
 
 	// Calculate variance as measure of amplitude
@@ -245,7 +245,7 @@ func phaseCorrelation(phases1, phases2 []float64) float64 {
 	// Calculate correlation coefficient
 	var sum float64
 	for i := range len(phases1) {
-		diff := math.Abs(util.PhaseDifference(phases1[i], phases2[i]))
+		diff := math.Abs(core.PhaseDifference(phases1[i], phases2[i]))
 		sum += 1.0 - (diff / math.Pi) // Normalize to [0, 1]
 	}
 

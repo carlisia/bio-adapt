@@ -11,7 +11,6 @@ import (
 	"github.com/carlisia/bio-adapt/emerge/decision"
 	"github.com/carlisia/bio-adapt/emerge/goal"
 	"github.com/carlisia/bio-adapt/emerge/strategy"
-	"github.com/carlisia/bio-adapt/emerge/util"
 	"github.com/carlisia/bio-adapt/internal/resource"
 	"go.uber.org/atomic"
 )
@@ -129,7 +128,7 @@ func (a *Agent) NeighborCount() int {
 
 // SetPhase updates the agent's phase
 func (a *Agent) SetPhase(phase float64) {
-	a.phase.Store(util.WrapPhase(phase))
+	a.phase.Store(core.WrapPhase(phase))
 }
 
 // SetFrequency updates the agent's frequency
@@ -166,7 +165,7 @@ func (a *Agent) SetStubbornness(stubbornness float64) {
 
 // SetLocalGoal updates the agent's individual target
 func (a *Agent) SetLocalGoal(goal float64) {
-	a.localGoal.Store(util.WrapPhase(goal))
+	a.localGoal.Store(core.WrapPhase(goal))
 }
 
 // Neighbors returns the agent's neighbors map for iteration
@@ -335,7 +334,7 @@ func (a *Agent) UpdateContext() {
 // WithPhase sets initial phase
 func WithPhase(phase float64) Option {
 	return func(a *Agent) {
-		a.phase.Store(util.WrapPhase(phase))
+		a.phase.Store(core.WrapPhase(phase))
 	}
 }
 
@@ -365,7 +364,7 @@ func WithRandomFrequency() Option {
 // WithLocalGoal sets the agent's individual target
 func WithLocalGoal(goal float64) Option {
 	return func(a *Agent) {
-		a.localGoal.Store(util.WrapPhase(goal))
+		a.localGoal.Store(core.WrapPhase(goal))
 	}
 }
 
@@ -442,7 +441,7 @@ func (a *Agent) rejectsDueToStubbornness() bool {
 
 func (a *Agent) adjustPhase(delta float64) {
 	newPhase := a.phase.Load() + delta
-	a.phase.Store(util.WrapPhase(newPhase))
+	a.phase.Store(core.WrapPhase(newPhase))
 }
 
 func (a *Agent) consumeEnergy(amount float64) {

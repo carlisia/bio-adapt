@@ -11,8 +11,8 @@ import (
 	"github.com/carlisia/bio-adapt/emerge/agent"
 	"github.com/carlisia/bio-adapt/emerge/core"
 	"github.com/carlisia/bio-adapt/emerge/monitoring"
-	"github.com/carlisia/bio-adapt/emerge/util"
 	"github.com/carlisia/bio-adapt/internal/config"
+	"github.com/carlisia/bio-adapt/internal/emerge"
 )
 
 // Swarm represents a collection of autonomous agents achieving
@@ -25,7 +25,7 @@ type Swarm struct {
 
 	// Monitoring (read-only, doesn't control) - private implementation details
 	monitor     *monitoring.Monitor
-	basin       *util.AttractorBasin
+	basin       *emerge.AttractorBasin
 	convergence *monitoring.ConvergenceMonitor
 
 	// Track initialization state
@@ -57,7 +57,7 @@ func New(size int, goal core.State, opts ...Option) (*Swarm, error) {
 		config:      cfg,
 		size:        size,
 		monitor:     monitoring.New(),
-		basin:       util.NewAttractorBasin(goal, cfg.BasinStrength, cfg.BasinWidth),
+		basin:       emerge.NewAttractorBasin(goal, cfg.BasinStrength, cfg.BasinWidth),
 		convergence: monitoring.NewConvergence(goal, goal.Coherence),
 	}
 
@@ -120,7 +120,7 @@ func NewSwarmFromConfig(size int, goal core.State, cfg config.Swarm) (*Swarm, er
 		config:      cfg,
 		size:        size,
 		monitor:     monitoring.New(),
-		basin:       util.NewAttractorBasin(goal, cfg.BasinStrength, cfg.BasinWidth),
+		basin:       emerge.NewAttractorBasin(goal, cfg.BasinStrength, cfg.BasinWidth),
 		convergence: monitoring.NewConvergence(goal, goal.Coherence),
 	}
 
@@ -158,7 +158,7 @@ func WithConfig(cfg config.Swarm) Option {
 		}
 		s.config = cfg
 		// Update basin and convergence with new config
-		s.basin = util.NewAttractorBasin(s.goalState, cfg.BasinStrength, cfg.BasinWidth)
+		s.basin = emerge.NewAttractorBasin(s.goalState, cfg.BasinStrength, cfg.BasinWidth)
 		return nil
 	}
 }
@@ -500,7 +500,7 @@ func (s *Swarm) MeasureCoherence() float64 {
 		return true
 	})
 
-	return util.MeasureCoherence(phases)
+	return core.MeasureCoherence(phases)
 }
 
 // Agents returns all agents in the swarm.

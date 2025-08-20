@@ -2,7 +2,6 @@ package goal
 
 import (
 	"github.com/carlisia/bio-adapt/emerge/core"
-	"github.com/carlisia/bio-adapt/emerge/util"
 )
 
 // WeightedManager provides weighted blending of local and global goals.
@@ -23,8 +22,8 @@ func (w *WeightedManager) Blend(local, global core.State, weight float64) core.S
 
 	// Blend phases with proper circular interpolation
 	// Use PhaseDifference to get the shortest angular path from local to global
-	phaseDiff := util.PhaseDifference(global.Phase, local.Phase)
-	blendedPhase := util.WrapPhase(local.Phase + phaseDiff*globalInfluence)
+	phaseDiff := core.PhaseDifference(global.Phase, local.Phase)
+	blendedPhase := core.WrapPhase(local.Phase + phaseDiff*globalInfluence)
 
 	return core.State{
 		Phase:     blendedPhase,

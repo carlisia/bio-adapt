@@ -63,7 +63,6 @@ import (
 
 	"github.com/carlisia/bio-adapt/emerge/core"
 	"github.com/carlisia/bio-adapt/emerge/swarm"
-	"github.com/carlisia/bio-adapt/emerge/util"
 )
 
 func main() {
@@ -681,7 +680,7 @@ func estimateBatches(swarm *swarm.Swarm) int {
 		// Find all requests in this batch window
 		for j, phase2 := range phases {
 			if !used[j] {
-				diff := math.Abs(util.PhaseDifference(phase1, phase2))
+				diff := math.Abs(core.PhaseDifference(phase1, phase2))
 				if diff < threshold {
 					used[j] = true
 				}
