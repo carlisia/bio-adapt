@@ -60,7 +60,7 @@ func NewFromConfig(id string, cfg config.Agent) (*Agent, error) {
 	case "", "phase_nudge":
 		rate := cfg.StrategyRate
 		if rate == 0 {
-			rate = 0.3
+			rate = 0.7 // Increased default for better convergence
 		}
 		sync = &strategy.PhaseNudge{Rate: rate}
 	case "frequency_lock":

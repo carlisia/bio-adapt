@@ -63,7 +63,7 @@ func New(id string, opts ...Option) *Agent {
 		WithRandomLocalGoal(),
 		WithRandomFrequency(),
 		WithEnergy(100.0),
-		WithInfluence(0.5),
+		WithInfluence(0.1), // Low global influence for Kuramoto coupling to work
 		WithStubbornness(0.2),
 	}
 
@@ -87,6 +87,11 @@ func New(id string, opts ...Option) *Agent {
 // Phase returns the agent's current phase
 func (a *Agent) Phase() float64 {
 	return a.phase.Load()
+}
+
+// SetPhase sets the agent's phase (for goal-directed sync)
+func (a *Agent) SetPhase(phase float64) {
+	a.phase.Store(core.WrapPhase(phase))
 }
 
 // Frequency returns the agent's oscillation frequency
@@ -125,11 +130,6 @@ func (a *Agent) NeighborCount() int {
 }
 
 // ============= Public Setters =============
-
-// SetPhase updates the agent's phase
-func (a *Agent) SetPhase(phase float64) {
-	a.phase.Store(core.WrapPhase(phase))
-}
 
 // SetFrequency updates the agent's frequency
 func (a *Agent) SetFrequency(freq time.Duration) {
@@ -212,13 +212,13 @@ func (a *Agent) ProposeAdjustment(globalGoal core.State) (core.Action, bool) {
 		return core.Action{Type: "maintain"}, false
 	}
 
-	// Get blended goal
-	localState := core.State{
-		Phase:     a.localGoal.Load(),
+	// For Kuramoto synchronization: use pure local goal from neighbors
+	// Don't blend with global goal - this breaks emergent synchronization
+	blendedGoal := core.State{
+		Phase:     a.localGoal.Load(), // Pure neighbor-based goal
 		Frequency: a.frequency.Load(),
-		Coherence: 0, // Individual agent has no coherence
+		Coherence: globalGoal.Coherence, // Keep target coherence for decisions
 	}
-	blendedGoal := a.goalManager.Blend(localState, globalGoal, a.influence.Load())
 
 	// Generate proposal using context
 	currentState := core.State{
@@ -311,6 +311,21 @@ func (a *Agent) UpdateContext() {
 	localCoherence := 0.0
 	if neighbors > 0 {
 		localCoherence = math.Sqrt(sumCos*sumCos+sumSin*sumSin) / float64(neighbors)
+
+		// Kuramoto coupling: set local goal based on average neighbor phase
+		// The agent should move toward the average phase of its neighbors
+		avgSin := sumSin / float64(neighbors)
+		avgCos := sumCos / float64(neighbors)
+		targetPhaseShift := math.Atan2(avgSin, avgCos)
+
+		// Apply attractor basin dynamics
+		// Stronger coupling when coherence is higher (positive feedback)
+		couplingStrength := 0.5 + 0.5*localCoherence // Range 0.5-1.0
+		effectiveShift := targetPhaseShift * couplingStrength
+
+		// Set local goal to current phase plus the calculated shift
+		// This implements the Kuramoto model where agents couple to neighbors
+		a.localGoal.Store(core.WrapPhase(myPhase + effectiveShift))
 	}
 
 	// Calculate density

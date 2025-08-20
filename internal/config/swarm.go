@@ -58,7 +58,7 @@ func DefaultConfig() Swarm {
 		BasinStrength:            0.8,
 		BasinWidth:               math.Pi,
 		BaseConfidence:           0.6,
-		InfluenceDefault:         0.5,
+		InfluenceDefault:         0.2,                    // Low global influence for Kuramoto coupling
 		MaxSwarmSize:             1000000,                // 1M agent limit
 		MaxConcurrentAgents:      1000,                   // Limit concurrent goroutines
 		UseBatchProcessing:       true,                   // Enable batching for large swarms
@@ -85,7 +85,7 @@ func SmallSwarmConfig() Swarm {
 		BasinStrength:            0.9,         // Strong attractor
 		BasinWidth:               2 * math.Pi, // Wider basin
 		BaseConfidence:           0.8,         // Higher confidence
-		InfluenceDefault:         0.7,         // Higher influence
+		InfluenceDefault:         0.1,         // Low global influence for Kuramoto coupling
 		MaxSwarmSize:             100,         // Small swarm limit
 		MaxConcurrentAgents:      0,           // No limit for small swarms
 		UseBatchProcessing:       false,       // No batching needed
@@ -112,7 +112,7 @@ func MediumSwarmConfig() Swarm {
 		BasinStrength:            0.85,
 		BasinWidth:               1.5 * math.Pi,
 		BaseConfidence:           0.7,
-		InfluenceDefault:         0.6,
+		InfluenceDefault:         0.2,   // Low global influence for Kuramoto coupling
 		MaxSwarmSize:             1000,  // Medium swarm limit
 		MaxConcurrentAgents:      100,   // Moderate concurrency limit
 		UseBatchProcessing:       false, // No batching for medium swarms
@@ -144,7 +144,7 @@ func AutoScaleConfig(swarmSize int) Swarm {
 		config.BasinStrength = 0.95
 		config.BasinWidth = 2.5 * math.Pi
 		config.BaseConfidence = 0.9
-		config.InfluenceDefault = 0.8
+		config.InfluenceDefault = 0.1 // Low global influence for Kuramoto coupling
 		// Concurrency settings for very small swarms
 		config.MaxSwarmSize = 50
 		config.MaxConcurrentAgents = 0 // No limit
@@ -168,6 +168,10 @@ func AutoScaleConfig(swarmSize int) Swarm {
 		config = DefaultConfig()
 		config.MaxNeighbors = minInt(20, swarmSize/10)
 		config.AutoScale = true
+		// For proper Kuramoto synchronization
+		config.CouplingStrength = 0.7 // Strong coupling for synchronization
+		config.InfluenceDefault = 0.2 // Favor local (neighbor) goals over global
+		config.Stubbornness = 0.1     // Less rejection for faster convergence
 		// Scale concurrency for large swarms
 		config.MaxConcurrentAgents = minInt(500, swarmSize/2)
 		config.UseBatchProcessing = swarmSize > 200
