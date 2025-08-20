@@ -201,8 +201,8 @@ func (m *ConvergenceMonitor) PredictConvergenceTime() time.Duration {
 	return time.Duration(timeToConverge * float64(samplePeriod))
 }
 
-// GetHistory returns the full coherence history.
-func (m *ConvergenceMonitor) GetHistory() []float64 {
+// History returns the full coherence history.
+func (m *ConvergenceMonitor) History() []float64 {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -211,8 +211,8 @@ func (m *ConvergenceMonitor) GetHistory() []float64 {
 	return result
 }
 
-// GetStatistics returns comprehensive convergence statistics.
-func (m *ConvergenceMonitor) GetStatistics() map[string]any {
+// Statistics returns comprehensive convergence statistics.
+func (m *ConvergenceMonitor) Statistics() map[string]any {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
