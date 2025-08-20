@@ -3,6 +3,7 @@ package swarm
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
@@ -14,10 +15,25 @@ import (
 	"github.com/carlisia/bio-adapt/internal/random"
 )
 
+// Implementation selection thresholds
+const (
+	// OptimizedSwarmThreshold is the size above which we use the optimized implementation
+	OptimizedSwarmThreshold = 100
+
+	// LargeSwarmThreshold is the size above which we enable additional optimizations
+	LargeSwarmThreshold = 1000
+)
+
 // Swarm represents a collection of autonomous agents achieving
 // synchronization through emergent behavior - no central control.
 type Swarm struct {
-	agents    sync.Map // map[string]*agent.Agent
+	// Storage - automatically selected based on size
+	agents      sync.Map       // map[string]*agent.Agent - used for small swarms
+	agentSlice  []*agent.Agent // Direct access by index - used for large swarms
+	agentIndex  map[string]int // ID to index mapping - used for large swarms
+	agentsMutex sync.RWMutex   // Protects slice access
+	optimized   bool           // Whether using optimized storage
+
 	goalState core.State
 	config    config.Swarm
 	size      int
@@ -32,12 +48,19 @@ type Swarm struct {
 
 	// Goal-directed synchronization
 	goalDirectedSync *GoalDirectedSync
+
+	// Performance optimization for large swarms
+	workerPool *WorkerPool // Goroutine pool for concurrent updates
 }
 
 // Option configures a Swarm.
 type Option func(*Swarm) error
 
-// New creates a swarm with the provided options.
+// New creates a swarm with automatic storage optimization based on size.
+// For smaller swarms (≤100 agents), uses sync.Map for simplicity.
+// For larger swarms (>100 agents), uses slice-based storage with better cache locality.
+//
+//nolint:gocyclo // Initialization requires multiple validation steps
 func New(size int, goal core.State, opts ...Option) (*Swarm, error) {
 	if size <= 0 {
 		return nil, fmt.Errorf("%w: got %d", ErrInvalidSwarmSize, size)
@@ -54,6 +77,7 @@ func New(size int, goal core.State, opts ...Option) (*Swarm, error) {
 		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
+	// Initialize swarm with optimized storage for large sizes
 	s := &Swarm{
 		goalState:   goal,
 		config:      cfg,
@@ -61,6 +85,16 @@ func New(size int, goal core.State, opts ...Option) (*Swarm, error) {
 		monitor:     monitoring.New(),
 		basin:       emerge.NewAttractorBasin(goal, cfg.BasinStrength, cfg.BasinWidth),
 		convergence: monitoring.NewConvergence(goal, goal.Coherence),
+		optimized:   size > OptimizedSwarmThreshold,
+	}
+
+	// Initialize optimized storage for large swarms
+	if s.optimized {
+		s.agentSlice = make([]*agent.Agent, 0, size)
+		s.agentIndex = make(map[string]int, size)
+		// Initialize worker pool for concurrent operations
+		numWorkers := getOptimalWorkerCount(size)
+		s.workerPool = NewWorkerPool(numWorkers)
 	}
 
 	// Apply options
@@ -81,14 +115,24 @@ func New(size int, goal core.State, opts ...Option) (*Swarm, error) {
 	}
 
 	// Create agents if not already created by options
-	agentCount := 0
-	s.agents.Range(func(_, _ any) bool {
-		agentCount++
-		return false // Just need to check if any exist
-	})
-	if agentCount == 0 {
-		if err := s.createDefaultAgents(); err != nil {
-			return nil, fmt.Errorf("failed to create agents: %w", err)
+	if s.optimized {
+		// Use optimized creation for large swarms
+		if len(s.agentSlice) == 0 {
+			if err := s.createOptimizedAgents(); err != nil {
+				return nil, fmt.Errorf("failed to create agents: %w", err)
+			}
+		}
+	} else {
+		// Use standard creation for small swarms
+		agentCount := 0
+		s.agents.Range(func(_, _ any) bool {
+			agentCount++
+			return false // Just need to check if any exist
+		})
+		if agentCount == 0 {
+			if err := s.createDefaultAgents(); err != nil {
+				return nil, fmt.Errorf("failed to create agents: %w", err)
+			}
 		}
 	}
 
@@ -143,7 +187,7 @@ func NewSwarmFromConfig(size int, goal core.State, cfg config.Swarm) (*Swarm, er
 	return s, nil
 }
 
-// createDefaultAgents creates agents with config-based settings.
+// createDefaultAgents creates agents with config-based settings for standard storage.
 func (s *Swarm) createDefaultAgents() error {
 	agentConfig := config.AgentFromSwarm(s.config)
 	agentConfig.SwarmSize = s.size
@@ -155,6 +199,34 @@ func (s *Swarm) createDefaultAgents() error {
 		}
 		s.agents.Store(a.ID, a)
 	}
+	return nil
+}
+
+// createOptimizedAgents creates agents efficiently for large swarms.
+func (s *Swarm) createOptimizedAgents() error {
+	agentConfig := config.AgentFromSwarm(s.config)
+	agentConfig.SwarmSize = s.size
+
+	// Pre-allocate the slice
+	s.agentSlice = make([]*agent.Agent, s.size)
+
+	// Batch create agents for better performance
+	batchSize := 100
+	for i := 0; i < s.size; i += batchSize {
+		end := minInt(i+batchSize, s.size)
+
+		for j := i; j < end; j++ {
+			id := fmt.Sprintf("agent-%d", j)
+			a, err := agent.NewFromConfig(id, agentConfig)
+			if err != nil {
+				return fmt.Errorf("failed to create agent %d: %w", j, err)
+			}
+
+			s.agentSlice[j] = a
+			s.agentIndex[id] = j
+		}
+	}
+
 	return nil
 }
 
@@ -214,6 +286,16 @@ func (s *Swarm) establishConnections() {
 
 // collectAgents gathers all agents from the swarm
 func (s *Swarm) collectAgents() []*agent.Agent {
+	if s.optimized {
+		// Return slice directly for optimized storage
+		s.agentsMutex.RLock()
+		defer s.agentsMutex.RUnlock()
+		result := make([]*agent.Agent, len(s.agentSlice))
+		copy(result, s.agentSlice)
+		return result
+	}
+
+	// Standard path
 	var agents []*agent.Agent
 	s.agents.Range(func(_, value any) bool {
 		if a, ok := value.(*agent.Agent); ok {
@@ -312,20 +394,42 @@ func (s *Swarm) Run(ctx context.Context) error {
 // MeasureCoherence calculates global synchronization level.
 // This is for monitoring only - agents don't have access to this.
 func (s *Swarm) MeasureCoherence() float64 {
-	var phases []float64
+	if s.optimized {
+		// Optimized path for large swarms - better cache locality
+		s.agentsMutex.RLock()
+		phases := make([]float64, len(s.agentSlice))
+		for i, a := range s.agentSlice {
+			phases[i] = a.Phase()
+		}
+		s.agentsMutex.RUnlock()
+		return core.MeasureCoherence(phases)
+	}
 
+	// Standard path for small swarms
+	var phases []float64
 	s.agents.Range(func(_, value any) bool {
 		if a, ok := value.(*agent.Agent); ok {
 			phases = append(phases, a.Phase())
 		}
 		return true
 	})
-
 	return core.MeasureCoherence(phases)
 }
 
 // Agents returns all agents in the swarm.
 func (s *Swarm) Agents() map[string]*agent.Agent {
+	if s.optimized {
+		// Optimized path - convert slice to map
+		s.agentsMutex.RLock()
+		agents := make(map[string]*agent.Agent, len(s.agentSlice))
+		for _, a := range s.agentSlice {
+			agents[a.ID] = a
+		}
+		s.agentsMutex.RUnlock()
+		return agents
+	}
+
+	// Standard path
 	agents := make(map[string]*agent.Agent)
 	s.agents.Range(func(key, value interface{}) bool {
 		if k, ok := key.(string); ok {
@@ -340,6 +444,17 @@ func (s *Swarm) Agents() map[string]*agent.Agent {
 
 // Agent retrieves an agent by ID.
 func (s *Swarm) Agent(id string) (*agent.Agent, bool) {
+	if s.optimized {
+		// Optimized path - O(1) lookup
+		s.agentsMutex.RLock()
+		defer s.agentsMutex.RUnlock()
+		if idx, ok := s.agentIndex[id]; ok {
+			return s.agentSlice[idx], true
+		}
+		return nil, false
+	}
+
+	// Standard path
 	value, exists := s.agents.Load(id)
 	if !exists {
 		return nil, false
@@ -412,4 +527,74 @@ func AutoScaleConfig(swarmSize int) config.Swarm {
 // ConfigForBatching returns configuration optimized for request batching scenarios.
 func ConfigForBatching(workloadCount int, batchWindow time.Duration) config.Swarm {
 	return config.ForBatching(workloadCount, batchWindow)
+}
+
+// WorkerPool manages a fixed number of goroutines for agent updates.
+// Used internally for optimized swarms to reduce goroutine creation overhead.
+type WorkerPool struct {
+	workers   int
+	workQueue chan func()
+	quit      chan struct{}
+}
+
+// NewWorkerPool creates a new worker pool.
+func NewWorkerPool(workers int) *WorkerPool {
+	wp := &WorkerPool{
+		workers:   workers,
+		workQueue: make(chan func(), workers*2),
+		quit:      make(chan struct{}),
+	}
+
+	// Start workers
+	for i := 0; i < workers; i++ { //nolint:intrange // i is not used in the loop body
+		go wp.worker()
+	}
+
+	return wp
+}
+
+// worker processes tasks from the queue.
+func (wp *WorkerPool) worker() {
+	for {
+		select {
+		case work := <-wp.workQueue:
+			work()
+		case <-wp.quit:
+			return
+		}
+	}
+}
+
+// Submit adds work to the queue.
+func (wp *WorkerPool) Submit(work func()) {
+	wp.workQueue <- work
+}
+
+// Stop shuts down the worker pool.
+func (wp *WorkerPool) Stop() {
+	close(wp.quit)
+}
+
+// getOptimalWorkerCount determines the best number of workers based on swarm size.
+func getOptimalWorkerCount(swarmSize int) int {
+	// Base it on CPU count and swarm size
+	numCPU := runtime.NumCPU()
+
+	switch {
+	case swarmSize < 100:
+		return numCPU
+	case swarmSize < 1000:
+		return numCPU * 2
+	default:
+		// For very large swarms, cap at 4x CPU count
+		return minInt(numCPU*4, 32)
+	}
+}
+
+// minInt returns the minimum of two integers.
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
