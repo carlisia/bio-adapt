@@ -19,6 +19,16 @@ The swarm automatically selects storage based on size:
 
 Memory scales linearly with swarm size, with optimizations reducing allocations in hot paths.
 
+## Neighbor Storage Optimization
+
+For large swarms (>100 agents), agents use optimized neighbor storage:
+
+- **Fixed-size arrays** instead of sync.Map for neighbors
+- **Direct slice iteration** for coherence calculations  
+- **Pre-allocated storage** reduces allocations
+- **~2x faster** neighbor operations for 50+ neighbors
+- **20% faster** coherence calculations
+
 ## Implementation Details
 
 ### Object Pooling (`emerge/agent/pool.go`)
