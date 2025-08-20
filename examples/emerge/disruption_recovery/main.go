@@ -45,25 +45,30 @@ func setupSwarmAndMonitoring() (*swarm.Swarm, *monitoring.Monitor, context.Conte
 	return s, monitor, ctx, cancel
 }
 
-// startSwarm starts the swarm in a goroutine.
-func startSwarm(ctx context.Context, s *swarm.Swarm, cancel context.CancelFunc) {
+// startSwarm starts the swarm in a goroutine and returns an error channel.
+func startSwarm(ctx context.Context, s *swarm.Swarm, cancel context.CancelFunc) <-chan error {
 	errChan := make(chan error, 1)
 	go func() {
 		if err := s.Run(ctx); err != nil {
 			errChan <- err
 		}
+		close(errChan) // Close channel when done
 	}()
 
-	// Check for immediate errors
+	// Monitor for errors in a separate goroutine
 	go func() {
 		select {
 		case err := <-errChan:
-			fmt.Printf("\nError in swarm: %v\n", err)
-			cancel()
+			if err != nil {
+				fmt.Printf("\nError in swarm: %v\n", err)
+				cancel()
+			}
 		case <-ctx.Done():
-			// Context canceled
+			// Context canceled - goroutine will exit
 		}
 	}()
+
+	return errChan
 }
 
 // runInitialStabilization runs the initial stabilization phase.
@@ -269,7 +274,7 @@ func main() {
 	defer cancel()
 
 	// Start the swarm
-	startSwarm(ctx, s, cancel)
+	_ = startSwarm(ctx, s, cancel) // Error handling done in goroutine
 
 	// Initial stabilization phase
 	_ = runInitialStabilization(s, monitor)
