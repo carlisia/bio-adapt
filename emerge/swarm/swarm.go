@@ -30,6 +30,9 @@ type Swarm struct {
 
 	// Track initialization state
 	connectionsEstablished bool
+
+	// Goal-directed synchronization
+	goalDirectedSync *GoalDirectedSync
 }
 
 // Option configures a Swarm
@@ -95,6 +98,9 @@ func New(size int, goal core.State, opts ...Option) (*Swarm, error) {
 		s.establishConnections()
 	}
 
+	// Initialize goal-directed synchronization
+	s.goalDirectedSync = NewGoalDirectedSync(s)
+
 	return s, nil
 }
 
@@ -131,6 +137,9 @@ func NewSwarmFromConfig(size int, goal core.State, cfg config.Swarm) (*Swarm, er
 
 	// Establish connections
 	s.establishConnections()
+
+	// Initialize goal-directed synchronization
+	s.goalDirectedSync = NewGoalDirectedSync(s)
 
 	return s, nil
 }
@@ -267,226 +276,20 @@ func (s *Swarm) establishConnections() {
 	}
 }
 
-// Run starts all agents autonomously - no central orchestration.
-// Synchronization emerges from local interactions and gossip.
+// Run starts the swarm and achieves synchronization using bioelectric pattern completion.
+// Uses adaptive strategies and attractor basin dynamics to ensure convergence.
 func (s *Swarm) Run(ctx context.Context) error {
-	if s.config.UseBatchProcessing {
-		if err := s.runWithBatchProcessing(ctx); err != nil {
-			return fmt.Errorf("batch processing failed: %w", err)
-		}
-		return nil
-	}
-	if err := s.runWithDirectProcessing(ctx); err != nil {
-		return fmt.Errorf("direct processing failed: %w", err)
-	}
-	return nil
-}
-
-// runWithDirectProcessing runs each agent in its own goroutine (original behavior)
-func (s *Swarm) runWithDirectProcessing(ctx context.Context) error {
-	var wg sync.WaitGroup
-
-	// Collect all agents
-	var agents []*agent.Agent
-	s.agents.Range(func(key, value any) bool {
-		agents = append(agents, value.(*agent.Agent))
-		return true
-	})
-
-	// Apply concurrency limit if configured
-	concurrencyLimit := s.config.MaxConcurrentAgents
-	if concurrencyLimit > 0 && len(agents) > concurrencyLimit {
-		// Use worker pool with limited goroutines
-		if err := s.runWithWorkerPool(ctx, agents); err != nil {
-			return fmt.Errorf("worker pool execution failed: %w", err)
-		}
-		return nil
+	// Create target pattern from goal state
+	targetPattern := &core.RhythmicPattern{
+		Phase:     s.goalState.Phase,
+		Frequency: time.Duration(s.goalState.Frequency),
+		Coherence: s.goalState.Coherence,
+		Amplitude: 1.0,
+		Stability: 0.9,
 	}
 
-	// Start each agent independently
-	for _, a := range agents {
-		wg.Add(1)
-		go func(ag *agent.Agent) {
-			defer wg.Done()
-			s.runAgentLoop(ctx, ag)
-		}(a)
-	}
-
-	// Monitor convergence (observation only, no control)
-	go s.monitorConvergence(ctx)
-
-	wg.Wait()
-	return nil
-}
-
-// runWithWorkerPool runs agents using a limited worker pool
-func (s *Swarm) runWithWorkerPool(ctx context.Context, agents []*agent.Agent) error {
-	workerCount := s.config.WorkerPoolSize
-	if workerCount == 0 {
-		workerCount = s.config.MaxConcurrentAgents
-	}
-
-	agentChan := make(chan *agent.Agent, len(agents))
-	var wg sync.WaitGroup
-
-	// Start workers
-	for range workerCount {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for agent := range agentChan {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					s.runAgentCycle(agent)
-				}
-			}
-		}()
-	}
-
-	// Monitor convergence
-	go s.monitorConvergence(ctx)
-
-	// Continuously feed agents to workers
-	go func() {
-		defer close(agentChan)
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				for _, agent := range agents {
-					select {
-					case agentChan <- agent:
-					case <-ctx.Done():
-						return
-					}
-				}
-				// Small delay between cycles
-				time.Sleep(s.config.AgentUpdateInterval)
-			}
-		}
-	}()
-
-	wg.Wait()
-	return nil
-}
-
-// runWithBatchProcessing processes agents in batches
-func (s *Swarm) runWithBatchProcessing(ctx context.Context) error {
-	// Collect all agents
-	var agents []*agent.Agent
-	s.agents.Range(func(key, value any) bool {
-		agents = append(agents, value.(*agent.Agent))
-		return true
-	})
-
-	batchSize := s.config.BatchSize
-	if batchSize == 0 {
-		batchSize = len(agents) / 10 // Default to 10 batches
-		if batchSize < 1 {
-			batchSize = 1
-		}
-	}
-
-	// Monitor convergence
-	go s.monitorConvergence(ctx)
-
-	// Process agents in batches continuously
-	ticker := time.NewTicker(s.config.AgentUpdateInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-ticker.C:
-			s.processBatch(agents, batchSize)
-		}
-	}
-}
-
-// processBatch processes a batch of agents concurrently
-func (s *Swarm) processBatch(agents []*agent.Agent, batchSize int) {
-	var wg sync.WaitGroup
-
-	for i := 0; i < len(agents); i += batchSize {
-		end := i + batchSize
-		if end > len(agents) {
-			end = len(agents)
-		}
-
-		batch := agents[i:end]
-		wg.Add(1)
-		go func(agentBatch []*agent.Agent) {
-			defer wg.Done()
-			for _, agent := range agentBatch {
-				s.runAgentCycle(agent)
-			}
-		}(batch)
-	}
-
-	wg.Wait()
-}
-
-// runAgentLoop runs a single agent continuously
-func (s *Swarm) runAgentLoop(ctx context.Context, agent *agent.Agent) {
-	ticker := time.NewTicker(s.config.AgentUpdateInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			s.runAgentCycle(agent)
-		}
-	}
-}
-
-// runAgentCycle runs a single cycle of agent processing
-func (s *Swarm) runAgentCycle(agent *agent.Agent) {
-	// Update context from local observations
-	agent.UpdateContext()
-
-	// Make autonomous decision
-	action, accepted := agent.ProposeAdjustment(s.goalState)
-
-	if accepted {
-		success, energyCost, err := agent.ApplyAction(action)
-		if !success {
-			// Action failed - log the detailed error for debugging while maintaining autonomous behavior
-			// This is expected behavior in autonomous systems where agents can fail due to resource constraints
-			if err != nil {
-				// In a production system, this could be logged to monitoring systems
-				// For now, we silently handle the failure as part of autonomous behavior
-				_ = err // err contains detailed context like "insufficient energy: required 5.20, available 3.40"
-			}
-			return
-		}
-		// Successfully applied action with energy cost
-		// The energy is already deducted from the agent's resource manager
-		// We could use energyCost for monitoring/metrics here if needed
-		_ = energyCost // Intentionally unused - energy tracking is internal
-	}
-}
-
-// monitorConvergence observes emergent behavior without controlling it.
-func (s *Swarm) monitorConvergence(ctx context.Context) {
-	ticker := time.NewTicker(s.config.MonitoringInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			coherence := s.MeasureCoherence()
-			s.monitor.RecordSample(coherence)
-			s.convergence.Record(coherence)
-		}
-	}
+	// Use goal-directed synchronization
+	return s.goalDirectedSync.AchieveSynchronization(ctx, targetPattern)
 }
 
 // MeasureCoherence calculates global synchronization level.
