@@ -17,7 +17,7 @@ import (
 	"github.com/carlisia/bio-adapt/emerge/swarm"
 )
 
-// RiskAverseDecisionMaker avoids high-cost actions
+// RiskAverseDecisionMaker avoids high-cost actions.
 type RiskAverseDecisionMaker struct {
 	maxAcceptableCost float64
 	history           []float64
@@ -66,7 +66,7 @@ func (r *RiskAverseDecisionMaker) Decide(state core.State, options []core.Action
 	return bestAction, confidence
 }
 
-// AggressiveDecisionMaker takes more risks for higher rewards
+// AggressiveDecisionMaker takes more risks for higher rewards.
 type AggressiveDecisionMaker struct {
 	aggressiveness float64
 	successCount   atomic.Int32
@@ -121,7 +121,7 @@ func (a *AggressiveDecisionMaker) GetSuccessRate() float64 {
 	return float64(a.successCount.Load()) / float64(total)
 }
 
-// AdaptiveDecisionMaker learns from past decisions
+// AdaptiveDecisionMaker learns from past decisions.
 type AdaptiveDecisionMaker struct {
 	learningRate     float64
 	costThreshold    atomic.Value // float64
@@ -144,8 +144,17 @@ func (a *AdaptiveDecisionMaker) Decide(state core.State, options []core.Action) 
 		return core.Action{Type: "maintain"}, 0.5
 	}
 
-	costThresh := a.costThreshold.Load().(float64)
-	benefitThresh := a.benefitThreshold.Load().(float64)
+	var costThresh, benefitThresh float64
+	if val := a.costThreshold.Load(); val != nil {
+		if ct, ok := val.(float64); ok {
+			costThresh = ct
+		}
+	}
+	if val := a.benefitThreshold.Load(); val != nil {
+		if bt, ok := val.(float64); ok {
+			benefitThresh = bt
+		}
+	}
 
 	bestAction := options[0]
 	bestScore := -math.MaxFloat64
@@ -362,7 +371,6 @@ func demonstrateRealTimeComparison() {
 
 	i := 0
 	for _, agent := range swarm.Agents() {
-
 		switch i % 4 {
 		case 0:
 			agent.SetDecisionMaker(NewRiskAverseDecisionMaker(5.0))

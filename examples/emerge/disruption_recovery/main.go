@@ -58,7 +58,7 @@ func main() {
 			fmt.Printf("\nError in swarm: %v\n", err)
 			cancel()
 		case <-ctx.Done():
-			// Context cancelled
+			// Context canceled
 		}
 	}()
 
@@ -227,7 +227,7 @@ func main() {
 	fmt.Println("\n\nDemo complete!")
 }
 
-// randomPhaseDisruption randomly changes the phase of a fraction of agents
+// randomPhaseDisruption randomly changes the phase of a fraction of agents.
 func randomPhaseDisruption(s *swarm.Swarm, fraction float64) {
 	count := 0
 	for _, agent := range s.Agents() {
@@ -240,7 +240,7 @@ func randomPhaseDisruption(s *swarm.Swarm, fraction float64) {
 	fmt.Printf("  Disrupted %d agents with random phases\n", count)
 }
 
-// energyDepletionDisruption depletes energy from a fraction of agents
+// energyDepletionDisruption depletes energy from a fraction of agents.
 func energyDepletionDisruption(s *swarm.Swarm, fraction float64) {
 	count := 0
 	for _, agent := range s.Agents() {
@@ -253,11 +253,12 @@ func energyDepletionDisruption(s *swarm.Swarm, fraction float64) {
 	fmt.Printf("  Depleted energy in %d agents\n", count)
 }
 
-// networkPartitionDisruption simulates network partition by removing connections
+// networkPartitionDisruption simulates network partition by removing connections.
 func networkPartitionDisruption(s *swarm.Swarm) {
 	// Remove connections between two halves of the network
-	var agents []*agent.Agent
-	for _, agent := range s.Agents() {
+	swarmAgents := s.Agents()
+	agents := make([]*agent.Agent, 0, len(swarmAgents))
+	for _, agent := range swarmAgents {
 		agents = append(agents, agent)
 	}
 
@@ -291,7 +292,7 @@ func networkPartitionDisruption(s *swarm.Swarm) {
 	}()
 }
 
-// stubbornAgentDisruption makes some agents very stubborn
+// stubbornAgentDisruption makes some agents very stubborn.
 func stubbornAgentDisruption(s *swarm.Swarm, fraction float64) {
 	count := 0
 	for _, agent := range s.Agents() {
@@ -306,7 +307,7 @@ func stubbornAgentDisruption(s *swarm.Swarm, fraction float64) {
 	fmt.Printf("  Made %d agents stubborn with conflicting goals\n", count)
 }
 
-// cascadeFailureDisruption simulates a cascade failure starting from one agent
+// cascadeFailureDisruption simulates a cascade failure starting from one agent.
 func cascadeFailureDisruption(s *swarm.Swarm) {
 	// Pick a random agent to start the cascade
 	var seedAgent *agent.Agent
@@ -330,7 +331,10 @@ func cascadeFailureDisruption(s *swarm.Swarm) {
 
 	// Cascade to neighbors
 	seedAgent.Neighbors().Range(func(key, value any) bool {
-		neighbor := value.(*agent.Agent)
+		neighbor, ok := value.(*agent.Agent)
+		if !ok {
+			return true
+		}
 		// Neighbors are partially affected
 		neighbor.SetPhase(neighbor.Phase() + (rand.Float64()-0.5)*2)
 		neighbor.SetEnergy(neighbor.Energy() * 0.5)
@@ -339,9 +343,10 @@ func cascadeFailureDisruption(s *swarm.Swarm) {
 		// Secondary cascade (with lower probability)
 		if rand.Float64() < 0.3 {
 			neighbor.Neighbors().Range(func(k2, v2 any) bool {
-				secondary := v2.(*agent.Agent)
-				secondary.SetEnergy(secondary.Energy() * 0.7)
-				affected++
+				if secondary, ok := v2.(*agent.Agent); ok {
+					secondary.SetEnergy(secondary.Energy() * 0.7)
+					affected++
+				}
 				return rand.Float64() < 0.5 // Continue with 50% probability
 			})
 		}

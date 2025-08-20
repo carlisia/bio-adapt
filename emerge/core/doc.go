@@ -1,4 +1,4 @@
-// Package emerge implements distributed agent synchronization inspired by
+// Package core implements distributed agent synchronization inspired by
 // biological goal-directedness. Unlike traditional consensus algorithms, this pattern
 // achieves synchronization through autonomous agents with local goals that contribute
 // to emergent global behavior - no central orchestrator required.

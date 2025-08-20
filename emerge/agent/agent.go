@@ -44,7 +44,7 @@ type Agent struct {
 	strategy    core.SyncStrategy
 }
 
-// Option configures an Agent
+// Option configures an Agent.
 type Option func(*Agent)
 
 // New creates an agent with the provided options.
@@ -84,42 +84,42 @@ func New(id string, opts ...Option) *Agent {
 
 // ============= Public Getters (no "Get" prefix) =============
 
-// Phase returns the agent's current phase
+// Phase returns the agent's current phase.
 func (a *Agent) Phase() float64 {
 	return a.phase.Load()
 }
 
-// SetPhase sets the agent's phase (for goal-directed sync)
+// SetPhase sets the agent's phase (for goal-directed sync).
 func (a *Agent) SetPhase(phase float64) {
 	a.phase.Store(core.WrapPhase(phase))
 }
 
-// Frequency returns the agent's oscillation frequency
+// Frequency returns the agent's oscillation frequency.
 func (a *Agent) Frequency() time.Duration {
 	return a.frequency.Load()
 }
 
-// Energy returns the agent's available energy
+// Energy returns the agent's available energy.
 func (a *Agent) Energy() float64 {
 	return a.energy.Load()
 }
 
-// Influence returns the agent's influence weight
+// Influence returns the agent's influence weight.
 func (a *Agent) Influence() float64 {
 	return a.influence.Load()
 }
 
-// Stubbornness returns the agent's resistance to change
+// Stubbornness returns the agent's resistance to change.
 func (a *Agent) Stubbornness() float64 {
 	return a.stubbornness.Load()
 }
 
-// LocalGoal returns the agent's individual target phase
+// LocalGoal returns the agent's individual target phase.
 func (a *Agent) LocalGoal() float64 {
 	return a.localGoal.Load()
 }
 
-// NeighborCount returns the number of connected neighbors
+// NeighborCount returns the number of connected neighbors.
 func (a *Agent) NeighborCount() int {
 	count := 0
 	a.neighbors.Range(func(_, _ any) bool {
@@ -131,17 +131,17 @@ func (a *Agent) NeighborCount() int {
 
 // ============= Public Setters =============
 
-// SetFrequency updates the agent's frequency
+// SetFrequency updates the agent's frequency.
 func (a *Agent) SetFrequency(freq time.Duration) {
 	a.frequency.Store(freq)
 }
 
-// SetEnergy updates the agent's energy
+// SetEnergy updates the agent's energy.
 func (a *Agent) SetEnergy(energy float64) {
 	a.energy.Store(math.Max(0, energy))
 }
 
-// SetInfluence updates the agent's influence weight
+// SetInfluence updates the agent's influence weight.
 func (a *Agent) SetInfluence(influence float64) {
 	// Clamp to [0, 1]
 	if influence < 0 {
@@ -152,7 +152,7 @@ func (a *Agent) SetInfluence(influence float64) {
 	a.influence.Store(influence)
 }
 
-// SetStubbornness updates the agent's resistance
+// SetStubbornness updates the agent's resistance.
 func (a *Agent) SetStubbornness(stubbornness float64) {
 	// Clamp to [0, 1]
 	if stubbornness < 0 {
@@ -163,24 +163,24 @@ func (a *Agent) SetStubbornness(stubbornness float64) {
 	a.stubbornness.Store(stubbornness)
 }
 
-// SetLocalGoal updates the agent's individual target
-func (a *Agent) SetLocalGoal(goal float64) {
-	a.localGoal.Store(core.WrapPhase(goal))
+// SetLocalGoal updates the agent's individual target.
+func (a *Agent) SetLocalGoal(g float64) {
+	a.localGoal.Store(core.WrapPhase(g))
 }
 
-// Neighbors returns the agent's neighbors map for iteration
+// Neighbors returns the agent's neighbors map for iteration.
 func (a *Agent) Neighbors() *sync.Map {
 	return &a.neighbors
 }
 
-// SetDecisionMaker replaces the decision-making component
+// SetDecisionMaker replaces the decision-making component.
 func (a *Agent) SetDecisionMaker(dm core.DecisionMaker) {
 	a.decider = dm
 }
 
 // ============= Public Methods =============
 
-// ConnectTo establishes a bidirectional connection with another agent
+// ConnectTo establishes a bidirectional connection with another agent.
 func (a *Agent) ConnectTo(other *Agent) {
 	if other != nil && other.ID != a.ID {
 		a.neighbors.Store(other.ID, other)
@@ -188,7 +188,7 @@ func (a *Agent) ConnectTo(other *Agent) {
 	}
 }
 
-// DisconnectFrom removes a connection
+// DisconnectFrom removes a connection.
 func (a *Agent) DisconnectFrom(other *Agent) {
 	if other != nil {
 		a.neighbors.Delete(other.ID)
@@ -196,7 +196,7 @@ func (a *Agent) DisconnectFrom(other *Agent) {
 	}
 }
 
-// IsConnectedTo checks if connected to another agent
+// IsConnectedTo checks if connected to another agent.
 func (a *Agent) IsConnectedTo(other *Agent) bool {
 	if other == nil {
 		return false
@@ -205,7 +205,7 @@ func (a *Agent) IsConnectedTo(other *Agent) bool {
 	return exists
 }
 
-// ProposeAdjustment evaluates and potentially accepts an adjustment
+// ProposeAdjustment evaluates and potentially accepts an adjustment.
 func (a *Agent) ProposeAdjustment(globalGoal core.State) (core.Action, bool) {
 	// Stubborn agents resist change
 	if a.rejectsDueToStubbornness() {
@@ -289,15 +289,18 @@ func (a *Agent) ApplyAction(action core.Action) (bool, float64, error) {
 	return true, energyCost, nil
 }
 
-// UpdateContext updates the agent's perception of its environment
+// UpdateContext updates the agent's perception of its environment.
 func (a *Agent) UpdateContext() {
 	neighbors := 0
 	sumCos := 0.0
 	sumSin := 0.0
 	myPhase := a.phase.Load()
 
-	a.neighbors.Range(func(key, value any) bool {
-		neighbor := value.(*Agent)
+	a.neighbors.Range(func(_, value any) bool {
+		neighbor, ok := value.(*Agent)
+		if !ok {
+			return true
+		}
 		neighbors++
 
 		diff := neighbor.Phase() - myPhase
@@ -346,28 +349,28 @@ func (a *Agent) UpdateContext() {
 
 // ============= Option Functions =============
 
-// WithPhase sets initial phase
+// WithPhase sets initial phase.
 func WithPhase(phase float64) Option {
 	return func(a *Agent) {
 		a.phase.Store(core.WrapPhase(phase))
 	}
 }
 
-// WithRandomPhase sets random initial phase
+// WithRandomPhase sets random initial phase.
 func WithRandomPhase() Option {
 	return func(a *Agent) {
 		a.phase.Store(rand.Float64() * 2 * math.Pi)
 	}
 }
 
-// WithFrequency sets oscillation frequency
+// WithFrequency sets oscillation frequency.
 func WithFrequency(freq time.Duration) Option {
 	return func(a *Agent) {
 		a.frequency.Store(freq)
 	}
 }
 
-// WithRandomFrequency sets random frequency
+// WithRandomFrequency sets random frequency.
 func WithRandomFrequency() Option {
 	return func(a *Agent) {
 		baseFreq := 100 * time.Millisecond
@@ -376,56 +379,56 @@ func WithRandomFrequency() Option {
 	}
 }
 
-// WithLocalGoal sets the agent's individual target
-func WithLocalGoal(goal float64) Option {
+// WithLocalGoal sets the agent's individual target.
+func WithLocalGoal(g float64) Option {
 	return func(a *Agent) {
-		a.localGoal.Store(core.WrapPhase(goal))
+		a.localGoal.Store(core.WrapPhase(g))
 	}
 }
 
-// WithRandomLocalGoal sets random local goal
+// WithRandomLocalGoal sets random local goal.
 func WithRandomLocalGoal() Option {
 	return func(a *Agent) {
 		a.localGoal.Store(rand.Float64() * 2 * math.Pi)
 	}
 }
 
-// WithEnergy sets initial energy
+// WithEnergy sets initial energy.
 func WithEnergy(energy float64) Option {
 	return func(a *Agent) {
 		a.energy.Store(math.Max(0, energy))
 	}
 }
 
-// WithInfluence sets influence weight
+// WithInfluence sets influence weight.
 func WithInfluence(influence float64) Option {
 	return func(a *Agent) {
 		a.SetInfluence(influence)
 	}
 }
 
-// WithStubbornness sets resistance to change
+// WithStubbornness sets resistance to change.
 func WithStubbornness(stubbornness float64) Option {
 	return func(a *Agent) {
 		a.SetStubbornness(stubbornness)
 	}
 }
 
-// WithDecisionMaker sets decision-making component
+// WithDecisionMaker sets decision-making component.
 func WithDecisionMaker(dm core.DecisionMaker) Option {
 	return func(a *Agent) {
 		a.decider = dm
 	}
 }
 
-// WithGoalManager sets goal blending component
+// WithGoalManager sets goal blending component.
 func WithGoalManager(gm goal.Manager) Option {
 	return func(a *Agent) {
 		a.goalManager = gm
 	}
 }
 
-// WithResourceManager sets resource management component
+// WithResourceManager sets resource management component.
 func WithResourceManager(rm core.ResourceManager) Option {
 	return func(a *Agent) {
 		a.resources = rm
@@ -433,14 +436,14 @@ func WithResourceManager(rm core.ResourceManager) Option {
 	}
 }
 
-// WithStrategy sets synchronization strategy
+// WithStrategy sets synchronization strategy.
 func WithStrategy(s core.SyncStrategy) Option {
 	return func(a *Agent) {
 		a.strategy = s
 	}
 }
 
-// WithSwarmInfo sets swarm configuration
+// WithSwarmInfo sets swarm configuration.
 func WithSwarmInfo(swarmSize, assumedMaxNeighbors int) Option {
 	return func(a *Agent) {
 		a.swarmSize = swarmSize
@@ -468,7 +471,7 @@ func (a *Agent) consumeEnergy(amount float64) {
 	}
 }
 
-func (a *Agent) calculateStability() float64 {
+func (*Agent) calculateStability() float64 {
 	// Simple stability metric based on recent phase changes
 	// In a full implementation, this would track history
 	return 0.5 // Placeholder
@@ -480,8 +483,11 @@ func (a *Agent) calculateLocalCoherence() float64 {
 	sumSin := 0.0
 	myPhase := a.phase.Load()
 
-	a.neighbors.Range(func(key, value any) bool {
-		neighbor := value.(*Agent)
+	a.neighbors.Range(func(_, value any) bool {
+		neighbor, ok := value.(*Agent)
+		if !ok {
+			return true
+		}
 		neighbors++
 
 		diff := neighbor.Phase() - myPhase

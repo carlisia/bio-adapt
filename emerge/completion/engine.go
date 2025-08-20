@@ -1,3 +1,4 @@
+// Package completion provides pattern completion and recognition for emergent systems.
 package completion
 
 import (
@@ -8,14 +9,14 @@ import (
 	"github.com/carlisia/bio-adapt/emerge/core"
 )
 
-// Engine fills in missing parts of synchronization patterns
+// Engine fills in missing parts of synchronization patterns.
 type Engine struct {
 	templates      map[string]*core.RhythmicPattern
 	templatesMu    sync.RWMutex
 	matchThreshold float64
 }
 
-// NewEngine creates a pattern completion engine
+// NewEngine creates a pattern completion engine.
 func NewEngine() *Engine {
 	return &Engine{
 		templates:      make(map[string]*core.RhythmicPattern),
@@ -23,7 +24,7 @@ func NewEngine() *Engine {
 	}
 }
 
-// CompletePattern fills gaps in the current pattern
+// CompletePattern fills gaps in the current pattern.
 func (e *Engine) CompletePattern(current *core.RhythmicPattern, gaps []core.PatternGap) *CompletedPattern {
 	// Find best matching template
 	template := e.findBestTemplate(current)
@@ -64,14 +65,14 @@ func (e *Engine) CompletePattern(current *core.RhythmicPattern, gaps []core.Patt
 	return completed
 }
 
-// CompletedPattern represents a pattern with gaps filled
+// CompletedPattern represents a pattern with gaps filled.
 type CompletedPattern struct {
 	Base     *core.RhythmicPattern
 	Template *core.RhythmicPattern
 	Filled   map[string]interface{}
 }
 
-// GetPhaseAdjustment returns the phase adjustment to apply
+// GetPhaseAdjustment returns the phase adjustment to apply.
 func (cp *CompletedPattern) GetPhaseAdjustment() float64 {
 	if phase, ok := cp.Filled["phase"].(float64); ok {
 		return core.PhaseDifference(phase, cp.Base.Phase)
@@ -79,7 +80,7 @@ func (cp *CompletedPattern) GetPhaseAdjustment() float64 {
 	return 0
 }
 
-// GetFrequencyAdjustment returns the frequency adjustment
+// GetFrequencyAdjustment returns the frequency adjustment.
 func (cp *CompletedPattern) GetFrequencyAdjustment() time.Duration {
 	if freq, ok := cp.Filled["frequency"].(time.Duration); ok {
 		return freq - cp.Base.Frequency
@@ -87,7 +88,7 @@ func (cp *CompletedPattern) GetFrequencyAdjustment() time.Duration {
 	return 0
 }
 
-// findBestTemplate finds the closest matching pattern template
+// findBestTemplate finds the closest matching pattern template.
 func (e *Engine) findBestTemplate(current *core.RhythmicPattern) *core.RhythmicPattern {
 	e.templatesMu.RLock()
 	defer e.templatesMu.RUnlock()
@@ -106,7 +107,7 @@ func (e *Engine) findBestTemplate(current *core.RhythmicPattern) *core.RhythmicP
 	return bestTemplate
 }
 
-// interpolatePattern creates interpolated values toward target
+// interpolatePattern creates interpolated values toward target.
 func (e *Engine) interpolatePattern(current *core.RhythmicPattern, gaps []core.PatternGap) *CompletedPattern {
 	completed := &CompletedPattern{
 		Base:   current,
@@ -135,19 +136,19 @@ func (e *Engine) interpolatePattern(current *core.RhythmicPattern, gaps []core.P
 	return completed
 }
 
-// blendPhase blends two phases with given weight
+// blendPhase blends two phases with given weight.
 func (e *Engine) blendPhase(current, template float64, weight float64) float64 {
 	diff := core.PhaseDifference(template, current)
 	return core.WrapPhase(current + diff*weight)
 }
 
-// blendFrequency blends two frequencies
+// blendFrequency blends two frequencies.
 func (e *Engine) blendFrequency(current, template time.Duration, weight float64) time.Duration {
 	diff := float64(template - current)
 	return current + time.Duration(diff*weight)
 }
 
-// morphWaveform morphs one waveform toward another
+// morphWaveform morphs one waveform toward another.
 func (e *Engine) morphWaveform(current, template []float64, weight float64) []float64 {
 	if len(current) == 0 {
 		return template
@@ -175,14 +176,14 @@ func (e *Engine) morphWaveform(current, template []float64, weight float64) []fl
 	return morphed
 }
 
-// AddTemplate adds a learned pattern template
+// AddTemplate adds a learned pattern template.
 func (e *Engine) AddTemplate(name string, pattern *core.RhythmicPattern) {
 	e.templatesMu.Lock()
 	defer e.templatesMu.Unlock()
 	e.templates[name] = pattern
 }
 
-// LoadDefaultTemplates loads standard synchronization patterns
+// LoadDefaultTemplates loads standard synchronization patterns.
 func (e *Engine) LoadDefaultTemplates() {
 	// Perfect sync template
 	e.AddTemplate("perfect_sync", &core.RhythmicPattern{

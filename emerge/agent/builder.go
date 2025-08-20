@@ -97,29 +97,32 @@ func NewFromConfig(id string, cfg config.Agent) (*Agent, error) {
 	}
 
 	// Handle phase
-	if cfg.RandomizePhase {
+	switch {
+	case cfg.RandomizePhase:
 		opts = append(opts, WithRandomPhase())
-	} else if cfg.Phase != 0 {
+	case cfg.Phase != 0:
 		opts = append(opts, WithPhase(cfg.Phase))
-	} else {
+	default:
 		opts = append(opts, WithPhase(0))
 	}
 
 	// Handle local goal
-	if cfg.RandomizeLocalGoal {
+	switch {
+	case cfg.RandomizeLocalGoal:
 		opts = append(opts, WithRandomLocalGoal())
-	} else if cfg.LocalGoal != 0 {
+	case cfg.LocalGoal != 0:
 		opts = append(opts, WithLocalGoal(cfg.LocalGoal))
-	} else {
+	default:
 		opts = append(opts, WithLocalGoal(rand.Float64()*2*math.Pi))
 	}
 
 	// Handle frequency
-	if cfg.RandomizeFrequency {
+	switch {
+	case cfg.RandomizeFrequency:
 		opts = append(opts, WithRandomFrequency())
-	} else if cfg.Frequency != 0 {
+	case cfg.Frequency != 0:
 		opts = append(opts, WithFrequency(cfg.Frequency))
-	} else {
+	default:
 		opts = append(opts, WithFrequency(100*time.Millisecond))
 	}
 

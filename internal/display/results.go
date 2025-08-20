@@ -4,21 +4,21 @@ import (
 	"fmt"
 )
 
-// resultOpts holds options for result display
+// resultOpts holds options for result display.
 type resultOpts struct {
 	batchReduction *batchReductionInfo
 }
 
-// batchReductionInfo holds batch reduction metrics
+// batchReductionInfo holds batch reduction metrics.
 type batchReductionInfo struct {
 	totalAgents  int
 	finalBatches int
 }
 
-// ResultOpt is an option for PrintResultsSummary
+// ResultOpt is an option for PrintResultsSummary.
 type ResultOpt func(*resultOpts)
 
-// PrintResultsSummary displays final results in a formatted box
+// PrintResultsSummary displays final results in a formatted box.
 func PrintResultsSummary(initial, final, target, improvement float64, opts ...ResultOpt) {
 	options := &resultOpts{}
 	for _, opt := range opts {
@@ -64,7 +64,7 @@ func PrintResultsSummary(initial, final, target, improvement float64, opts ...Re
 	fmt.Println("╚════════════════════════════════════════════════╝")
 }
 
-// WithBatchReduction adds batch reduction info to results
+// WithBatchReduction adds batch reduction info to results.
 func WithBatchReduction(totalAgents, finalBatches int) ResultOpt {
 	return func(opts *resultOpts) {
 		opts.batchReduction = &batchReductionInfo{

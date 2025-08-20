@@ -2,6 +2,7 @@ package swarm
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime"
 	"testing"
@@ -108,7 +109,7 @@ func TestSwarmScalability(t *testing.T) {
 			case err := <-done:
 				// Context cancellation is expected and not an error
 				if err != nil {
-					assert.True(t, err == context.Canceled || err == context.DeadlineExceeded, "Swarm run failed: %v", err)
+					assert.True(t, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded), "Swarm run failed: %v", err)
 				}
 			case <-time.After(5 * time.Second):
 				t.Error("Swarm failed to shutdown within timeout")
@@ -260,7 +261,7 @@ func BenchmarkSwarmCreationScalability(b *testing.B) {
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				config := config.AutoScaleConfig(size)
 				swarm, err := New(size, core.State{
 					Phase:     0,

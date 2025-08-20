@@ -51,7 +51,7 @@ func (s *adaptiveStrategy) Name() string {
 	return "adaptive"
 }
 
-// Helper function for min
+// Helper function for min.
 func min(a, b int) int {
 	if a < b {
 		return a

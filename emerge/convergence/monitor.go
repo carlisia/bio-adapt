@@ -1,3 +1,4 @@
+// Package convergence provides monitoring and analysis of swarm convergence behavior.
 package convergence
 
 import (
@@ -9,7 +10,7 @@ import (
 	"github.com/carlisia/bio-adapt/emerge/core"
 )
 
-// Monitor tracks convergence toward target pattern
+// Monitor tracks convergence toward target pattern.
 type Monitor struct {
 	history    []Sample
 	historyMu  sync.RWMutex
@@ -19,7 +20,7 @@ type Monitor struct {
 	stuckCount atomic.Int32
 }
 
-// Sample represents a convergence measurement
+// Sample represents a convergence measurement.
 type Sample struct {
 	Timestamp    time.Time
 	Distance     float64 // Distance to target
@@ -28,7 +29,7 @@ type Sample struct {
 	Acceleration float64 // Change in rate
 }
 
-// NewMonitor creates a convergence monitor
+// NewMonitor creates a convergence monitor.
 func NewMonitor(windowSize int) *Monitor {
 	if windowSize <= 0 {
 		windowSize = 10
@@ -39,12 +40,12 @@ func NewMonitor(windowSize int) *Monitor {
 	}
 }
 
-// SetTarget sets the target pattern to converge toward
+// SetTarget sets the target pattern to converge toward.
 func (m *Monitor) SetTarget(target *core.RhythmicPattern) {
 	m.target = target
 }
 
-// RecordSample records a new convergence sample
+// RecordSample records a new convergence sample.
 func (m *Monitor) RecordSample(current *core.RhythmicPattern, coherence float64) {
 	m.historyMu.Lock()
 	defer m.historyMu.Unlock()
@@ -87,17 +88,17 @@ func (m *Monitor) RecordSample(current *core.RhythmicPattern, coherence float64)
 	m.updateConvergenceStatus()
 }
 
-// IsConverging returns true if system is converging toward target
+// IsConverging returns true if system is converging toward target.
 func (m *Monitor) IsConverging() bool {
 	return m.converging.Load()
 }
 
-// IsStuck returns true if system is stuck (not making progress)
+// IsStuck returns true if system is stuck (not making progress).
 func (m *Monitor) IsStuck() bool {
 	return m.stuckCount.Load() > 5
 }
 
-// GetProgress returns convergence progress (0-1)
+// GetProgress returns convergence progress (0-1).
 func (m *Monitor) GetProgress() float64 {
 	m.historyMu.RLock()
 	defer m.historyMu.RUnlock()
@@ -123,7 +124,7 @@ func (m *Monitor) GetProgress() float64 {
 	return math.Max(0, math.Min(1, progress))
 }
 
-// GetConvergenceRate returns the average convergence rate
+// GetConvergenceRate returns the average convergence rate.
 func (m *Monitor) GetConvergenceRate() float64 {
 	m.historyMu.RLock()
 	defer m.historyMu.RUnlock()
@@ -154,7 +155,7 @@ func (m *Monitor) GetConvergenceRate() float64 {
 	return totalVelocity / float64(count)
 }
 
-// ShouldSwitchStrategy returns true if current strategy isn't working
+// ShouldSwitchStrategy returns true if current strategy isn't working.
 func (m *Monitor) ShouldSwitchStrategy() bool {
 	m.historyMu.RLock()
 	defer m.historyMu.RUnlock()
@@ -181,7 +182,7 @@ func (m *Monitor) ShouldSwitchStrategy() bool {
 	return float64(stuckCount) > float64(len(recentSamples))*0.7
 }
 
-// updateConvergenceStatus updates internal convergence state
+// updateConvergenceStatus updates internal convergence state.
 func (m *Monitor) updateConvergenceStatus() {
 	if len(m.history) < 3 {
 		m.converging.Store(false)
@@ -216,7 +217,7 @@ func (m *Monitor) updateConvergenceStatus() {
 	m.converging.Store(converging)
 }
 
-// getRecentSamples returns the most recent samples within window
+// getRecentSamples returns the most recent samples within window.
 func (m *Monitor) getRecentSamples() []Sample {
 	start := len(m.history) - m.windowSize
 	if start < 0 {
@@ -225,7 +226,7 @@ func (m *Monitor) getRecentSamples() []Sample {
 	return m.history[start:]
 }
 
-// calculateTrend calculates linear trend in data
+// calculateTrend calculates linear trend in data.
 func calculateTrend(data []float64) float64 {
 	if len(data) < 2 {
 		return 0
@@ -256,7 +257,7 @@ func calculateTrend(data []float64) float64 {
 	return slope
 }
 
-// Reset clears the convergence history
+// Reset clears the convergence history.
 func (m *Monitor) Reset() {
 	m.historyMu.Lock()
 	defer m.historyMu.Unlock()

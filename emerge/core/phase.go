@@ -2,14 +2,14 @@ package core
 
 import "math"
 
-// WrapPhase normalizes a phase value to [0, 2π]
+// WrapPhase normalizes a phase value to [0, 2π].
 func WrapPhase(phase float64) float64 {
 	// Use modular arithmetic for more efficient and accurate wrapping
 	return math.Mod(math.Mod(phase, 2*math.Pi)+2*math.Pi, 2*math.Pi)
 }
 
 // PhaseDifference calculates the minimal phase difference between two phases
-// Returns a value in [-π, π] representing the signed angular distance from phase2 to phase1
+// Returns a value in [-π, π] representing the signed angular distance from phase2 to phase1.
 func PhaseDifference(phase1, phase2 float64) float64 {
 	diff := phase1 - phase2
 
@@ -32,7 +32,7 @@ func PhaseDifference(phase1, phase2 float64) float64 {
 	return result
 }
 
-// MeasureCoherence calculates the Kuramoto order parameter for phase synchronization
+// MeasureCoherence calculates the Kuramoto order parameter for phase synchronization.
 func MeasureCoherence(phases []float64) float64 {
 	if len(phases) == 0 {
 		return 0
@@ -50,7 +50,7 @@ func MeasureCoherence(phases []float64) float64 {
 	return math.Sqrt(sumCos*sumCos+sumSin*sumSin) / n
 }
 
-// MeasureCoherenceWeighted calculates weighted coherence
+// MeasureCoherenceWeighted calculates weighted coherence.
 func MeasureCoherenceWeighted(phases []float64, weights []float64) float64 {
 	if len(phases) == 0 || len(weights) == 0 {
 		return 0

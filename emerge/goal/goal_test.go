@@ -797,7 +797,7 @@ func BenchmarkWeightedGoalManager(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		weight := float64(i%100) / 100.0
 		gm.Blend(local, global, weight)
 	}
@@ -820,7 +820,7 @@ func BenchmarkWeightedGoalManagerWrapping(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		weight := float64(i%100) / 100.0
 		gm.Blend(local, global, weight)
 	}

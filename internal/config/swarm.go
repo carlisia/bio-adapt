@@ -45,7 +45,7 @@ type Swarm struct {
 	AutoScale bool // Automatically adjust parameters based on swarm size
 }
 
-// DefaultConfig returns the default configuration for large swarms (100+ agents)
+// DefaultConfig returns the default configuration for large swarms (100+ agents).
 func DefaultConfig() Swarm {
 	return Swarm{
 		ConnectionProbability:    0.3,
@@ -72,7 +72,7 @@ func DefaultConfig() Swarm {
 	}
 }
 
-// SmallSwarmConfig returns optimized configuration for small swarms (< 20 agents)
+// SmallSwarmConfig returns optimized configuration for small swarms (< 20 agents).
 func SmallSwarmConfig() Swarm {
 	return Swarm{
 		ConnectionProbability:    0.9,  // Almost fully connected
@@ -99,7 +99,7 @@ func SmallSwarmConfig() Swarm {
 	}
 }
 
-// MediumSwarmConfig returns configuration for medium swarms (20-100 agents)
+// MediumSwarmConfig returns configuration for medium swarms (20-100 agents).
 func MediumSwarmConfig() Swarm {
 	return Swarm{
 		ConnectionProbability:    0.5,
@@ -126,7 +126,7 @@ func MediumSwarmConfig() Swarm {
 	}
 }
 
-// AutoScaleConfig returns a configuration that automatically scales based on swarm size
+// AutoScaleConfig returns a configuration that automatically scales based on swarm size.
 func AutoScaleConfig(swarmSize int) Swarm {
 	config := Swarm{
 		AutoScale:     true,
@@ -204,7 +204,7 @@ func AutoScaleConfig(swarmSize int) Swarm {
 	return config
 }
 
-// ConfigForBatching returns configuration optimized for request batching scenarios
+// ConfigForBatching returns configuration optimized for request batching scenarios.
 func ConfigForBatching(workloadCount int, batchWindow time.Duration) Swarm {
 	// For batching, we need very strong synchronization
 	// Start with a small swarm config as baseline since batching needs tight coupling
@@ -250,7 +250,7 @@ func ConfigForBatching(workloadCount int, batchWindow time.Duration) Swarm {
 	return config
 }
 
-// Validate performs comprehensive validation and returns errors instead of modifying the config
+// Validate performs comprehensive validation and returns errors instead of modifying the config.
 func (c *Swarm) Validate(swarmSize int) error {
 	var errors ValidationErrors
 
@@ -401,7 +401,7 @@ func (c *Swarm) Validate(swarmSize int) error {
 	return nil
 }
 
-// NormalizeAndValidate performs validation and auto-corrects values where possible
+// NormalizeAndValidate performs validation and auto-corrects values where possible.
 func (c *Swarm) NormalizeAndValidate(swarmSize int) error {
 	// First validate and get errors
 	if err := c.Validate(swarmSize); err != nil {
@@ -420,7 +420,7 @@ func (c *Swarm) NormalizeAndValidate(swarmSize int) error {
 	return nil
 }
 
-// normalize applies auto-corrections and auto-calculations
+// normalize applies auto-corrections and auto-calculations.
 func (c *Swarm) normalize(swarmSize int) {
 	// Clamp probability values to [0,1]
 	c.ConnectionProbability = clamp(c.ConnectionProbability, 0, 1)
@@ -497,7 +497,7 @@ func (c *Swarm) normalize(swarmSize int) {
 	}
 }
 
-// clamp returns value clamped between min and max
+// clamp returns value clamped between min and max.
 func clamp(value, min, max float64) float64 {
 	if value < min {
 		return min
@@ -508,7 +508,7 @@ func clamp(value, min, max float64) float64 {
 	return value
 }
 
-// minInt returns the minimum of two integers
+// minInt returns the minimum of two integers.
 func minInt(a, b int) int {
 	if a < b {
 		return a
@@ -516,7 +516,7 @@ func minInt(a, b int) int {
 	return b
 }
 
-// minFloat returns the minimum of two floats
+// minFloat returns the minimum of two floats.
 func minFloat(a, b float64) float64 {
 	if a < b {
 		return a
@@ -524,7 +524,7 @@ func minFloat(a, b float64) float64 {
 	return b
 }
 
-// maxInt returns the maximum of two integers
+// maxInt returns the maximum of two integers.
 func maxInt(a, b int) int {
 	if a > b {
 		return a

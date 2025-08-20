@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// BinPhases distributes phases into bins for visualization
+// BinPhases distributes phases into bins for visualization.
 func BinPhases(phases []float64, bins int) []int {
 	counts := make([]int, bins)
 	for _, phase := range phases {
@@ -29,7 +29,7 @@ func BinPhases(phases []float64, bins int) []int {
 	return counts
 }
 
-// PrintClockBins visualizes phase distribution as clock positions
+// PrintClockBins visualizes phase distribution as clock positions.
 func PrintClockBins(bins []int) {
 	if len(bins) != 12 {
 		return
@@ -55,7 +55,7 @@ func PrintClockBins(bins []int) {
 	}
 }
 
-// PrintTimeline visualizes phase distribution as a timeline with batch windows
+// PrintTimeline visualizes phase distribution as a timeline with batch windows.
 func PrintTimeline(bins []int, msPerWindow int, batchThreshold int) {
 	fmt.Printf("Request Timeline (%dms windows):\n", msPerWindow)
 

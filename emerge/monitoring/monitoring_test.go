@@ -1134,7 +1134,7 @@ func BenchmarkPatternDetect(b *testing.B) {
 	pattern := NewRhythmicPattern(phases, frequencies)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		pattern.Detect()
 	}
 }
@@ -1147,7 +1147,7 @@ func BenchmarkPatternSimilarity(b *testing.B) {
 	pattern2 := NewRhythmicPattern(phases, frequencies)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		pattern1.Similarity(pattern2)
 	}
 }
@@ -1178,7 +1178,7 @@ func BenchmarkLibraryIdentify(b *testing.B) {
 	)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		library.Identify(testPattern)
 	}
 }

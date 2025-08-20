@@ -16,7 +16,7 @@ type State struct {
 	Coherence float64       // Target synchronization level [0, 1]
 }
 
-// Validate checks if the State is valid
+// Validate checks if the State is valid.
 func (s *State) Validate() error {
 	var errors config.ValidationErrors
 
@@ -58,7 +58,7 @@ func (s *State) Validate() error {
 	return nil
 }
 
-// NormalizeAndValidate performs validation and normalization of the State
+// NormalizeAndValidate performs validation and normalization of the State.
 func (s *State) NormalizeAndValidate() error {
 	// First validate
 	if err := s.Validate(); err != nil {
@@ -77,7 +77,7 @@ func (s *State) NormalizeAndValidate() error {
 	return nil
 }
 
-// normalize applies auto-corrections to the State
+// normalize applies auto-corrections to the State.
 func (s *State) normalize() {
 	// Wrap phase to [0, 2π]
 	if !math.IsNaN(s.Phase) && !math.IsInf(s.Phase, 0) {

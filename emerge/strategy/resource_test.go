@@ -383,13 +383,13 @@ func TestTokenResourceManagerConcurrency(t *testing.T) {
 			var wg sync.WaitGroup
 			totalRequested := make(chan float64, tt.numGoroutines)
 
-			for i := 0; i < tt.numGoroutines; i++ {
+			for i := range tt.numGoroutines {
 				wg.Add(1)
 				go func(id int) {
 					defer wg.Done()
 					var localTotal float64
 
-					for j := 0; j < tt.requestsPerGoroutine; j++ {
+					for range tt.requestsPerGoroutine {
 						granted := rm.Request(tt.amountPerRequest)
 						localTotal += granted
 
@@ -635,7 +635,7 @@ func BenchmarkTokenResourceManager(b *testing.B) {
 		b.Run(bm.name, func(b *testing.B) {
 			rm := NewTokenResourceManager(bm.maxTokens)
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				bm.operation(rm)
 			}
 		})

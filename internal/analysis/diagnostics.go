@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-// RunStats holds statistics about a simulation run
+// RunStats holds statistics about a simulation run.
 type RunStats struct {
 	Initial    float64
 	Final      float64
@@ -15,7 +15,7 @@ type RunStats struct {
 	StuckCount int
 }
 
-// Diagnose analyzes run statistics and provides diagnostics
+// Diagnose analyzes run statistics and provides diagnostics.
 func Diagnose(s RunStats, target float64, mode string) (summary string, suggestions []string) {
 	useEmoji := os.Getenv("EMOJI") == "1"
 
@@ -34,7 +34,8 @@ func Diagnose(s RunStats, target float64, mode string) (summary string, suggesti
 	improvement := s.Final - s.Initial
 
 	// Determine primary issue
-	if s.StuckCount > s.MaxIter/3 {
+	switch {
+	case s.StuckCount > s.MaxIter/3:
 		// Stuck in local minimum
 		if useEmoji {
 			summary = fmt.Sprintf("⚠️  Stuck at %.1f%% (target: %.1f%%)", s.Final*100, target*100)
@@ -53,7 +54,7 @@ func Diagnose(s RunStats, target float64, mode string) (summary string, suggesti
 				"Check network topology (ensure sufficient connections)",
 				"Consider partial sync (0.65-0.75) for load spreading")
 		}
-	} else if improvement < 0.1 {
+	case improvement < 0.1:
 		// No significant improvement
 		if useEmoji {
 			summary = fmt.Sprintf("⚠️  Minimal progress: %.1f%% → %.1f%%", s.Initial*100, s.Final*100)
@@ -66,7 +67,7 @@ func Diagnose(s RunStats, target float64, mode string) (summary string, suggesti
 			"Increase influence strength",
 			"Reduce stubbornness parameter",
 		}
-	} else if gap < 0.1 {
+	case gap < 0.1:
 		// Close but not quite
 		if useEmoji {
 			summary = fmt.Sprintf("🔶 Close! Reached %.1f%% (target: %.1f%%)", s.Final*100, target*100)
@@ -78,7 +79,7 @@ func Diagnose(s RunStats, target float64, mode string) (summary string, suggesti
 			"Increase iterations (more time to converge)",
 			"Fine-tune coupling strength",
 		}
-	} else {
+	default:
 		// General convergence issue
 		if useEmoji {
 			summary = fmt.Sprintf("❌ Convergence failed: %.1f%% (target: %.1f%%)", s.Final*100, target*100)
@@ -97,17 +98,18 @@ func Diagnose(s RunStats, target float64, mode string) (summary string, suggesti
 	return summary, suggestions
 }
 
-// AnalyzeConvergenceRate determines if convergence is healthy
+// AnalyzeConvergenceRate determines if convergence is healthy.
 func AnalyzeConvergenceRate(iterations int, maxIterations int) string {
 	ratio := float64(iterations) / float64(maxIterations)
 
-	if ratio < 0.3 {
+	switch {
+	case ratio < 0.3:
 		return "Fast convergence"
-	} else if ratio < 0.6 {
+	case ratio < 0.6:
 		return "Normal convergence"
-	} else if ratio < 0.9 {
+	case ratio < 0.9:
 		return "Slow convergence"
-	} else {
+	default:
 		return "Very slow convergence"
 	}
 }

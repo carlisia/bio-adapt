@@ -4,7 +4,7 @@ import (
 	"os"
 )
 
-// DescribeSyncQuality returns a human-readable description of synchronization quality
+// DescribeSyncQuality returns a human-readable description of synchronization quality.
 func DescribeSyncQuality(coherence float64, mode string) string {
 	useEmoji := os.Getenv("EMOJI") == "1"
 
@@ -19,27 +19,28 @@ func DescribeSyncQuality(coherence float64, mode string) string {
 }
 
 func describeSyncMode(coherence float64, useEmoji bool) string {
-	if coherence < 0.2 {
+	switch {
+	case coherence < 0.2:
 		if useEmoji {
 			return "(🌪️  Chaos - no coordination)"
 		}
 		return "(Chaos - no coordination)"
-	} else if coherence < 0.4 {
+	case coherence < 0.4:
 		if useEmoji {
 			return "(🌊 Groups forming - multiple rhythms)"
 		}
 		return "(Groups forming - multiple rhythms)"
-	} else if coherence < 0.6 {
+	case coherence < 0.6:
 		if useEmoji {
 			return "(⚡ Partial coordination - groups merging)"
 		}
 		return "(Partial coordination - groups merging)"
-	} else if coherence < 0.8 {
+	case coherence < 0.8:
 		if useEmoji {
 			return "(🎵 Good sync - single dominant rhythm)"
 		}
 		return "(Good sync - single dominant rhythm)"
-	} else {
+	default:
 		if useEmoji {
 			return "(✨ Excellent sync - unified rhythm)"
 		}
@@ -76,7 +77,7 @@ func describeBatchMode(coherence float64, useEmoji bool) string {
 	}
 }
 
-// InterpretCoherenceLevel provides a simple coherence level description
+// InterpretCoherenceLevel provides a simple coherence level description.
 func InterpretCoherenceLevel(coherence float64) string {
 	if coherence < 0.2 {
 		return "Very Low"

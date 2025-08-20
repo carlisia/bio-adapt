@@ -279,7 +279,7 @@ done:
 	)
 }
 
-// visualizeRequestTimeline shows request distribution over time windows
+// visualizeRequestTimeline shows request distribution over time windows.
 func visualizeRequestTimeline(s *swarm.Swarm, frequency time.Duration) {
 	agents := s.Agents()
 	phases := make([]float64, 0, len(agents))
@@ -293,7 +293,7 @@ func visualizeRequestTimeline(s *swarm.Swarm, frequency time.Duration) {
 	display.PrintTimeline(bins, msPerWindow, 3)
 }
 
-// countBatches estimates number of batches based on phase clustering
+// countBatches estimates number of batches based on phase clustering.
 func countBatches(s *swarm.Swarm, threshold int) int {
 	agents := s.Agents()
 	phases := make([]float64, 0, len(agents))

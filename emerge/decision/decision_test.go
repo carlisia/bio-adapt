@@ -11,6 +11,7 @@ import (
 )
 
 func TestSimpleDecisionMaker(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name               string
 		state              core.State
@@ -384,6 +385,7 @@ func TestSimpleDecisionMaker(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			dm := &SimpleDecisionMaker{}
 			action, confidence := dm.Decide(tt.state, tt.options)
 
@@ -401,6 +403,7 @@ func TestSimpleDecisionMaker(t *testing.T) {
 }
 
 func TestSimpleDecisionMakerConsistency(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		state       core.State
@@ -471,12 +474,13 @@ func TestSimpleDecisionMakerConsistency(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			dm := &SimpleDecisionMaker{}
 
 			var firstAction core.Action
 			var firstConfidence float64
 
-			for i := 0; i < tt.iterations; i++ {
+			for i := range tt.iterations {
 				action, confidence := dm.Decide(tt.state, tt.options)
 
 				if i == 0 {
@@ -493,6 +497,7 @@ func TestSimpleDecisionMakerConsistency(t *testing.T) {
 }
 
 func TestSimpleDecisionMakerBoundaryConditions(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		state       core.State
@@ -598,6 +603,7 @@ func TestSimpleDecisionMakerBoundaryConditions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			dm := &SimpleDecisionMaker{}
 			action, confidence := dm.Decide(tt.state, tt.options)
 			tt.validateFn(t, action, confidence)
@@ -606,6 +612,7 @@ func TestSimpleDecisionMakerBoundaryConditions(t *testing.T) {
 }
 
 func TestSimpleDecisionMakerConcurrency(t *testing.T) {
+	t.Parallel()
 	dm := &SimpleDecisionMaker{}
 
 	state := core.State{
@@ -669,7 +676,7 @@ func BenchmarkSimpleDecisionMaker(b *testing.B) {
 			}
 
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				dm.Decide(state, options)
 			}
 		})
@@ -697,7 +704,7 @@ func BenchmarkSimpleDecisionMakerZeroCost(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		dm.Decide(state, options)
 	}
 }

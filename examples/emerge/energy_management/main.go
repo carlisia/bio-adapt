@@ -190,7 +190,7 @@ done:
 	demonstrateEnergyDecisions()
 }
 
-// replenishEnergy simulates energy recovery for a fraction of agents
+// replenishEnergy simulates energy recovery for a fraction of agents.
 func replenishEnergy(swarm *swarm.Swarm, fraction float64) {
 	count := 0
 	for _, agent := range swarm.Agents() {
@@ -206,7 +206,7 @@ func replenishEnergy(swarm *swarm.Swarm, fraction float64) {
 	}
 }
 
-// demonstrateEnergyDecisions shows how agents make decisions based on energy
+// demonstrateEnergyDecisions shows how agents make decisions based on energy.
 func demonstrateEnergyDecisions() {
 	// Create two agents with different energy levels
 	richAgent := agent.New("energy-rich")

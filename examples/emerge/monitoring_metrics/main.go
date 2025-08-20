@@ -17,7 +17,7 @@ import (
 	"github.com/carlisia/bio-adapt/emerge/swarm"
 )
 
-// MetricsCollector collects detailed metrics from the swarm
+// MetricsCollector collects detailed metrics from the swarm.
 type MetricsCollector struct {
 	mu               sync.RWMutex
 	coherenceHistory []float64
@@ -265,7 +265,7 @@ analysis:
 	analyzeNetworkTopology(swarm)
 }
 
-// Helper functions for statistics
+// Helper functions for statistics.
 func calculateMean(data []float64) float64 {
 	if len(data) == 0 {
 		return 0
@@ -387,9 +387,10 @@ func analyzeAgentBehavior(swarm *swarm.Swarm) {
 		neighbors    int
 	}
 
-	var agents []agentStats
+	swarmAgents := swarm.Agents()
+	agents := make([]agentStats, 0, len(swarmAgents))
 
-	for _, agent := range swarm.Agents() {
+	for _, agent := range swarmAgents {
 		neighborCount := 0
 		agent.Neighbors().Range(func(k, v any) bool {
 			neighborCount++

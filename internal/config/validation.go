@@ -5,22 +5,22 @@ import (
 	"strings"
 )
 
-// ValidationError represents a configuration validation error
+// ValidationError represents a configuration validation error.
 type ValidationError struct {
 	Field   string
 	Value   interface{}
 	Message string
 }
 
-// Error implements the error interface
+// Error implements the error interface.
 func (e ValidationError) Error() string {
 	return fmt.Sprintf("validation error for field %s (value: %v): %s", e.Field, e.Value, e.Message)
 }
 
-// ValidationErrors represents multiple validation errors
+// ValidationErrors represents multiple validation errors.
 type ValidationErrors []ValidationError
 
-// Error implements the error interface
+// Error implements the error interface.
 func (errs ValidationErrors) Error() string {
 	if len(errs) == 0 {
 		return "no validation errors"
@@ -29,7 +29,7 @@ func (errs ValidationErrors) Error() string {
 		return errs[0].Error()
 	}
 
-	var msgs []string
+	msgs := make([]string, 0, len(errs))
 	for _, err := range errs {
 		msgs = append(msgs, err.Error())
 	}

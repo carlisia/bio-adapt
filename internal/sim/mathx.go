@@ -1,6 +1,6 @@
 package sim
 
-// Clamp01 clamps a value to the range [0, 1]
+// Clamp01 clamps a value to the range [0, 1].
 func Clamp01(v float64) float64 {
 	if v < 0 {
 		return 0
@@ -11,7 +11,7 @@ func Clamp01(v float64) float64 {
 	return v
 }
 
-// Min returns the minimum of two float64 values
+// Min returns the minimum of two float64 values.
 func Min(a, b float64) float64 {
 	if a < b {
 		return a
@@ -19,7 +19,7 @@ func Min(a, b float64) float64 {
 	return b
 }
 
-// Max returns the maximum of two float64 values
+// Max returns the maximum of two float64 values.
 func Max(a, b float64) float64 {
 	if a > b {
 		return a

@@ -15,7 +15,7 @@ import (
 	"github.com/carlisia/bio-adapt/emerge/strategy"
 )
 
-// GoalDirectedSync achieves synchronization through adaptive strategies
+// GoalDirectedSync achieves synchronization through adaptive strategies.
 type GoalDirectedSync struct {
 	swarm              *Swarm
 	targetPattern      *core.RhythmicPattern
@@ -27,7 +27,7 @@ type GoalDirectedSync struct {
 	mu                 sync.RWMutex
 }
 
-// StrategyPerformance tracks how well a strategy works
+// StrategyPerformance tracks how well a strategy works.
 type StrategyPerformance struct {
 	Name           string
 	Attempts       int
@@ -37,7 +37,7 @@ type StrategyPerformance struct {
 	AvgConvergence float64
 }
 
-// NewGoalDirectedSync creates a goal-directed synchronization system
+// NewGoalDirectedSync creates a goal-directed synchronization system.
 func NewGoalDirectedSync(s *Swarm) *GoalDirectedSync {
 	gds := &GoalDirectedSync{
 		swarm:              s,
@@ -54,9 +54,9 @@ func NewGoalDirectedSync(s *Swarm) *GoalDirectedSync {
 	}
 
 	// Initialize performance tracking
-	for _, strat := range gds.strategies {
-		gds.strategyPerf[strat.Name()] = &StrategyPerformance{
-			Name: strat.Name(),
+	for _, start := range gds.strategies {
+		gds.strategyPerf[start.Name()] = &StrategyPerformance{
+			Name: start.Name(),
 		}
 	}
 
@@ -69,7 +69,7 @@ func NewGoalDirectedSync(s *Swarm) *GoalDirectedSync {
 	return gds
 }
 
-// AchieveSynchronization runs goal-directed synchronization loop
+// AchieveSynchronization runs goal-directed synchronization loop.
 func (gds *GoalDirectedSync) AchieveSynchronization(ctx context.Context, target *core.RhythmicPattern) error {
 	gds.targetPattern = target
 	gds.convergenceMonitor.SetTarget(target)
@@ -124,7 +124,7 @@ func (gds *GoalDirectedSync) AchieveSynchronization(ctx context.Context, target 
 	return fmt.Errorf("failed to achieve synchronization after %d iterations", maxIterations)
 }
 
-// measureSystemPattern calculates the current system-wide pattern
+// measureSystemPattern calculates the current system-wide pattern.
 func (gds *GoalDirectedSync) measureSystemPattern() *core.RhythmicPattern {
 	agents := gds.swarm.Agents()
 	if len(agents) == 0 {
@@ -158,7 +158,7 @@ func (gds *GoalDirectedSync) measureSystemPattern() *core.RhythmicPattern {
 	}
 }
 
-// isPatternAchieved checks if we've reached the target
+// isPatternAchieved checks if we've reached the target.
 func (gds *GoalDirectedSync) isPatternAchieved(current *core.RhythmicPattern) bool {
 	distance := core.PatternDistance(current, gds.targetPattern)
 
@@ -169,7 +169,7 @@ func (gds *GoalDirectedSync) isPatternAchieved(current *core.RhythmicPattern) bo
 	return coherenceAchieved && distanceAchieved
 }
 
-// applyPatternCompletion applies the completed pattern to agents
+// applyPatternCompletion applies the completed pattern to agents.
 func (gds *GoalDirectedSync) applyPatternCompletion(completion *completion.CompletedPattern) {
 	agents := gds.swarm.Agents()
 
@@ -206,7 +206,7 @@ func (gds *GoalDirectedSync) applyPatternCompletion(completion *completion.Compl
 	}
 }
 
-// switchStrategy selects a new strategy based on performance
+// switchStrategy selects a new strategy based on performance.
 func (gds *GoalDirectedSync) switchStrategy() {
 	gds.mu.Lock()
 	defer gds.mu.Unlock()
@@ -222,8 +222,8 @@ func (gds *GoalDirectedSync) switchStrategy() {
 	var bestStrategy core.SyncStrategy
 	bestScore := -1.0
 
-	for _, strat := range gds.strategies {
-		perf := gds.strategyPerf[strat.Name()]
+	for _, start := range gds.strategies {
+		perf := gds.strategyPerf[start.Name()]
 
 		// Calculate score with exploration bonus
 		score := 0.0
@@ -241,14 +241,14 @@ func (gds *GoalDirectedSync) switchStrategy() {
 
 		if score > bestScore {
 			bestScore = score
-			bestStrategy = strat
+			bestStrategy = start
 		}
 	}
 
 	gds.currentStrategy = bestStrategy
 }
 
-// addStochasticResonance adds noise to help escape local minima
+// addStochasticResonance adds noise to help escape local minima.
 func (gds *GoalDirectedSync) addStochasticResonance() {
 	agents := gds.swarm.Agents()
 
@@ -259,7 +259,7 @@ func (gds *GoalDirectedSync) addStochasticResonance() {
 	}
 
 	// Randomly select agents to perturb
-	for i := 0; i < perturbCount; i++ {
+	for range perturbCount {
 		// Pick random agent
 		var targetAgent *agent.Agent
 		idx := rand.Intn(len(agents))
@@ -281,7 +281,7 @@ func (gds *GoalDirectedSync) addStochasticResonance() {
 	}
 }
 
-// RecordSuccess records that current strategy succeeded
+// RecordSuccess records that current strategy succeeded.
 func (gds *GoalDirectedSync) RecordSuccess(reward float64) {
 	gds.mu.Lock()
 	defer gds.mu.Unlock()

@@ -14,14 +14,18 @@ import (
 )
 
 var (
-	// ErrInsufficientAgents indicates not enough agents for topology
+	// ErrInsufficientAgents indicates not enough agents for topology.
 	ErrInsufficientAgents = errors.New("insufficient agents")
 )
 
 // TestAgent creates an agent optimized for testing with predictable behavior.
 // All randomization is disabled.
 func TestAgent(id string) *agent.Agent {
-	a, _ := agent.NewFromConfig(id, config.TestAgent())
+	a, err := agent.NewFromConfig(id, config.TestAgent())
+	if err != nil {
+		// This should never happen with TestAgent config
+		panic(fmt.Sprintf("failed to create test agent: %v", err))
+	}
 	return a
 }
 
@@ -48,7 +52,11 @@ func TestSwarm(size int, g core.State) (*swarm.Swarm, error) {
 		swarm.WithAgentBuilder(func(id string, swarmSize int, sc config.Swarm) *agent.Agent {
 			cfg := config.TestAgent()
 			cfg.SwarmSize = swarmSize
-			a, _ := agent.NewFromConfig(id, cfg)
+			a, err := agent.NewFromConfig(id, cfg)
+			if err != nil {
+				// This should never happen with TestAgent config
+				panic(fmt.Sprintf("failed to create test agent: %v", err))
+			}
 			return a
 		}),
 		swarm.WithTopology(FullyConnectedTopology),
@@ -94,7 +102,7 @@ func RingTopology(s *swarm.Swarm) error {
 	agentMap := s.Agents()
 
 	// Convert map to slice for ordering
-	var agents []*agent.Agent
+	agents := make([]*agent.Agent, 0, len(agentMap))
 	for _, a := range agentMap {
 		agents = append(agents, a)
 	}
@@ -123,7 +131,7 @@ func StarTopology(s *swarm.Swarm) error {
 	agentMap := s.Agents()
 
 	// Convert map to slice
-	var agents []*agent.Agent
+	agents := make([]*agent.Agent, 0, len(agentMap))
 	for _, a := range agentMap {
 		agents = append(agents, a)
 	}

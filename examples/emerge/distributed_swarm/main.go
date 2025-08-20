@@ -143,7 +143,7 @@ done:
 	fmt.Printf("Target achieved: %v\n", finalGlobalCoherence >= globalTarget.Coherence)
 }
 
-// measureGlobalCoherence calculates coherence across all sub-swarms
+// measureGlobalCoherence calculates coherence across all sub-swarms.
 func measureGlobalCoherence(swarms []*swarm.Swarm) float64 {
 	var phases []float64
 
@@ -168,7 +168,7 @@ func measureGlobalCoherence(swarms []*swarm.Swarm) float64 {
 	return math.Sqrt(sumCos*sumCos+sumSin*sumSin) / n
 }
 
-// connectSubSwarms creates bridge connections between sub-swarms
+// connectSubSwarms creates bridge connections between sub-swarms.
 func connectSubSwarms(swarms []*swarm.Swarm) {
 	// Connect adjacent sub-swarms through a few bridge agents
 	for i := range len(swarms) - 1 {

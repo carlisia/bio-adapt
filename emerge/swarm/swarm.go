@@ -35,10 +35,10 @@ type Swarm struct {
 	goalDirectedSync *GoalDirectedSync
 }
 
-// Option configures a Swarm
+// Option configures a Swarm.
 type Option func(*Swarm) error
 
-// NewSwarm creates a swarm with the provided options.
+// New creates a swarm with the provided options.
 func New(size int, goal core.State, opts ...Option) (*Swarm, error) {
 	if size <= 0 {
 		return nil, fmt.Errorf("%w: got %d", ErrInvalidSwarmSize, size)
@@ -144,7 +144,7 @@ func NewSwarmFromConfig(size int, goal core.State, cfg config.Swarm) (*Swarm, er
 	return s, nil
 }
 
-// createDefaultAgents creates agents with config-based settings
+// createDefaultAgents creates agents with config-based settings.
 func (s *Swarm) createDefaultAgents() error {
 	agentConfig := config.AgentFromSwarm(s.config)
 	agentConfig.SwarmSize = s.size
@@ -159,7 +159,7 @@ func (s *Swarm) createDefaultAgents() error {
 	return nil
 }
 
-// WithConfig sets a custom configuration
+// WithConfig sets a custom configuration.
 func WithConfig(cfg config.Swarm) Option {
 	return func(s *Swarm) error {
 		if err := cfg.NormalizeAndValidate(s.size); err != nil {
@@ -172,7 +172,7 @@ func WithConfig(cfg config.Swarm) Option {
 	}
 }
 
-// WithMonitor sets a custom monitor
+// WithMonitor sets a custom monitor.
 func WithMonitor(monitor *monitoring.Monitor) Option {
 	return func(s *Swarm) error {
 		s.monitor = monitor
@@ -180,7 +180,7 @@ func WithMonitor(monitor *monitoring.Monitor) Option {
 	}
 }
 
-// WithAgentBuilder uses a custom function to create agents
+// WithAgentBuilder uses a custom function to create agents.
 func WithAgentBuilder(builder func(id string, swarmSize int, cfg config.Swarm) *agent.Agent) Option {
 	return func(s *Swarm) error {
 		for i := range s.size {
@@ -191,7 +191,7 @@ func WithAgentBuilder(builder func(id string, swarmSize int, cfg config.Swarm) *
 	}
 }
 
-// WithTopology uses a custom topology builder
+// WithTopology uses a custom topology builder.
 func WithTopology(builder func(*Swarm) error) Option {
 	return func(s *Swarm) error {
 		if err := builder(s); err != nil {
@@ -207,7 +207,9 @@ func (s *Swarm) establishConnections() {
 	// Collect all agents first
 	var agents []*agent.Agent
 	s.agents.Range(func(key, value any) bool {
-		agents = append(agents, value.(*agent.Agent))
+		if a, ok := value.(*agent.Agent); ok {
+			agents = append(agents, a)
+		}
 		return true
 	})
 
@@ -282,7 +284,7 @@ func (s *Swarm) Run(ctx context.Context) error {
 	// Create target pattern from goal state
 	targetPattern := &core.RhythmicPattern{
 		Phase:     s.goalState.Phase,
-		Frequency: time.Duration(s.goalState.Frequency),
+		Frequency: s.goalState.Frequency,
 		Coherence: s.goalState.Coherence,
 		Amplitude: 1.0,
 		Stability: 0.9,
@@ -298,8 +300,9 @@ func (s *Swarm) MeasureCoherence() float64 {
 	var phases []float64
 
 	s.agents.Range(func(key, value any) bool {
-		agent := value.(*agent.Agent)
-		phases = append(phases, agent.Phase())
+		if agent, ok := value.(*agent.Agent); ok {
+			phases = append(phases, agent.Phase())
+		}
 		return true
 	})
 
@@ -310,7 +313,11 @@ func (s *Swarm) MeasureCoherence() float64 {
 func (s *Swarm) Agents() map[string]*agent.Agent {
 	agents := make(map[string]*agent.Agent)
 	s.agents.Range(func(key, value interface{}) bool {
-		agents[key.(string)] = value.(*agent.Agent)
+		if k, ok := key.(string); ok {
+			if a, ok := value.(*agent.Agent); ok {
+				agents[k] = a
+			}
+		}
 		return true
 	})
 	return agents
@@ -322,7 +329,10 @@ func (s *Swarm) Agent(id string) (*agent.Agent, bool) {
 	if !exists {
 		return nil, false
 	}
-	return value.(*agent.Agent), true
+	if a, ok := value.(*agent.Agent); ok {
+		return a, true
+	}
+	return nil, false
 }
 
 // Size returns the number of agents in the swarm.
@@ -360,9 +370,10 @@ func (s *Swarm) DisruptAgents(percentage float64) {
 			return false
 		}
 
-		agent := value.(*agent.Agent)
-		agent.SetPhase(rand.Float64() * 2 * math.Pi)
-		disrupted++
+		if agent, ok := value.(*agent.Agent); ok {
+			agent.SetPhase(rand.Float64() * 2 * math.Pi)
+			disrupted++
+		}
 		return true
 	})
 }
@@ -371,8 +382,10 @@ func (s *Swarm) DisruptAgents(percentage float64) {
 // This provides controlled access to agents without exposing the internal map.
 func (s *Swarm) ForEachAgent(fn func(*agent.Agent) bool) {
 	s.agents.Range(func(key, value any) bool {
-		agent := value.(*agent.Agent)
-		return fn(agent)
+		if agent, ok := value.(*agent.Agent); ok {
+			return fn(agent)
+		}
+		return true
 	})
 }
 

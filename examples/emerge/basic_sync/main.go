@@ -242,7 +242,7 @@ done:
 	fmt.Println("  }")
 }
 
-// visualizeAgents shows agent phase distribution
+// visualizeAgents shows agent phase distribution.
 func visualizeAgents(s *swarm.Swarm) {
 	agents := s.Agents()
 	phases := make([]float64, 0, len(agents))

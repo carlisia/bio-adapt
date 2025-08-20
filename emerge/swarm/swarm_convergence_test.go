@@ -2,6 +2,7 @@ package swarm
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -12,7 +13,7 @@ import (
 	"github.com/carlisia/bio-adapt/emerge/core"
 )
 
-// TestSwarmConvergence tests that swarms actually achieve synchronization
+// TestSwarmConvergence tests that swarms actually achieve synchronization.
 func TestSwarmConvergence(t *testing.T) {
 	tests := []struct {
 		name            string
@@ -74,7 +75,7 @@ func TestSwarmConvergence(t *testing.T) {
 
 			// Run swarm (this should now work with bioelectric pattern completion)
 			err = swarm.Run(ctx)
-			if err != nil && err != context.DeadlineExceeded {
+			if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 				t.Fatalf("Swarm run failed: %v", err)
 			}
 
@@ -96,7 +97,7 @@ func TestSwarmConvergence(t *testing.T) {
 	}
 }
 
-// TestSwarmConvergenceConsistency tests that convergence is consistent across runs
+// TestSwarmConvergenceConsistency tests that convergence is consistent across runs.
 func TestSwarmConvergenceConsistency(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping consistency test in short mode")
@@ -109,7 +110,7 @@ func TestSwarmConvergenceConsistency(t *testing.T) {
 		timeout         = 5 * time.Second
 	)
 
-	var finalCoherences []float64
+	finalCoherences := make([]float64, 0, runs)
 
 	for i := range runs {
 		t.Logf("Run %d/%d", i+1, runs)
@@ -127,7 +128,7 @@ func TestSwarmConvergenceConsistency(t *testing.T) {
 		err = swarm.Run(ctx)
 		cancel()
 
-		if err != nil && err != context.DeadlineExceeded {
+		if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 			t.Fatalf("Run %d: Swarm run failed: %v", i, err)
 		}
 
@@ -174,7 +175,7 @@ func TestSwarmConvergenceConsistency(t *testing.T) {
 	}
 }
 
-// TestSwarmNonRegression tests that we don't regress to the old broken behavior
+// TestSwarmNonRegression tests that we don't regress to the old broken behavior.
 func TestSwarmNonRegression(t *testing.T) {
 	// This test ensures we never go back to the old broken synchronization
 	// where swarms would get stuck at very low coherence (~7%)
@@ -195,7 +196,7 @@ func TestSwarmNonRegression(t *testing.T) {
 	defer cancel()
 
 	err = swarm.Run(ctx)
-	if err != nil && err != context.DeadlineExceeded {
+	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("Swarm run failed: %v", err)
 	}
 
@@ -220,7 +221,7 @@ func TestSwarmNonRegression(t *testing.T) {
 	}
 }
 
-// TestSwarmTargetAchievement tests that swarms can achieve their specific target
+// TestSwarmTargetAchievement tests that swarms can achieve their specific target.
 func TestSwarmTargetAchievement(t *testing.T) {
 	targets := []float64{0.5, 0.6, 0.7, 0.8}
 
@@ -237,7 +238,7 @@ func TestSwarmTargetAchievement(t *testing.T) {
 			defer cancel()
 
 			err = swarm.Run(ctx)
-			if err != nil && err != context.DeadlineExceeded {
+			if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 				t.Fatalf("Swarm run failed: %v", err)
 			}
 
