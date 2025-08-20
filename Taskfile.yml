@@ -52,8 +52,11 @@ tasks:
     sources:
       - examples/**/*.go
       - emerge/**/*.go
+      - internal/**/*.go
       - go.mod
       - go.sum
+    generates:
+      - "{{.BIN_DIR}}/examples/*"
 
   # Run the main demo
   run:
