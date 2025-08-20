@@ -39,18 +39,18 @@ func BenchmarkOriginalSwarm(b *testing.B) {
 	}
 }
 
-// BenchmarkOptimizedSwarm tests the optimized slice-based implementation.
+// BenchmarkLargeSwarm tests the automatically optimized implementation for large swarms.
 //
 //nolint:intrange // b.N is not a constant
-func BenchmarkOptimizedSwarm(b *testing.B) {
-	sizes := []int{100, 500, 1000, 2000}
+func BenchmarkLargeSwarm(b *testing.B) {
+	sizes := []int{200, 500, 1000, 2000} // All above OptimizedSwarmThreshold
 
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
 			b.ReportAllocs()
 
 			for i := 0; i < b.N; i++ {
-				s, err := NewOptimized(size, core.State{
+				s, err := New(size, core.State{
 					Phase:     0,
 					Frequency: 100 * time.Millisecond,
 					Coherence: 0.7,
@@ -64,8 +64,10 @@ func BenchmarkOptimizedSwarm(b *testing.B) {
 					_ = s.MeasureCoherence()
 				}
 
-				// Clean up worker pool
-				s.Cleanup()
+				// Clean up worker pool if it exists
+				if s.workerPool != nil {
+					s.workerPool.Stop()
+				}
 			}
 		})
 	}
@@ -94,12 +96,16 @@ func BenchmarkCoherenceMeasurement(b *testing.B) {
 		})
 
 		b.Run(fmt.Sprintf("optimized_%d", size), func(b *testing.B) {
-			s, _ := NewOptimized(size, core.State{
+			s, _ := New(size+OptimizedSwarmThreshold, core.State{ // Force optimized path
 				Phase:     0,
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.7,
 			})
-			defer s.Cleanup()
+			defer func() {
+				if s.workerPool != nil {
+					s.workerPool.Stop()
+				}
+			}()
 
 			b.ResetTimer()
 			b.ReportAllocs()
@@ -144,18 +150,25 @@ func BenchmarkConcurrentUpdates(b *testing.B) {
 		})
 
 		b.Run(fmt.Sprintf("optimized_%d", size), func(b *testing.B) {
-			s, _ := NewOptimized(size, core.State{
+			s, _ := New(size+OptimizedSwarmThreshold, core.State{ // Force optimized path
 				Phase:     0,
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.7,
 			})
-			defer s.Cleanup()
+			defer func() {
+				if s.workerPool != nil {
+					s.workerPool.Stop()
+				}
+			}()
 
 			b.ResetTimer()
 			b.ReportAllocs()
 
 			for i := 0; i < b.N; i++ {
-				s.UpdateConcurrent(updateFunc)
+				agents := s.Agents()
+				for _, a := range agents {
+					updateFunc(a)
+				}
 			}
 		})
 	}
@@ -186,7 +199,7 @@ func BenchmarkMemoryUsage(b *testing.B) {
 		b.ReportAllocs()
 
 		for i := 0; i < b.N; i++ {
-			s, _ := NewOptimized(1000, core.State{
+			s, _ := New(1100, core.State{ // Force optimized path
 				Phase:     0,
 				Frequency: 100 * time.Millisecond,
 				Coherence: 0.7,
@@ -194,13 +207,16 @@ func BenchmarkMemoryUsage(b *testing.B) {
 
 			// Simulate equivalent work
 			for j := 0; j < 10; j++ {
-				s.UpdateConcurrent(func(a *agent.Agent) {
+				agents := s.Agents()
+				for _, a := range agents {
 					phase := a.Phase()
 					a.SetPhase(phase + 0.01)
-				})
+				}
 			}
 
-			s.Cleanup()
+			if s.workerPool != nil {
+				s.workerPool.Stop()
+			}
 		}
 	})
 }
