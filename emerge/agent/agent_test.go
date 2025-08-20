@@ -279,6 +279,8 @@ func TestAgentProposeAdjustment(t *testing.T) {
 				agent := agent.New("test")
 				// Deplete energy
 				for range 20 {
+					// Intentionally ignoring errors during energy depletion
+					// as we expect failure when energy runs out
 					_, _, _ = agent.ApplyAction(core.Action{
 						Type:  "adjust_phase",
 						Value: 0.1,
@@ -484,6 +486,8 @@ func TestAgentApplyAction(t *testing.T) {
 				agent := agent.New("test")
 				// Deplete energy
 				for range 19 {
+					// Intentionally ignoring errors during energy depletion
+					// as we expect failure when energy runs out
 					_, _, _ = agent.ApplyAction(core.Action{
 						Type:  "adjust_phase",
 						Value: 0.01,
@@ -603,6 +607,8 @@ func TestAgentEnergyManagement(t *testing.T) {
 			agent := agent.New("test")
 
 			for _, action := range tt.actions {
+				// Test is verifying final energy state after multiple actions
+				// Errors are expected and intentionally ignored
 				_, _, _ = agent.ApplyAction(action)
 			}
 
@@ -833,6 +839,7 @@ func TestAgentConcurrency(t *testing.T) {
 				Value: 0.01,
 				Cost:  0.1,
 			}
+			// Concurrent test - errors handled by test assertions
 			_, _, _ = a.ApplyAction(action)
 			done <- true
 		}()
