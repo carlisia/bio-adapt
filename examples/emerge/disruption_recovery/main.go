@@ -10,7 +10,10 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/carlisia/bio-adapt/emerge"
+	"github.com/carlisia/bio-adapt/emerge/agent"
+	"github.com/carlisia/bio-adapt/emerge/core"
+	"github.com/carlisia/bio-adapt/emerge/monitoring"
+	"github.com/carlisia/bio-adapt/emerge/swarm"
 )
 
 func main() {
@@ -18,7 +21,7 @@ func main() {
 	fmt.Println()
 
 	// Create target state
-	target := emerge.State{
+	target := core.State{
 		Phase:     0,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.85,
@@ -26,7 +29,7 @@ func main() {
 
 	// Create a robust swarm
 	swarmSize := 50
-	swarm, err := emerge.NewSwarm(swarmSize, target)
+	s, err := swarm.New(swarmSize, target)
 	if err != nil {
 		fmt.Printf("Error creating swarm: %v\n", err)
 		return
@@ -35,7 +38,7 @@ func main() {
 	fmt.Printf("Target coherence: %.2f\n\n", target.Coherence)
 
 	// Start monitoring
-	monitor := emerge.NewMonitor()
+	monitor := monitoring.New()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -43,7 +46,7 @@ func main() {
 	// Start the swarm
 	errChan := make(chan error, 1)
 	go func() {
-		if err := swarm.Run(ctx); err != nil {
+		if err := s.Run(ctx); err != nil {
 			errChan <- err
 		}
 	}()
@@ -65,51 +68,51 @@ func main() {
 
 	for i := range 5 {
 		time.Sleep(500 * time.Millisecond)
-		coherence := swarm.MeasureCoherence()
+		coherence := s.MeasureCoherence()
 		monitor.RecordSample(coherence)
 		fmt.Printf("  %.1fs: Coherence = %.3f\n", float64(i+1)*0.5, coherence)
 	}
 
-	initialStableCoherence := monitor.GetLatest()
+	initialStableCoherence := monitor.Latest()
 	fmt.Printf("Stabilized at coherence: %.3f\n\n", initialStableCoherence)
 
 	// Test different types of disruptions
 	disruptions := []struct {
 		name        string
-		disruptFunc func(*emerge.Swarm)
+		disruptFunc func(*swarm.Swarm)
 		severity    string
 	}{
 		{
 			name: "Random Phase Disruption",
-			disruptFunc: func(s *emerge.Swarm) {
+			disruptFunc: func(s *swarm.Swarm) {
 				randomPhaseDisruption(s, 0.2) // Disrupt 20% of agents
 			},
 			severity: "Moderate",
 		},
 		{
 			name: "Energy Depletion",
-			disruptFunc: func(s *emerge.Swarm) {
+			disruptFunc: func(s *swarm.Swarm) {
 				energyDepletionDisruption(s, 0.3) // Deplete 30% of agents
 			},
 			severity: "High",
 		},
 		{
 			name: "Network Partition",
-			disruptFunc: func(s *emerge.Swarm) {
+			disruptFunc: func(s *swarm.Swarm) {
 				networkPartitionDisruption(s)
 			},
 			severity: "Severe",
 		},
 		{
 			name: "Stubborn Agents",
-			disruptFunc: func(s *emerge.Swarm) {
+			disruptFunc: func(s *swarm.Swarm) {
 				stubbornAgentDisruption(s, 0.15) // Make 15% stubborn
 			},
 			severity: "Low",
 		},
 		{
 			name: "Cascade Failure",
-			disruptFunc: func(s *emerge.Swarm) {
+			disruptFunc: func(s *swarm.Swarm) {
 				cascadeFailureDisruption(s)
 			},
 			severity: "Critical",
@@ -121,14 +124,14 @@ func main() {
 		fmt.Println("------------------------------")
 
 		// Measure before disruption
-		beforeCoherence := swarm.MeasureCoherence()
+		beforeCoherence := s.MeasureCoherence()
 		fmt.Printf("Before disruption: %.3f\n", beforeCoherence)
 
 		// Apply disruption
-		disruption.disruptFunc(swarm)
+		disruption.disruptFunc(s)
 
 		// Measure immediately after disruption
-		afterCoherence := swarm.MeasureCoherence()
+		afterCoherence := s.MeasureCoherence()
 		monitor.RecordSample(afterCoherence)
 		fmt.Printf("After disruption:  %.3f (Δ = %.3f)\n",
 			afterCoherence, afterCoherence-beforeCoherence)
@@ -140,7 +143,7 @@ func main() {
 
 		for range 10 {
 			time.Sleep(500 * time.Millisecond)
-			coherence := swarm.MeasureCoherence()
+			coherence := s.MeasureCoherence()
 			monitor.RecordSample(coherence)
 
 			recoveryTime := time.Since(recoveryStart).Seconds()
@@ -171,8 +174,8 @@ func main() {
 	fmt.Println("=== Recovery Analysis ===")
 	fmt.Println("------------------------")
 
-	history := monitor.GetHistory()
-	avgCoherence := monitor.GetAverage()
+	history := monitor.History()
+	avgCoherence := monitor.Average()
 
 	// Find min and max from history
 	minCoherence := 1.0
@@ -196,15 +199,15 @@ func main() {
 	fmt.Println("--------------------------")
 	fmt.Println("Applying multiple simultaneous disruptions...")
 
-	preStressCoherence := swarm.MeasureCoherence()
+	preStressCoherence := s.MeasureCoherence()
 	fmt.Printf("Before stress test: %.3f\n", preStressCoherence)
 
 	// Apply multiple disruptions at once
-	randomPhaseDisruption(swarm, 0.3)
-	energyDepletionDisruption(swarm, 0.2)
-	stubbornAgentDisruption(swarm, 0.1)
+	randomPhaseDisruption(s, 0.3)
+	energyDepletionDisruption(s, 0.2)
+	stubbornAgentDisruption(s, 0.1)
 
-	stressedCoherence := swarm.MeasureCoherence()
+	stressedCoherence := s.MeasureCoherence()
 	fmt.Printf("After stress test:  %.3f (Δ = %.3f)\n",
 		stressedCoherence, stressedCoherence-preStressCoherence)
 
@@ -212,7 +215,7 @@ func main() {
 	fmt.Println("\nMonitoring recovery from extreme stress:")
 	for i := range 8 {
 		time.Sleep(1 * time.Second)
-		coherence := swarm.MeasureCoherence()
+		coherence := s.MeasureCoherence()
 		fmt.Printf("  %ds: %.3f", i+1, coherence)
 		if coherence >= preStressCoherence*0.8 {
 			fmt.Printf(" ✓ [System resilient!]")
@@ -225,43 +228,38 @@ func main() {
 }
 
 // randomPhaseDisruption randomly changes the phase of a fraction of agents
-func randomPhaseDisruption(swarm *emerge.Swarm, fraction float64) {
+func randomPhaseDisruption(s *swarm.Swarm, fraction float64) {
 	count := 0
-	swarm.Agents().Range(func(key, value any) bool {
+	for _, agent := range s.Agents() {
 		if rand.Float64() < fraction {
-			agent := value.(*emerge.Agent)
 			// Random phase between 0 and 2π
 			agent.SetPhase(rand.Float64() * 2 * 3.14159)
 			count++
 		}
-		return true
-	})
+	}
 	fmt.Printf("  Disrupted %d agents with random phases\n", count)
 }
 
 // energyDepletionDisruption depletes energy from a fraction of agents
-func energyDepletionDisruption(swarm *emerge.Swarm, fraction float64) {
+func energyDepletionDisruption(s *swarm.Swarm, fraction float64) {
 	count := 0
-	swarm.Agents().Range(func(key, value any) bool {
+	for _, agent := range s.Agents() {
 		if rand.Float64() < fraction {
-			agent := value.(*emerge.Agent)
 			// Reduce energy to critical levels
 			agent.SetEnergy(5 + rand.Float64()*10)
 			count++
 		}
-		return true
-	})
+	}
 	fmt.Printf("  Depleted energy in %d agents\n", count)
 }
 
 // networkPartitionDisruption simulates network partition by removing connections
-func networkPartitionDisruption(swarm *emerge.Swarm) {
+func networkPartitionDisruption(s *swarm.Swarm) {
 	// Remove connections between two halves of the network
-	var agents []*emerge.Agent
-	swarm.Agents().Range(func(key, value any) bool {
-		agents = append(agents, value.(*emerge.Agent))
-		return true
-	})
+	var agents []*agent.Agent
+	for _, agent := range s.Agents() {
+		agents = append(agents, agent)
+	}
 
 	midpoint := len(agents) / 2
 	disconnections := 0
@@ -294,33 +292,30 @@ func networkPartitionDisruption(swarm *emerge.Swarm) {
 }
 
 // stubbornAgentDisruption makes some agents very stubborn
-func stubbornAgentDisruption(swarm *emerge.Swarm, fraction float64) {
+func stubbornAgentDisruption(s *swarm.Swarm, fraction float64) {
 	count := 0
-	swarm.Agents().Range(func(key, value any) bool {
+	for _, agent := range s.Agents() {
 		if rand.Float64() < fraction {
-			agent := value.(*emerge.Agent)
 			// Make agent very stubborn
 			agent.SetStubbornness(0.9 + rand.Float64()*0.1)
 			// Give them different local goals
 			agent.SetLocalGoal(rand.Float64() * 2 * 3.14159)
 			count++
 		}
-		return true
-	})
+	}
 	fmt.Printf("  Made %d agents stubborn with conflicting goals\n", count)
 }
 
 // cascadeFailureDisruption simulates a cascade failure starting from one agent
-func cascadeFailureDisruption(swarm *emerge.Swarm) {
+func cascadeFailureDisruption(s *swarm.Swarm) {
 	// Pick a random agent to start the cascade
-	var seedAgent *emerge.Agent
-	swarm.Agents().Range(func(key, value any) bool {
+	var seedAgent *agent.Agent
+	for _, agent := range s.Agents() {
 		if seedAgent == nil && rand.Float64() < 0.1 {
-			seedAgent = value.(*emerge.Agent)
-			return false
+			seedAgent = agent
+			break
 		}
-		return true
-	})
+	}
 
 	if seedAgent == nil {
 		return
@@ -335,7 +330,7 @@ func cascadeFailureDisruption(swarm *emerge.Swarm) {
 
 	// Cascade to neighbors
 	seedAgent.Neighbors().Range(func(key, value any) bool {
-		neighbor := value.(*emerge.Agent)
+		neighbor := value.(*agent.Agent)
 		// Neighbors are partially affected
 		neighbor.SetPhase(neighbor.Phase() + (rand.Float64()-0.5)*2)
 		neighbor.SetEnergy(neighbor.Energy() * 0.5)
@@ -344,13 +339,12 @@ func cascadeFailureDisruption(swarm *emerge.Swarm) {
 		// Secondary cascade (with lower probability)
 		if rand.Float64() < 0.3 {
 			neighbor.Neighbors().Range(func(k2, v2 any) bool {
-				secondary := v2.(*emerge.Agent)
+				secondary := v2.(*agent.Agent)
 				secondary.SetEnergy(secondary.Energy() * 0.7)
 				affected++
 				return rand.Float64() < 0.5 // Continue with 50% probability
 			})
 		}
-
 		return true
 	})
 

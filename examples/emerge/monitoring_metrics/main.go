@@ -12,7 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/carlisia/bio-adapt/emerge"
+	"github.com/carlisia/bio-adapt/emerge/core"
+	"github.com/carlisia/bio-adapt/emerge/monitoring"
+	"github.com/carlisia/bio-adapt/emerge/swarm"
 )
 
 // MetricsCollector collects detailed metrics from the swarm
@@ -108,19 +110,19 @@ func main() {
 
 	// Configuration
 	swarmSize := 100
-	target := emerge.State{
+	target := core.State{
 		Phase:     0,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.9,
 	}
 
 	// Create swarm and monitoring infrastructure
-	swarm, err := emerge.NewSwarm(swarmSize, target)
+	swarm, err := swarm.New(swarmSize, target)
 	if err != nil {
 		fmt.Printf("Error creating swarm: %v\n", err)
 		return
 	}
-	monitor := emerge.NewMonitor()
+	monitor := monitoring.New()
 	metrics := NewMetricsCollector()
 
 	fmt.Printf("Monitoring swarm of %d agents\n", swarmSize)
@@ -167,13 +169,11 @@ func main() {
 			agentCount := 0
 			var phases []float64
 
-			swarm.Agents().Range(func(key, value any) bool {
-				agent := value.(*emerge.Agent)
+			for _, agent := range swarm.Agents() {
 				totalEnergy += agent.Energy()
 				phases = append(phases, agent.Phase())
 				agentCount++
-				return true
-			})
+			}
 
 			avgEnergy := totalEnergy / float64(agentCount)
 			metrics.RecordEnergy(avgEnergy)
@@ -184,7 +184,7 @@ func main() {
 
 			// Determine if converging
 			isConverging := false
-			history := monitor.GetHistory()
+			history := monitor.History()
 			if len(history) >= 5 {
 				// Check if coherence is improving
 				recent := history[len(history)-5:]
@@ -342,14 +342,13 @@ func isIncreasing(data []float64) bool {
 	return increases > len(data)/2
 }
 
-func sampleDecisions(swarm *emerge.Swarm, metrics *MetricsCollector) {
+func sampleDecisions(swarm *swarm.Swarm, metrics *MetricsCollector) {
 	// Sample a few agents to track decision patterns
 	sampled := 0
-	swarm.Agents().Range(func(key, value any) bool {
+	for _, agent := range swarm.Agents() {
 		if sampled >= 5 {
-			return false
+			break
 		}
-		agent := value.(*emerge.Agent)
 
 		// Simulate decision tracking
 		if agent.Energy() < 20 {
@@ -361,13 +360,12 @@ func sampleDecisions(swarm *emerge.Swarm, metrics *MetricsCollector) {
 		}
 
 		sampled++
-		return true
-	})
+	}
 }
 
-func exportVisualizationData(monitor *emerge.Monitor, _ *MetricsCollector) {
+func exportVisualizationData(monitor *monitoring.Monitor, _ *MetricsCollector) {
 	// Export coherence time series
-	history := monitor.GetHistory()
+	history := monitor.History()
 	fmt.Println("\nCoherence Time Series (for plotting):")
 	fmt.Println("Index,Coherence")
 	for i, c := range history {
@@ -379,7 +377,7 @@ func exportVisualizationData(monitor *emerge.Monitor, _ *MetricsCollector) {
 	fmt.Printf("\n[Full dataset contains %d points]\n", len(history))
 }
 
-func analyzeAgentBehavior(swarm *emerge.Swarm) {
+func analyzeAgentBehavior(swarm *swarm.Swarm) {
 	type agentStats struct {
 		id           string
 		phase        float64
@@ -391,9 +389,7 @@ func analyzeAgentBehavior(swarm *emerge.Swarm) {
 
 	var agents []agentStats
 
-	swarm.Agents().Range(func(key, value any) bool {
-		agent := value.(*emerge.Agent)
-
+	for _, agent := range swarm.Agents() {
 		neighborCount := 0
 		agent.Neighbors().Range(func(k, v any) bool {
 			neighborCount++
@@ -408,9 +404,7 @@ func analyzeAgentBehavior(swarm *emerge.Swarm) {
 			stubbornness: agent.Stubbornness(),
 			neighbors:    neighborCount,
 		})
-
-		return true
-	})
+	}
 
 	// Sort by energy to find outliers
 	sort.Slice(agents, func(i, j int) bool {
@@ -446,15 +440,13 @@ func analyzeAgentBehavior(swarm *emerge.Swarm) {
 	}
 }
 
-func analyzeNetworkTopology(swarm *emerge.Swarm) {
+func analyzeNetworkTopology(swarm *swarm.Swarm) {
 	connectionCounts := make(map[int]int)
 	totalConnections := 0
 	maxConnections := 0
 	minConnections := 1000
 
-	swarm.Agents().Range(func(key, value any) bool {
-		agent := value.(*emerge.Agent)
-
+	for _, agent := range swarm.Agents() {
 		connections := 0
 		agent.Neighbors().Range(func(k, v any) bool {
 			connections++
@@ -470,9 +462,7 @@ func analyzeNetworkTopology(swarm *emerge.Swarm) {
 		if connections < minConnections {
 			minConnections = connections
 		}
-
-		return true
-	})
+	}
 
 	agentCount := 0
 	for _, count := range connectionCounts {

@@ -10,7 +10,9 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/carlisia/bio-adapt/emerge"
+	"github.com/carlisia/bio-adapt/emerge/agent"
+	"github.com/carlisia/bio-adapt/emerge/core"
+	"github.com/carlisia/bio-adapt/emerge/swarm"
 )
 
 func main() {
@@ -18,7 +20,7 @@ func main() {
 	fmt.Println()
 
 	// Create target state
-	target := emerge.State{
+	target := core.State{
 		Phase:     0,
 		Frequency: 150 * time.Millisecond,
 		Coherence: 0.85,
@@ -26,7 +28,7 @@ func main() {
 
 	// Create swarm with varying energy levels
 	swarmSize := 30
-	swarm, err := emerge.NewSwarm(swarmSize, target)
+	swarm, err := swarm.New(swarmSize, target)
 	if err != nil {
 		fmt.Printf("Error creating swarm: %v\n", err)
 		return
@@ -35,9 +37,7 @@ func main() {
 
 	// Configure agents with different energy characteristics
 	agentCount := 0
-	swarm.Agents().Range(func(key, value any) bool {
-		agent := value.(*emerge.Agent)
-
+	for _, agent := range swarm.Agents() {
 		if agentCount < 10 {
 			// High energy agents - can afford more adjustments
 			agent.SetEnergy(100)
@@ -68,8 +68,7 @@ func main() {
 		}
 
 		agentCount++
-		return agentCount < swarmSize
-	})
+	}
 
 	fmt.Printf("\nInitial coherence: %.3f\n", swarm.MeasureCoherence())
 
@@ -105,10 +104,8 @@ func main() {
 			var exhaustedAgents int
 			minEnergy = 100
 
-			swarm.Agents().Range(func(key, value any) bool {
-				agent := value.(*emerge.Agent)
+			for _, agent := range swarm.Agents() {
 				energy := agent.Energy()
-
 				totalEnergy += energy
 				if energy < minEnergy {
 					minEnergy = energy
@@ -119,9 +116,7 @@ func main() {
 				if energy < 10 {
 					exhaustedAgents++
 				}
-
-				return true
-			})
+			}
 
 			avgEnergy := totalEnergy / float64(swarmSize)
 			coherence := swarm.MeasureCoherence()
@@ -167,10 +162,8 @@ done:
 	// Group agents by remaining energy
 	var highEnergy, medEnergy, lowEnergy, exhausted int
 
-	swarm.Agents().Range(func(key, value any) bool {
-		agent := value.(*emerge.Agent)
+	for _, agent := range swarm.Agents() {
 		energy := agent.Energy()
-
 		switch {
 		case energy >= 70:
 			highEnergy++
@@ -181,9 +174,7 @@ done:
 		default:
 			exhausted++
 		}
-
-		return true
-	})
+	}
 
 	fmt.Printf("High energy (≥70):    %d agents\n", highEnergy)
 	fmt.Printf("Medium energy (30-70): %d agents\n", medEnergy)
@@ -200,11 +191,10 @@ done:
 }
 
 // replenishEnergy simulates energy recovery for a fraction of agents
-func replenishEnergy(swarm *emerge.Swarm, fraction float64) {
+func replenishEnergy(swarm *swarm.Swarm, fraction float64) {
 	count := 0
-	swarm.Agents().Range(func(key, value any) bool {
+	for _, agent := range swarm.Agents() {
 		if rand.Float64() < fraction {
-			agent := value.(*emerge.Agent)
 			currentEnergy := agent.Energy()
 			// Replenish up to 30 energy units
 			agent.SetEnergy(currentEnergy + 30)
@@ -213,20 +203,19 @@ func replenishEnergy(swarm *emerge.Swarm, fraction float64) {
 			}
 			count++
 		}
-		return true
-	})
+	}
 }
 
 // demonstrateEnergyDecisions shows how agents make decisions based on energy
 func demonstrateEnergyDecisions() {
 	// Create two agents with different energy levels
-	richAgent := emerge.NewAgent("energy-rich")
+	richAgent := agent.New("energy-rich")
 	richAgent.SetEnergy(90)
 
-	poorAgent := emerge.NewAgent("energy-poor")
+	poorAgent := agent.New("energy-poor")
 	poorAgent.SetEnergy(15)
 
-	target := emerge.State{
+	target := core.State{
 		Phase:     1.0,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.8,

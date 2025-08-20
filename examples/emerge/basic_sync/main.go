@@ -36,7 +36,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/carlisia/bio-adapt/emerge"
+	"github.com/carlisia/bio-adapt/emerge/core"
+	"github.com/carlisia/bio-adapt/emerge/swarm"
 )
 
 func main() {
@@ -45,7 +46,7 @@ func main() {
 	maxIterations := 20
 	checkInterval := 500 * time.Millisecond
 	timeout := 10 * time.Second
-	targetState := emerge.State{
+	targetState := core.State{
 		Phase:     0,                      // Target phase (0 radians = all aligned at "12 o'clock")
 		Frequency: 250 * time.Millisecond, // How fast agents cycle
 		Coherence: 0.65,                   // Target sync level (increased for better demo)
@@ -153,7 +154,7 @@ func main() {
 	fmt.Println()
 
 	// Create swarm with auto-scaled configuration
-	config := emerge.AutoScaleConfig(swarmSize)
+	config := swarm.AutoScaleConfig(swarmSize)
 
 	// Optionally customize configuration for demo purposes
 	// You can uncomment these lines to see different behaviors:
@@ -164,7 +165,7 @@ func main() {
 	// config.AgentUpdateInterval = 100 * time.Millisecond // Slower updates
 	// config.MonitoringInterval = 200 * time.Millisecond  // Less frequent monitoring
 
-	swarm, err := emerge.NewSwarm(swarmSize, targetState, emerge.WithConfig(config))
+	s, err := swarm.New(swarmSize, targetState, swarm.WithConfig(config))
 	if err != nil {
 		fmt.Printf("❌ Error: failed to create swarm: %v\n", err)
 		return
@@ -189,10 +190,10 @@ func main() {
 
 	// Measure initial coherence using Kuramoto order parameter.
 	// This will be low (~0.1-0.3) due to random initialization.
-	initialCoherence := swarm.MeasureCoherence()
+	initialCoherence := s.MeasureCoherence()
 
 	fmt.Println("═══ INITIAL STATE (SIMULATED) ═══")
-	visualizeAgents(swarm)
+	visualizeAgents(s)
 	fmt.Printf("📊 Coherence Score: %.1f%% ", initialCoherence*100)
 	interpretCoherence(initialCoherence)
 	fmt.Println()
@@ -215,7 +216,7 @@ func main() {
 
 	errChan := make(chan error, 1)
 	go func() {
-		if err := swarm.Run(ctx); err != nil {
+		if err := s.Run(ctx); err != nil {
 			errChan <- err
 		}
 	}()
@@ -233,7 +234,7 @@ func main() {
 		select {
 		case <-ticker.C:
 			iterations++
-			coherence := swarm.MeasureCoherence()
+			coherence := s.MeasureCoherence()
 
 			// Show iteration with visual progress (new line each time for compatibility)
 			fmt.Printf("Step %2d/%d: ", iterations, maxIterations)
@@ -293,11 +294,11 @@ done:
 
 	// Calculate and display final metrics.
 	// Improvement shows how much the system self-organized from chaos.
-	finalCoherence := swarm.MeasureCoherence()
+	finalCoherence := s.MeasureCoherence()
 	improvement := ((finalCoherence - initialCoherence) / initialCoherence) * 100
 
 	fmt.Println("═══ FINAL STATE (SIMULATED) ═══")
-	visualizeAgents(swarm)
+	visualizeAgents(s)
 	fmt.Printf("\n📊 Coherence Score: %.1f%% ", finalCoherence*100)
 	interpretCoherence(finalCoherence)
 	fmt.Println()
@@ -425,14 +426,14 @@ done:
 	fmt.Println("🔧 API TO SET UP YOUR OWN SYSTEM:")
 	fmt.Println("```go")
 	fmt.Println("// 1. Define your target state")
-	fmt.Println("targetState := emerge.State{")
+	fmt.Println("targetState := core.State{")
 	fmt.Println("    Phase:     0,                      // Where to sync (0 = aligned)")
 	fmt.Println("    Frequency: 200 * time.Millisecond, // Your cycle time")
 	fmt.Println("    Coherence: 0.8,                    // How tight (0.8 = 80%)")
 	fmt.Println("}")
 	fmt.Println()
 	fmt.Println("// 2. Create your swarm")
-	fmt.Println("swarm, err := emerge.NewSwarm(10, targetState)")
+	fmt.Println("swarm, err := swarm.New(10, targetState)")
 	fmt.Println()
 	fmt.Println("// 3. Run synchronization")
 	fmt.Println("ctx := context.Background()")
@@ -444,13 +445,12 @@ done:
 }
 
 // visualizeAgents shows the current phase distribution of agents
-func visualizeAgents(swarm *emerge.Swarm) {
-	phases := make([]float64, 0, swarm.Size())
-	swarm.Agents().Range(func(key, value any) bool {
-		agent := value.(*emerge.Agent)
+func visualizeAgents(s *swarm.Swarm) {
+	phases := make([]float64, 0, s.Size())
+	for _, agent := range s.Agents() {
+
 		phases = append(phases, agent.Phase())
-		return true
-	})
+	}
 
 	// First show what the visualization means
 	fmt.Println("🕰️ Phase Distribution (like positions on a clock):")

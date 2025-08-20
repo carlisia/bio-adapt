@@ -12,7 +12,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/carlisia/bio-adapt/emerge"
+	"github.com/carlisia/bio-adapt/emerge/agent"
+	"github.com/carlisia/bio-adapt/emerge/core"
+	"github.com/carlisia/bio-adapt/emerge/swarm"
 )
 
 // RiskAverseDecisionMaker avoids high-cost actions
@@ -28,9 +30,9 @@ func NewRiskAverseDecisionMaker(maxCost float64) *RiskAverseDecisionMaker {
 	}
 }
 
-func (r *RiskAverseDecisionMaker) Decide(state emerge.State, options []emerge.Action) (emerge.Action, float64) {
+func (r *RiskAverseDecisionMaker) Decide(state core.State, options []core.Action) (core.Action, float64) {
 	if len(options) == 0 {
-		return emerge.Action{Type: "maintain"}, 0.5
+		return core.Action{Type: "maintain"}, 0.5
 	}
 
 	bestAction := options[0]
@@ -77,9 +79,9 @@ func NewAggressiveDecisionMaker(aggressiveness float64) *AggressiveDecisionMaker
 	}
 }
 
-func (a *AggressiveDecisionMaker) Decide(state emerge.State, options []emerge.Action) (emerge.Action, float64) {
+func (a *AggressiveDecisionMaker) Decide(state core.State, options []core.Action) (core.Action, float64) {
 	if len(options) == 0 {
-		return emerge.Action{Type: "maintain"}, 0.5
+		return core.Action{Type: "maintain"}, 0.5
 	}
 
 	a.totalCount.Add(1)
@@ -137,9 +139,9 @@ func NewAdaptiveDecisionMaker(learningRate float64) *AdaptiveDecisionMaker {
 	return dm
 }
 
-func (a *AdaptiveDecisionMaker) Decide(state emerge.State, options []emerge.Action) (emerge.Action, float64) {
+func (a *AdaptiveDecisionMaker) Decide(state core.State, options []core.Action) (core.Action, float64) {
 	if len(options) == 0 {
-		return emerge.Action{Type: "maintain"}, 0.5
+		return core.Action{Type: "maintain"}, 0.5
 	}
 
 	costThresh := a.costThreshold.Load().(float64)
@@ -199,11 +201,11 @@ func main() {
 	fmt.Println()
 
 	// Create agents with different decision strategies
-	agents := []*emerge.Agent{
-		emerge.NewAgent("risk-averse"),
-		emerge.NewAgent("aggressive"),
-		emerge.NewAgent("adaptive"),
-		emerge.NewAgent("default"),
+	agents := []*agent.Agent{
+		agent.New("risk-averse"),
+		agent.New("aggressive"),
+		agent.New("adaptive"),
+		agent.New("default"),
 	}
 
 	// Set custom decision makers
@@ -226,7 +228,7 @@ func main() {
 	}
 
 	// Define target state
-	target := emerge.State{
+	target := core.State{
 		Phase:     0,
 		Frequency: 100 * time.Millisecond,
 		Coherence: 0.9,
@@ -338,13 +340,13 @@ func main() {
 
 func demonstrateRealTimeComparison() {
 	// Create a mini-swarm with different strategies
-	target := emerge.State{
+	target := core.State{
 		Phase:     0,
 		Frequency: 50 * time.Millisecond,
 		Coherence: 0.8,
 	}
 
-	swarm, err := emerge.NewSwarm(12, target)
+	swarm, err := swarm.New(12, target)
 	if err != nil {
 		fmt.Printf("Error creating swarm: %v\n", err)
 		return
@@ -359,8 +361,7 @@ func demonstrateRealTimeComparison() {
 	}
 
 	i := 0
-	swarm.Agents().Range(func(key, value any) bool {
-		agent := value.(*emerge.Agent)
+	for _, agent := range swarm.Agents() {
 
 		switch i % 4 {
 		case 0:
@@ -377,8 +378,7 @@ func demonstrateRealTimeComparison() {
 		}
 
 		i++
-		return true
-	})
+	}
 
 	fmt.Println("Mixed-strategy swarm composition:")
 	for strategy, count := range strategyCount {

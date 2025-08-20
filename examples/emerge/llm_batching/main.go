@@ -61,7 +61,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/carlisia/bio-adapt/emerge"
+	"github.com/carlisia/bio-adapt/emerge/core"
+	"github.com/carlisia/bio-adapt/emerge/swarm"
+	"github.com/carlisia/bio-adapt/emerge/util"
 )
 
 func main() {
@@ -135,7 +137,7 @@ func main() {
 	// - Shorter = more batches but less requests per batch
 	// - Longer = fewer batches with more requests, but higher latency
 	batchWindow := 200 * time.Millisecond
-	targetState := emerge.State{
+	targetState := core.State{
 		Phase:     0,           // Alignment point (all requests sync to same moment)
 		Frequency: batchWindow, // Batch window size (we chose 200ms for balance)
 		Coherence: 0.65,        // How tightly synchronized (65% = good batching)
@@ -179,8 +181,8 @@ func main() {
 	fmt.Println()
 
 	// Use optimized configuration for batching scenarios
-	config := emerge.ConfigForBatching(numWorkloads, batchWindow)
-	swarm, err := emerge.NewSwarm(numWorkloads, targetState, emerge.WithConfig(config))
+	config := swarm.ConfigForBatching(numWorkloads, batchWindow)
+	swarm, err := swarm.New(numWorkloads, targetState, swarm.WithConfig(config))
 	if err != nil {
 		fmt.Printf("❌ Error creating swarm: %v\n", err)
 		return
@@ -436,14 +438,14 @@ results:
 	fmt.Println("\n📝 PRODUCTION API SETUP:")
 	fmt.Println("```go")
 	fmt.Println("// Define your batching requirements")
-	fmt.Println("batchConfig := emerge.State{")
+	fmt.Println("batchConfig := core.State{")
 	fmt.Println("    Phase:     0,                       // Sync point")
 	fmt.Println("    Frequency: 500 * time.Millisecond, // Batch every 500ms")
 	fmt.Println("    Coherence: 0.85,                   // 85% synchronization")
 	fmt.Println("}")
 	fmt.Println()
 	fmt.Println("// Create workload swarm")
-	fmt.Println("workloads, _ := emerge.NewSwarm(50, batchConfig)")
+	fmt.Println("workloads, _ := swarm.New(50, batchConfig)")
 	fmt.Println()
 	fmt.Println("// In each workload, check phase before API call:")
 	fmt.Println("if agent.Phase() < 0.1 { // Near batch window")
@@ -472,7 +474,7 @@ results:
 
 // configureWorkloads simulates heterogeneous workload characteristics.
 // In production, these differences emerge naturally from system diversity.
-func configureWorkloads(swarm *emerge.Swarm) {
+func configureWorkloads(swarm *swarm.Swarm) {
 	workloadTypes := []string{"⚡Fast", "🔄Normal", "🐌Slow", "💥Bursty"}
 	typeCount := make(map[string]int)
 	typeEmojis := map[string]string{
@@ -481,8 +483,7 @@ func configureWorkloads(swarm *emerge.Swarm) {
 	}
 
 	i := 0
-	swarm.Agents().Range(func(key, value any) bool {
-		agent := value.(*emerge.Agent)
+	for _, agent := range swarm.Agents() {
 
 		// Assign workload personality based on real-world patterns
 		workloadType := workloadTypes[i%len(workloadTypes)]
@@ -512,8 +513,7 @@ func configureWorkloads(swarm *emerge.Swarm) {
 		}
 
 		i++
-		return true
-	})
+	}
 
 	// Display workload distribution
 	for _, wType := range workloadTypes {
@@ -527,14 +527,13 @@ func configureWorkloads(swarm *emerge.Swarm) {
 }
 
 // visualizeRequestTimeline shows when requests would occur in a time window
-func visualizeRequestTimeline(swarm *emerge.Swarm) {
+func visualizeRequestTimeline(swarm *swarm.Swarm) {
 	// Collect all agent phases (request timings)
 	phases := make([]float64, 0, swarm.Size())
-	swarm.Agents().Range(func(key, value any) bool {
-		agent := value.(*emerge.Agent)
+	for _, agent := range swarm.Agents() {
+
 		phases = append(phases, agent.Phase())
-		return true
-	})
+	}
 
 	// Create time bins representing 200ms windows
 	numBins := 24
@@ -652,14 +651,13 @@ func interpretBatchingQuality(coherence float64) {
 
 // estimateBatches counts how many distinct request clusters formed.
 // Fewer batches = better efficiency (more requests per batch).
-func estimateBatches(swarm *emerge.Swarm) int {
+func estimateBatches(swarm *swarm.Swarm) int {
 	// Collect all phases
 	phases := make([]float64, 0, swarm.Size())
-	swarm.Agents().Range(func(key, value any) bool {
-		agent := value.(*emerge.Agent)
+	for _, agent := range swarm.Agents() {
+
 		phases = append(phases, agent.Phase())
-		return true
-	})
+	}
 
 	if len(phases) == 0 {
 		return 0
@@ -683,7 +681,7 @@ func estimateBatches(swarm *emerge.Swarm) int {
 		// Find all requests in this batch window
 		for j, phase2 := range phases {
 			if !used[j] {
-				diff := math.Abs(emerge.PhaseDifference(phase1, phase2))
+				diff := math.Abs(util.PhaseDifference(phase1, phase2))
 				if diff < threshold {
 					used[j] = true
 				}
@@ -696,7 +694,7 @@ func estimateBatches(swarm *emerge.Swarm) int {
 
 // testResilience simulates real-world disruptions and recovery.
 // Shows that the system self-heals without intervention.
-func testResilience(swarm *emerge.Swarm, targetState emerge.State) {
+func testResilience(swarm *swarm.Swarm, targetState core.State) {
 	fmt.Println("🔨 Simulating disruption scenario (30% workloads fail)...")
 	fmt.Println("   (In production: pod restarts, deployments, network issues)")
 

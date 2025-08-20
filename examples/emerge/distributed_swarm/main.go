@@ -12,7 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/carlisia/bio-adapt/emerge"
+	"github.com/carlisia/bio-adapt/emerge/core"
+	"github.com/carlisia/bio-adapt/emerge/swarm"
 )
 
 func main() {
@@ -20,7 +21,7 @@ func main() {
 	fmt.Println()
 
 	// Global target state for all sub-swarms
-	globalTarget := emerge.State{
+	globalTarget := core.State{
 		Phase:     1.57, // π/2 radians
 		Frequency: 200 * time.Millisecond,
 		Coherence: 0.75,
@@ -29,25 +30,23 @@ func main() {
 	// Create multiple sub-swarms representing different regions
 	numSubSwarms := 3
 	swarmSizes := []int{20, 30, 25}
-	subSwarms := make([]*emerge.Swarm, numSubSwarms)
+	subSwarms := make([]*swarm.Swarm, numSubSwarms)
 
 	fmt.Printf("Creating %d sub-swarms:\n", numSubSwarms)
 	var err error
 	for i := range numSubSwarms {
-		subSwarms[i], err = emerge.NewSwarm(swarmSizes[i], globalTarget)
+		subSwarms[i], err = swarm.New(swarmSizes[i], globalTarget)
 		if err != nil {
 			fmt.Printf("Error creating sub-swarm %d: %v\n", i, err)
 			return
 		}
 
 		// Give each sub-swarm slightly different initial conditions
-		subSwarms[i].Agents().Range(func(key, value any) bool {
-			agent := value.(*emerge.Agent)
+		for _, agent := range subSwarms[i].Agents() {
 			// Add regional bias to initial phase
 			regionalPhase := float64(i) * 0.5
 			agent.SetPhase(regionalPhase + rand.Float64()*0.5)
-			return true
-		})
+		}
 
 		fmt.Printf("  Sub-swarm %d: %d agents (regional bias: %.2f)\n",
 			i+1, swarmSizes[i], float64(i)*0.5)
@@ -65,14 +64,14 @@ func main() {
 	fmt.Println("\nStarting distributed synchronization...")
 	var wg sync.WaitGroup
 	errChan := make(chan error, len(subSwarms))
-	for i, swarm := range subSwarms {
+	for i, sw := range subSwarms {
 		wg.Add(1)
-		go func(idx int, s *emerge.Swarm) {
+		go func(idx int, s *swarm.Swarm) {
 			defer wg.Done()
 			if err := s.Run(ctx); err != nil {
 				errChan <- fmt.Errorf("sub-swarm %d: %w", idx, err)
 			}
-		}(i, swarm)
+		}(i, sw)
 	}
 
 	// Create inter-swarm connections (bridge agents)
@@ -145,15 +144,13 @@ done:
 }
 
 // measureGlobalCoherence calculates coherence across all sub-swarms
-func measureGlobalCoherence(swarms []*emerge.Swarm) float64 {
+func measureGlobalCoherence(swarms []*swarm.Swarm) float64 {
 	var phases []float64
 
 	for _, swarm := range swarms {
-		swarm.Agents().Range(func(key, value any) bool {
-			agent := value.(*emerge.Agent)
+		for _, agent := range swarm.Agents() {
 			phases = append(phases, agent.Phase())
-			return true
-		})
+		}
 	}
 
 	if len(phases) == 0 {
@@ -172,36 +169,29 @@ func measureGlobalCoherence(swarms []*emerge.Swarm) float64 {
 }
 
 // connectSubSwarms creates bridge connections between sub-swarms
-func connectSubSwarms(swarms []*emerge.Swarm) {
+func connectSubSwarms(swarms []*swarm.Swarm) {
 	// Connect adjacent sub-swarms through a few bridge agents
 	for i := range len(swarms) - 1 {
 		// Select 2 random agents from each swarm to act as bridges
 		bridgeCount := 0
-		swarms[i].Agents().Range(func(key1, value1 any) bool {
+		for _, agent1 := range swarms[i].Agents() {
 			if bridgeCount >= 2 {
-				return false
+				break
 			}
 
-			agent1 := value1.(*emerge.Agent)
 			connected := 0
-
-			swarms[i+1].Agents().Range(func(key2, value2 any) bool {
+			for _, agent2 := range swarms[i+1].Agents() {
 				if connected >= 1 {
-					return false
+					break
 				}
-
-				agent2 := value2.(*emerge.Agent)
 
 				// Create bidirectional connection
 				agent1.Neighbors().Store(agent2.ID, agent2)
 				agent2.Neighbors().Store(agent1.ID, agent1)
 
 				connected++
-				return true
-			})
-
+			}
 			bridgeCount++
-			return true
-		})
+		}
 	}
 }
