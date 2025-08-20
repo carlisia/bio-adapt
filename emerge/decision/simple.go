@@ -1,8 +1,9 @@
 package decision
 
 import (
-	"github.com/carlisia/bio-adapt/emerge/core"
 	"math"
+
+	"github.com/carlisia/bio-adapt/emerge/core"
 )
 
 // SimpleDecisionMaker provides basic autonomous decision-making.

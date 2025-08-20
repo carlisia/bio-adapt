@@ -7,11 +7,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jedib0t/go-pretty/v6/table"
+
 	"github.com/carlisia/bio-adapt/emerge/core"
 	"github.com/carlisia/bio-adapt/emerge/swarm"
 	"github.com/carlisia/bio-adapt/internal/analysis"
 	"github.com/carlisia/bio-adapt/internal/display"
-	"github.com/jedib0t/go-pretty/v6/table"
 )
 
 func main() {

@@ -7,12 +7,13 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/atomic"
+
 	"github.com/carlisia/bio-adapt/emerge/core"
 	"github.com/carlisia/bio-adapt/emerge/decision"
 	"github.com/carlisia/bio-adapt/emerge/goal"
 	"github.com/carlisia/bio-adapt/emerge/strategy"
 	"github.com/carlisia/bio-adapt/internal/resource"
-	"go.uber.org/atomic"
 )
 
 // Agent represents an autonomous entity with local goals and decision-making
