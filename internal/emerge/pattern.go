@@ -3,104 +3,251 @@ package emerge
 import (
 	"math"
 	"time"
+
+	"github.com/carlisia/bio-adapt/emerge/util"
 )
 
-// RhythmicPattern represents temporal patterns in agent behavior.
-// Internal use only - for pattern detection and analysis.
+// RhythmicPattern represents a temporal pattern of phases and frequencies.
+// This captures repeating biological patterns like heartbeats, circadian rhythms,
+// or neural oscillations.
 type RhythmicPattern struct {
-	phases      []float64
-	frequencies []time.Duration
-	amplitudes  []float64
-	timestamps  []time.Time
+	Phases      []float64       // Phase values at each time point
+	Frequencies []time.Duration // Frequency at each time point
+	Amplitude   float64         // Pattern strength/amplitude
+	Period      time.Duration   // Overall pattern period
+	Confidence  float64         // Confidence in pattern detection [0, 1]
 }
 
-// NewRhythmicPattern creates a new pattern tracker.
+// NewRhythmicPattern creates a new rhythmic pattern.
 func NewRhythmicPattern(phases []float64, frequencies []time.Duration) *RhythmicPattern {
-	amplitudes := make([]float64, len(phases))
-	timestamps := make([]time.Time, len(phases))
-
-	for i := range phases {
-		amplitudes[i] = 1.0
-		timestamps[i] = time.Now()
-	}
+	amplitude := calculateAmplitude(phases)
+	period := calculatePeriod(frequencies)
 
 	return &RhythmicPattern{
-		phases:      phases,
-		frequencies: frequencies,
-		amplitudes:  amplitudes,
-		timestamps:  timestamps,
+		Phases:      phases,
+		Frequencies: frequencies,
+		Amplitude:   amplitude,
+		Period:      period,
+		Confidence:  1.0, // Default full confidence
 	}
 }
 
-// Similarity calculates pattern similarity.
-func (p *RhythmicPattern) Similarity(other *RhythmicPattern) float64 {
-	if p == nil || other == nil || len(p.phases) == 0 || len(other.phases) == 0 {
-		return 0
-	}
-
-	// Compare phase distributions
-	phaseSim := phaseCorrelation(p.phases, other.phases)
-
-	// Compare frequencies
-	freqSim := 0.0
-	minLen := min(len(p.frequencies), len(other.frequencies))
-
-	for i := range minLen {
-		diff := math.Abs(float64(p.frequencies[i] - other.frequencies[i]))
-		maxFreq := math.Max(float64(p.frequencies[i]), float64(other.frequencies[i]))
-		if maxFreq > 0 {
-			freqSim += 1 - diff/maxFreq
-		}
-	}
-
-	if minLen > 0 {
-		freqSim /= float64(minLen)
-	}
-
-	return 0.7*phaseSim + 0.3*freqSim
-}
-
-// PatternGap identifies gaps in patterns.
+// PatternGap represents a missing segment in a pattern.
+// These gaps need to be filled through pattern completion.
 type PatternGap struct {
-	StartIdx int
-	EndIdx   int
-	Duration time.Duration
+	StartIdx  int           // Start index in pattern
+	EndIdx    int           // End index in pattern
+	Duration  time.Duration // Time duration of gap
+	Predicted []float64     // Predicted values for the gap
 }
 
-// DetectGaps finds gaps in the pattern.
-func (p *RhythmicPattern) DetectGaps(threshold time.Duration) []PatternGap {
-	var gaps []PatternGap
+// Detect finds gaps in the pattern that need completion.
+func (p *RhythmicPattern) Detect() []PatternGap {
+	gaps := make([]PatternGap, 0)
 
-	for i := 1; i < len(p.timestamps); i++ {
-		duration := p.timestamps[i].Sub(p.timestamps[i-1])
-		if duration > threshold {
-			gaps = append(gaps, PatternGap{
+	// Simple gap detection: look for sudden phase jumps
+	for i := 1; i < len(p.Phases); i++ {
+		diff := math.Abs(util.PhaseDifference(p.Phases[i], p.Phases[i-1]))
+
+		// If phase jump is too large, likely a gap
+		if diff > math.Pi/2 {
+			gap := PatternGap{
 				StartIdx: i - 1,
 				EndIdx:   i,
-				Duration: duration,
-			})
+				Duration: p.Frequencies[i-1],
+			}
+			gaps = append(gaps, gap)
 		}
 	}
 
 	return gaps
 }
 
-// phaseCorrelation is a helper for comparing phase arrays
-func phaseCorrelation(phases1, phases2 []float64) float64 {
-	if len(phases1) == 0 || len(phases2) == 0 {
+// Complete fills in missing parts of a pattern.
+func (p *RhythmicPattern) Complete(gap PatternGap) []float64 {
+	if gap.StartIdx < 0 || gap.EndIdx >= len(p.Phases) || gap.StartIdx >= gap.EndIdx {
+		return nil
+	}
+
+	// Simple linear interpolation for now
+	startPhase := p.Phases[gap.StartIdx]
+	endPhase := p.Phases[gap.EndIdx]
+
+	steps := gap.EndIdx - gap.StartIdx - 1
+	if steps <= 0 {
+		return []float64{}
+	}
+
+	completed := make([]float64, steps)
+	diff := util.PhaseDifference(endPhase, startPhase)
+
+	for i := range steps {
+		fraction := float64(i+1) / float64(steps+1)
+		completed[i] = util.WrapPhase(startPhase + diff*fraction)
+	}
+
+	return completed
+}
+
+// Similarity calculates how similar two patterns are.
+// Returns a value between 0 (completely different) and 1 (identical).
+func (p *RhythmicPattern) Similarity(other *RhythmicPattern) float64 {
+	if other == nil || len(p.Phases) == 0 || len(other.Phases) == 0 {
 		return 0
 	}
 
-	n := min(len(phases1), len(phases2))
+	// Compare amplitudes
+	ampDiff := math.Abs(p.Amplitude - other.Amplitude)
+	ampSim := 1.0 - math.Min(ampDiff/math.Max(p.Amplitude, other.Amplitude), 1.0)
 
-	sumCos := 0.0
-	sumSin := 0.0
+	// Compare periods
+	periodDiff := math.Abs(float64(p.Period - other.Period))
+	maxPeriod := max(p.Period, other.Period)
+	periodSim := 1.0 - math.Min(periodDiff/float64(maxPeriod), 1.0)
 
-	for i := range n {
-		diff := phases1[i] - phases2[i]
-		sumCos += math.Cos(diff)
-		sumSin += math.Sin(diff)
+	// Check for massively different scales before normalization
+	scaleFactor := 1.0
+	if len(p.Phases) == len(other.Phases) && len(p.Phases) > 0 {
+		var maxP, maxO float64
+		for i := range p.Phases {
+			maxP = math.Max(maxP, math.Abs(p.Phases[i]))
+			maxO = math.Max(maxO, math.Abs(other.Phases[i]))
+		}
+		if maxP > 0 && maxO > 0 {
+			ratio := math.Max(maxP/maxO, maxO/maxP)
+			if ratio > 100 { // If scales differ by more than 100x
+				scaleFactor = 1.0 / math.Min(ratio/100, 10) // Reduce similarity significantly
+			}
+		}
 	}
 
-	return math.Sqrt(sumCos*sumCos+sumSin*sumSin) / float64(n)
+	// Compare phase patterns (using correlation)
+	phaseSim := phaseCorrelation(p.Phases, other.Phases) * scaleFactor
+
+	// Weighted average
+	return (ampSim*0.3 + periodSim*0.3 + phaseSim*0.4)
+}
+
+// PatternTemplate represents a known pattern archetype.
+// These are like "morphogenetic templates" that guide development.
+type PatternTemplate struct {
+	Name        string
+	BasePattern RhythmicPattern
+	Variations  []RhythmicPattern // Acceptable variations
+	Tolerance   float64           // How much deviation is acceptable
+}
+
+// Matches checks if a pattern matches this template.
+func (t *PatternTemplate) Matches(pattern *RhythmicPattern) bool {
+	// Check against base pattern
+	similarity := t.BasePattern.Similarity(pattern)
+	if similarity >= (1.0 - t.Tolerance) {
+		return true
+	}
+
+	// Check against variations
+	for _, variation := range t.Variations {
+		if variation.Similarity(pattern) >= (1.0 - t.Tolerance) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// PatternLibrary stores known pattern templates.
+type PatternLibrary struct {
+	templates map[string]*PatternTemplate
+}
+
+// NewPatternLibrary creates a new pattern library.
+func NewPatternLibrary() *PatternLibrary {
+	return &PatternLibrary{
+		templates: make(map[string]*PatternTemplate),
+	}
+}
+
+// Add registers a new pattern template.
+func (l *PatternLibrary) Add(name string, template *PatternTemplate) {
+	l.templates[name] = template
+}
+
+// Identify attempts to identify which template a pattern matches.
+func (l *PatternLibrary) Identify(pattern *RhythmicPattern) (string, float64) {
+	var bestMatch string
+	var bestSimilarity float64
+
+	for name, template := range l.templates {
+		similarity := template.BasePattern.Similarity(pattern)
+		if similarity > bestSimilarity {
+			bestSimilarity = similarity
+			bestMatch = name
+		}
+	}
+
+	return bestMatch, bestSimilarity
+}
+
+// Helper functions
+
+func calculateAmplitude(phases []float64) float64 {
+	if len(phases) < 2 {
+		return 0
+	}
+
+	// Normalize phases to [0, 2π] for circular data
+	normalizedPhases := make([]float64, len(phases))
+	for i, p := range phases {
+		normalizedPhases[i] = util.WrapPhase(p)
+	}
+
+	// Calculate variance as measure of amplitude
+	mean := 0.0
+	for _, p := range normalizedPhases {
+		mean += p
+	}
+	mean /= float64(len(normalizedPhases))
+
+	variance := 0.0
+	for _, p := range normalizedPhases {
+		diff := p - mean
+		variance += diff * diff
+	}
+	variance /= float64(len(normalizedPhases))
+
+	return math.Sqrt(variance)
+}
+
+func calculatePeriod(frequencies []time.Duration) time.Duration {
+	if len(frequencies) == 0 {
+		return 0
+	}
+
+	// Average frequency as period estimate
+	var total time.Duration
+	for _, f := range frequencies {
+		total += f
+	}
+
+	return total / time.Duration(len(frequencies))
+}
+
+func phaseCorrelation(phases1, phases2 []float64) float64 {
+	// Return 0 if arrays have different lengths
+	if len(phases1) != len(phases2) {
+		return 0
+	}
+
+	if len(phases1) == 0 {
+		return 0
+	}
+
+	// Calculate correlation coefficient
+	var sum float64
+	for i := range len(phases1) {
+		diff := math.Abs(util.PhaseDifference(phases1[i], phases2[i]))
+		sum += 1.0 - (diff / math.Pi) // Normalize to [0, 1]
+	}
+
+	return sum / float64(len(phases1))
 }
