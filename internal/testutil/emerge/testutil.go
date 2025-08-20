@@ -1,4 +1,4 @@
-package testing
+package emerge
 
 import (
 	"errors"
