@@ -139,6 +139,12 @@ formatters:
   enable:
     - gci
     - gofmt
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/carlisia/bio-adapt)
   exclusions:
     generated: lax
     paths:
@@ -148,4 +154,3 @@ formatters:
 issues:
   max-issues-per-linter: 50
   max-same-issues: 10
-
