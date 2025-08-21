@@ -228,14 +228,14 @@ func (s *Swarm) createOptimizedAgents() error {
 		for j := i; j < end; j++ {
 			id := fmt.Sprintf("agent-%d", j)
 
-			// Create optimized agent with pre-allocated neighbor storage
-			oa, err := agent.NewOptimizedFromConfig(id, agentConfig)
+			// Create agent with pre-allocated neighbor storage
+			a, err := agent.NewOptimizedFromConfig(id, agentConfig)
 			if err != nil {
 				return fmt.Errorf("failed to create agent %d: %w", j, err)
 			}
 
-			// Store the OptimizedAgent directly - it embeds Agent so it satisfies the interface
-			s.agentSlice[j] = oa.Agent
+			// Store the Agent directly
+			s.agentSlice[j] = a
 			s.agentIndex[id] = j
 		}
 	}

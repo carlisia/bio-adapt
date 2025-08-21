@@ -24,7 +24,7 @@ func BenchmarkNeighborStorage(b *testing.B) {
 			// Connect all agents
 			for i := 0; i < size; i++ {
 				for j := i + 1; j < size && j < i+6; j++ { // Connect to ~5 neighbors
-					agents[i].ConnectTo(agents[j])
+					agents[i].ConnectTo(agents[j].ID, agents[j])
 				}
 			}
 
@@ -48,15 +48,15 @@ func BenchmarkNeighborStorage(b *testing.B) {
 
 		b.Run(fmt.Sprintf("optimized_%d", size), func(b *testing.B) {
 			// Create optimized agents
-			agents := make([]*OptimizedAgent, size)
+			agents := make([]*Agent, size)
 			for i := 0; i < size; i++ {
-				agents[i] = NewOptimized(fmt.Sprintf("agent-%d", i), 20)
+				agents[i] = New(fmt.Sprintf("agent-%d", i))
 			}
 
 			// Connect all agents
 			for i := 0; i < size; i++ {
 				for j := i + 1; j < size && j < i+6; j++ {
-					agents[i].ConnectTo(agents[j].Agent)
+					agents[i].ConnectTo(agents[j].ID, agents[j])
 				}
 			}
 
@@ -107,7 +107,7 @@ func BenchmarkNeighborIteration(b *testing.B) {
 	})
 
 	b.Run("optimized", func(b *testing.B) {
-		a := NewOptimized("test", 30)
+		a := New("test")
 		// Add neighbors
 		for i := 0; i < numNeighbors; i++ {
 			neighbor := New(fmt.Sprintf("neighbor-%d", i))
@@ -148,7 +148,7 @@ func BenchmarkCoherenceCalculation(b *testing.B) {
 	})
 
 	b.Run("optimized", func(b *testing.B) {
-		a := NewOptimized("test", 30)
+		a := New("test")
 		for i := 0; i < numNeighbors; i++ {
 			neighbor := New(fmt.Sprintf("neighbor-%d", i),
 				WithPhase(float64(i)*0.1))
@@ -179,7 +179,7 @@ func BenchmarkConcurrentNeighborAccess(b *testing.B) {
 		for i := 0; i < numAgents; i++ {
 			for j := 0; j < numNeighborsPerAgent; j++ {
 				neighborIdx := (i + j + 1) % numAgents
-				agents[i].ConnectTo(agents[neighborIdx])
+				agents[i].ConnectTo(agents[neighborIdx].ID, agents[neighborIdx])
 			}
 		}
 
@@ -205,16 +205,16 @@ func BenchmarkConcurrentNeighborAccess(b *testing.B) {
 	})
 
 	b.Run("optimized", func(b *testing.B) {
-		agents := make([]*OptimizedAgent, numAgents)
+		agents := make([]*Agent, numAgents)
 		for i := 0; i < numAgents; i++ {
-			agents[i] = NewOptimized(fmt.Sprintf("agent-%d", i), 20)
+			agents[i] = New(fmt.Sprintf("agent-%d", i))
 		}
 
 		// Connect agents
 		for i := 0; i < numAgents; i++ {
 			for j := 0; j < numNeighborsPerAgent; j++ {
 				neighborIdx := (i + j + 1) % numAgents
-				agents[i].ConnectTo(agents[neighborIdx].Agent)
+				agents[i].ConnectTo(agents[neighborIdx].ID, agents[neighborIdx])
 			}
 		}
 
@@ -225,7 +225,7 @@ func BenchmarkConcurrentNeighborAccess(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			wg.Add(numAgents)
 			for _, a := range agents {
-				go func(agent *OptimizedAgent) {
+				go func(agent *Agent) {
 					defer wg.Done()
 					agent.UpdateContext()
 					agent.ProposeAdjustment(core.State{

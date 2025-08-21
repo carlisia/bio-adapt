@@ -85,12 +85,16 @@ func (a *Agent) Reset(id string) {
 	a.ID = id
 
 	// Reset atomic values to defaults
-	a.phase.Store(random.Phase())
-	a.frequency.Store(100 * time.Millisecond)
-	a.energy.Store(100.0)
-	a.localGoal.Store(random.Phase())
-	a.influence.Store(0.1 + random.Float64()*0.1)
-	a.stubbornness.Store(random.Float64() * 0.3)
+	a.state.Store(StateData{
+		Phase:     random.Phase(),
+		Energy:    100.0,
+		LocalGoal: random.Phase(),
+		Frequency: 100 * time.Millisecond,
+	})
+	a.behavior.Store(BehaviorData{
+		Influence:    0.1 + random.Float64()*0.1,
+		Stubbornness: random.Float64() * 0.3,
+	})
 
 	// Clear neighbors but keep the map allocated
 	a.neighbors.Range(func(key, _ interface{}) bool {

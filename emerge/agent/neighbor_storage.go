@@ -10,9 +10,9 @@ import (
 type NeighborStorage struct {
 	// Fixed-size arrays for better cache locality
 	neighbors []*Agent // Pre-allocated slice of neighbors
-	ids       []string // Neighbor IDs for lookup
-	count     int32    // Atomic counter for active neighbors
-	capacity  int      // Maximum capacity
+	ids       []string      // Neighbor IDs for lookup
+	count     int32         // Atomic counter for active neighbors
+	capacity  int           // Maximum capacity
 	mu        sync.RWMutex
 }
 

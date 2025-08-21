@@ -4,37 +4,41 @@ import (
 	"fmt"
 	"math"
 	"sync"
+	"sync/atomic"
 	"time"
-
-	"go.uber.org/atomic"
 
 	"github.com/carlisia/bio-adapt/emerge/core"
 	"github.com/carlisia/bio-adapt/emerge/decision"
 	"github.com/carlisia/bio-adapt/emerge/goal"
 	"github.com/carlisia/bio-adapt/emerge/strategy"
+	"github.com/carlisia/bio-adapt/internal/config"
 	"github.com/carlisia/bio-adapt/internal/random"
 	"github.com/carlisia/bio-adapt/internal/resource"
 )
 
+// Option configures an Agent.
+type Option func(*Agent)
+
 // Agent represents an autonomous entity with local goals and decision-making
-// capability. Agents make their own decisions about synchronization while
-// contributing to emergent global patterns.
+// capability. It uses grouped atomic fields for efficient concurrent access
+// and optimized neighbor storage for better cache locality.
 type Agent struct {
 	// ID is the unique identifier for this agent
 	ID string
 
-	// Private fields - accessed through methods
-	localGoal    atomic.Float64  // Preferred phase
-	phase        atomic.Float64  // Current phase [0, 2π]
-	frequency    atomic.Duration // Current frequency
-	energy       atomic.Float64  // Available energy
-	influence    atomic.Float64  // Local vs global weight [0, 1]
-	stubbornness atomic.Float64  // Resistance to change [0, 1]
+	// Optimization 1: Grouped atomic fields to reduce cache line bouncing
+	state    *AtomicState    // Phase, Energy, LocalGoal, Frequency
+	behavior *AtomicBehavior // Influence, Stubbornness
+	
+	// Context is updated less frequently
+	context atomic.Value // stores Context
 
-	neighbors sync.Map     // map[string]*Agent
-	context   atomic.Value // stores Context
+	// Optimization 2: Fixed-size neighbor storage for better cache locality
+	optimizedNeighbors *NeighborStorage
+	neighbors          sync.Map // Fallback for compatibility
+	useOptimizedNeighbors bool
 
-	// Configuration
+	// Configuration (read-only after creation)
 	swarmSize           int
 	assumedMaxNeighbors int
 
@@ -45,34 +49,36 @@ type Agent struct {
 	strategy    core.SyncStrategy
 }
 
-// Option configures an Agent.
-type Option func(*Agent)
-
-// New creates an agent with the provided options.
+// New creates a new agent with the given ID.
 func New(id string, opts ...Option) *Agent {
 	a := &Agent{
-		ID: id,
+		ID:                    id,
+		state:                 NewAtomicState(),
+		behavior:              NewAtomicBehavior(),
+		optimizedNeighbors:    NewNeighborStorage(20), // Default for small-world networks
+		useOptimizedNeighbors: true,
 	}
 
-	// Apply defaults
-	defaults := []Option{
-		WithDecisionMaker(&decision.SimpleDecisionMaker{}),
-		WithGoalManager(&goal.WeightedManager{}),
-		WithResourceManager(resource.NewTokenManager(100)),
-		WithStrategy(&strategy.PhaseNudge{Rate: 0.3}),
-		WithRandomPhase(),
-		WithRandomLocalGoal(),
-		WithRandomFrequency(),
-		WithEnergy(100.0),
-		WithInfluence(0.1), // Low global influence for Kuramoto coupling to work
-		WithStubbornness(0.2),
-	}
+	// Initialize with defaults
+	a.state.Store(StateData{
+		Phase:     random.Phase(),
+		Energy:    100.0,
+		LocalGoal: random.Phase(),
+		Frequency: 100*time.Millisecond + time.Duration(random.Float64()*50)*time.Millisecond,
+	})
 
-	for _, opt := range defaults {
-		opt(a)
-	}
+	a.behavior.Store(BehaviorData{
+		Influence:    0.1,
+		Stubbornness: 0.2,
+	})
 
-	// Apply user options (can override defaults)
+	// Default components
+	a.decider = &decision.SimpleDecisionMaker{}
+	a.goalManager = &goal.WeightedManager{}
+	a.resources = resource.NewTokenManager(100)
+	a.strategy = &strategy.PhaseNudge{Rate: 0.3}
+
+	// Apply options
 	for _, opt := range opts {
 		opt(a)
 	}
@@ -83,95 +89,154 @@ func New(id string, opts ...Option) *Agent {
 	return a
 }
 
-// ============= Public Getters (no "Get" prefix) =============
+// NewOptimizedFromConfig creates an optimized agent from configuration.
+func NewOptimizedFromConfig(id string, cfg config.Agent) (*Agent, error) {
+	// Determine max neighbors based on config
+	maxNeighbors := cfg.AssumedMaxNeighbors
+	if maxNeighbors == 0 {
+		// Default for small-world networks
+		if cfg.SwarmSize > 100 {
+			maxNeighbors = 20 // Small-world topology
+		} else {
+			maxNeighbors = cfg.SwarmSize - 1 // Fully connected for small swarms
+		}
+	}
+
+	// Create options from config
+	opts := []Option{
+		WithPhase(cfg.Phase),
+		WithFrequency(cfg.Frequency),
+		WithEnergy(cfg.InitialEnergy),
+		WithInfluence(cfg.Influence),
+		WithStubbornness(cfg.Stubbornness),
+		WithSwarmInfo(cfg.SwarmSize, maxNeighbors),
+		WithLocalGoal(cfg.LocalGoal),
+	}
+
+	// Handle randomization
+	if cfg.RandomizePhase {
+		opts = append(opts, WithRandomPhase())
+	}
+	if cfg.RandomizeLocalGoal {
+		opts = append(opts, WithRandomLocalGoal())
+	}
+	if cfg.RandomizeFrequency {
+		opts = append(opts, WithRandomFrequency())
+	}
+
+	// Add decision maker based on type
+	switch cfg.DecisionMakerType {
+	case "simple":
+		opts = append(opts, WithDecisionMaker(&decision.SimpleDecisionMaker{}))
+	}
+
+	// Add goal manager based on type
+	switch cfg.GoalManagerType {
+	case "weighted":
+		opts = append(opts, WithGoalManager(&goal.WeightedManager{}))
+	}
+
+	// Add resource manager based on type
+	if cfg.ResourceManagerType == "token" && cfg.MaxTokens > 0 {
+		opts = append(opts, WithResourceManager(resource.NewTokenManager(cfg.MaxTokens)))
+	}
+
+	// Add strategy based on type
+	switch cfg.StrategyType {
+	case "phase_nudge":
+		opts = append(opts, WithStrategy(&strategy.PhaseNudge{Rate: cfg.StrategyRate}))
+	case "frequency_lock":
+		opts = append(opts, WithStrategy(&strategy.FrequencyLock{SyncRate: 0.5}))
+	case "energy_aware":
+		opts = append(opts, WithStrategy(&strategy.EnergyAware{Threshold: 10}))
+	default:
+		opts = append(opts, WithStrategy(&strategy.PhaseNudge{Rate: cfg.StrategyRate}))
+	}
+
+	return New(id, opts...), nil
+}
+
 
 // Phase returns the agent's current phase.
 func (a *Agent) Phase() float64 {
-	return a.phase.Load()
+	return a.state.Load().Phase
 }
 
-// SetPhase sets the agent's phase (for goal-directed sync).
+// SetPhase sets the agent's phase.
 func (a *Agent) SetPhase(phase float64) {
-	a.phase.Store(core.WrapPhase(phase))
+	a.state.Update(func(s *StateData) {
+		s.Phase = core.WrapPhase(phase)
+	})
 }
 
 // Frequency returns the agent's oscillation frequency.
 func (a *Agent) Frequency() time.Duration {
-	return a.frequency.Load()
+	return a.state.Load().Frequency
+}
+
+// SetFrequency updates the agent's frequency.
+func (a *Agent) SetFrequency(freq time.Duration) {
+	a.state.Update(func(s *StateData) {
+		s.Frequency = freq
+	})
 }
 
 // Energy returns the agent's available energy.
 func (a *Agent) Energy() float64 {
-	return a.energy.Load()
-}
-
-// Influence returns the agent's influence weight.
-func (a *Agent) Influence() float64 {
-	return a.influence.Load()
-}
-
-// Stubbornness returns the agent's resistance to change.
-func (a *Agent) Stubbornness() float64 {
-	return a.stubbornness.Load()
-}
-
-// LocalGoal returns the agent's individual target phase.
-func (a *Agent) LocalGoal() float64 {
-	return a.localGoal.Load()
-}
-
-// NeighborCount returns the number of connected neighbors.
-func (a *Agent) NeighborCount() int {
-	count := 0
-	a.neighbors.Range(func(_, _ any) bool {
-		count++
-		return true
-	})
-	return count
-}
-
-// ============= Public Setters =============
-
-// SetFrequency updates the agent's frequency.
-func (a *Agent) SetFrequency(freq time.Duration) {
-	a.frequency.Store(freq)
+	return a.state.Load().Energy
 }
 
 // SetEnergy updates the agent's energy.
 func (a *Agent) SetEnergy(energy float64) {
-	a.energy.Store(math.Max(0, energy))
+	a.state.Update(func(s *StateData) {
+		s.Energy = math.Max(0, energy)
+	})
+}
+
+// LocalGoal returns the agent's individual target phase.
+func (a *Agent) LocalGoal() float64 {
+	return a.state.Load().LocalGoal
+}
+
+// SetLocalGoal updates the agent's individual target.
+func (a *Agent) SetLocalGoal(g float64) {
+	a.state.Update(func(s *StateData) {
+		s.LocalGoal = core.WrapPhase(g)
+	})
+}
+
+// Influence returns the agent's influence weight.
+func (a *Agent) Influence() float64 {
+	return a.behavior.Load().Influence
 }
 
 // SetInfluence updates the agent's influence weight.
 func (a *Agent) SetInfluence(influence float64) {
-	// Clamp to [0, 1]
 	if influence < 0 {
 		influence = 0
 	} else if influence > 1 {
 		influence = 1
 	}
-	a.influence.Store(influence)
+	a.behavior.Update(func(b *BehaviorData) {
+		b.Influence = influence
+	})
+}
+
+// Stubbornness returns the agent's resistance to change.
+func (a *Agent) Stubbornness() float64 {
+	return a.behavior.Load().Stubbornness
 }
 
 // SetStubbornness updates the agent's resistance.
 func (a *Agent) SetStubbornness(stubbornness float64) {
-	// Clamp to [0, 1]
 	if stubbornness < 0 {
 		stubbornness = 0
 	} else if stubbornness > 1 {
 		stubbornness = 1
 	}
-	a.stubbornness.Store(stubbornness)
-}
-
-// SetLocalGoal updates the agent's individual target.
-func (a *Agent) SetLocalGoal(g float64) {
-	a.localGoal.Store(core.WrapPhase(g))
-}
-
-// Neighbors returns the agent's neighbors map for iteration.
-func (a *Agent) Neighbors() *sync.Map {
-	return &a.neighbors
+	a.behavior.Update(func(b *BehaviorData) {
+		b.Stubbornness = stubbornness
+	})
 }
 
 // SetDecisionMaker replaces the decision-making component.
@@ -179,62 +244,166 @@ func (a *Agent) SetDecisionMaker(dm core.DecisionMaker) {
 	a.decider = dm
 }
 
-// ============= Public Methods =============
+// NeighborCount returns the number of connected neighbors.
+func (a *Agent) NeighborCount() int {
+	// Check both storage methods for compatibility
+	optimizedCount := 0
+	if a.useOptimizedNeighbors && a.optimizedNeighbors != nil {
+		optimizedCount = a.optimizedNeighbors.Count()
+	}
+	
+	mapCount := 0
+	a.neighbors.Range(func(_, _ any) bool {
+		mapCount++
+		return true
+	})
+	
+	// Return the max to handle both cases
+	if optimizedCount > mapCount {
+		return optimizedCount
+	}
+	return mapCount
+}
 
-// ConnectTo establishes a bidirectional connection with another agent.
-func (a *Agent) ConnectTo(other *Agent) {
-	if other != nil && other.ID != a.ID {
-		a.neighbors.Store(other.ID, other)
-		other.neighbors.Store(a.ID, a)
+// Neighbors returns the agent's neighbors map for compatibility.
+func (a *Agent) Neighbors() *sync.Map {
+	// Always return the standard neighbors map
+	// This allows tests to directly manipulate neighbors
+	return &a.neighbors
+}
+
+// ConnectTo establishes a connection to another optimized agent.
+func (a *Agent) ConnectTo(otherID string, other *Agent) {
+	if other == nil || otherID == a.ID {
+		return
+	}
+
+	if a.useOptimizedNeighbors {
+		a.optimizedNeighbors.Store(otherID, other)
+	} else {
+		a.neighbors.Store(otherID, other)
 	}
 }
 
 // DisconnectFrom removes a connection.
-func (a *Agent) DisconnectFrom(other *Agent) {
-	if other != nil {
-		a.neighbors.Delete(other.ID)
-		other.neighbors.Delete(a.ID)
+func (a *Agent) DisconnectFrom(otherID string) {
+	if a.useOptimizedNeighbors {
+		a.optimizedNeighbors.Delete(otherID)
+	} else {
+		a.neighbors.Delete(otherID)
 	}
 }
 
 // IsConnectedTo checks if connected to another agent.
-func (a *Agent) IsConnectedTo(other *Agent) bool {
-	if other == nil {
-		return false
+func (a *Agent) IsConnectedTo(otherID string) bool {
+	if a.useOptimizedNeighbors {
+		_, exists := a.optimizedNeighbors.Load(otherID)
+		return exists
 	}
-	_, exists := a.neighbors.Load(other.ID)
+	_, exists := a.neighbors.Load(otherID)
 	return exists
+}
+
+// UpdateContext updates the agent's perception efficiently with both optimizations.
+func (a *Agent) UpdateContext() {
+	// Get neighbors efficiently
+	var neighborList []*Agent
+	if a.useOptimizedNeighbors {
+		neighborList = a.optimizedNeighbors.All()
+	} else {
+		a.neighbors.Range(func(_, value any) bool {
+			if neighbor, ok := value.(*Agent); ok {
+				neighborList = append(neighborList, neighbor)
+			}
+			return true
+		})
+	}
+
+	if len(neighborList) == 0 {
+		a.context.Store(core.Context{
+			Neighbors:      0,
+			Density:        0,
+			LocalCoherence: 0,
+			Stability:      0.5,
+		})
+		return
+	}
+
+	// Load state once (single atomic operation)
+	state := a.state.Load()
+	myPhase := state.Phase
+
+	sumCos := 0.0
+	sumSin := 0.0
+
+	// Process neighbors
+	for _, neighbor := range neighborList {
+		diff := neighbor.Phase() - myPhase
+		sumCos += math.Cos(diff)
+		sumSin += math.Sin(diff)
+	}
+
+	neighborCount := len(neighborList)
+	localCoherence := math.Sqrt(sumCos*sumCos+sumSin*sumSin) / float64(neighborCount)
+
+	// Kuramoto coupling - update local goal
+	if neighborCount > 0 {
+		avgSin := sumSin / float64(neighborCount)
+		avgCos := sumCos / float64(neighborCount)
+		targetPhaseShift := math.Atan2(avgSin, avgCos)
+
+		couplingStrength := 0.5 + 0.5*localCoherence
+		effectiveShift := targetPhaseShift * couplingStrength
+
+		// Update local goal (single atomic operation for state update)
+		a.state.Update(func(s *StateData) {
+			s.LocalGoal = core.WrapPhase(myPhase + effectiveShift)
+		})
+	}
+
+	// Calculate density
+	maxNeighbors := a.assumedMaxNeighbors
+	if maxNeighbors == 0 {
+		maxNeighbors = a.swarmSize - 1
+	}
+	density := float64(neighborCount) / float64(maxNeighbors)
+
+	// Store context
+	a.context.Store(core.Context{
+		Neighbors:      neighborCount,
+		Density:        density,
+		LocalCoherence: localCoherence,
+		Stability:      0.5, // Placeholder
+	})
 }
 
 // ProposeAdjustment evaluates and potentially accepts an adjustment.
 func (a *Agent) ProposeAdjustment(globalGoal core.State) (core.Action, bool) {
+	behavior := a.behavior.Load()
+	
 	// Stubborn agents resist change
-	if a.rejectsDueToStubbornness() {
+	if random.Float64() < behavior.Stubbornness {
 		return core.Action{Type: "maintain"}, false
 	}
 
-	// For Kuramoto synchronization: use pure local goal from neighbors
-	// Don't blend with global goal - this breaks emergent synchronization
+	state := a.state.Load()
+	
+	// Use pure local goal for Kuramoto synchronization
 	blendedGoal := core.State{
-		Phase:     a.localGoal.Load(), // Pure neighbor-based goal
-		Frequency: a.frequency.Load(),
-		Coherence: globalGoal.Coherence, // Keep target coherence for decisions
+		Phase:     state.LocalGoal,
+		Frequency: state.Frequency,
+		Coherence: globalGoal.Coherence,
 	}
 
 	// Generate proposal using context
 	currentState := core.State{
-		Phase:     a.phase.Load(),
-		Frequency: a.frequency.Load(),
+		Phase:     state.Phase,
+		Frequency: state.Frequency,
 		Coherence: a.calculateLocalCoherence(),
 	}
 
-	// Create a simple context for the strategy
-	ctx := core.Context{
-		LocalCoherence: a.calculateLocalCoherence(),
-		Stability:      a.calculateStability(),
-		Density:        float64(a.NeighborCount()) / float64(a.swarmSize),
-		Neighbors:      a.NeighborCount(),
-	}
+	// Get context
+	ctx := a.context.Load().(core.Context)
 
 	proposal, confidence := a.strategy.Propose(currentState, blendedGoal, ctx)
 
@@ -247,7 +416,7 @@ func (a *Agent) ProposeAdjustment(globalGoal core.State) (core.Action, bool) {
 	chosen, acceptance := a.decider.Decide(currentState, options)
 
 	// Check energy
-	if chosen.Cost > a.energy.Load() {
+	if chosen.Cost > state.Energy {
 		return core.Action{Type: "maintain"}, false
 	}
 
@@ -259,93 +428,70 @@ func (a *Agent) ProposeAdjustment(globalGoal core.State) (core.Action, bool) {
 	return core.Action{Type: "maintain"}, false
 }
 
-// ApplyAction executes an action and returns success status, energy cost, and any error.
-// The error provides detailed context about why the action failed.
+// ApplyAction executes an action with optimized state updates.
 func (a *Agent) ApplyAction(action core.Action) (bool, float64, error) {
+	state := a.state.Load()
 	energyCost := action.Cost
-	available := a.energy.Load()
-
-	// Check energy
-	if energyCost > available {
+	
+	if energyCost > state.Energy {
 		return false, 0, fmt.Errorf("%w: required %.2f, available %.2f",
-			core.ErrInsufficientEnergy, energyCost, available)
+			core.ErrInsufficientEnergy, energyCost, state.Energy)
 	}
 
-	// Apply based on action type
+	// Apply action and update energy in a single atomic operation
+	success := false
 	switch action.Type {
-	case "adjust_phase":
-		a.adjustPhase(action.Value)
+	case "adjust_phase", "phase_nudge", "frequency_lock", "energy_save", "pulse":
+		a.state.Update(func(s *StateData) {
+			s.Phase = core.WrapPhase(s.Phase + action.Value)
+			s.Energy = math.Max(0, s.Energy-energyCost)
+		})
+		success = true
 	case "maintain":
-		// No change needed
-	case "phase_nudge", "frequency_lock", "energy_save", "pulse":
-		// Strategy-specific actions
-		a.adjustPhase(action.Value)
+		a.state.Update(func(s *StateData) {
+			s.Energy = math.Max(0, s.Energy-energyCost)
+		})
+		success = true
 	default:
 		return false, 0, fmt.Errorf("%w: %s", core.ErrUnknownActionType, action.Type)
 	}
 
-	// Consume energy
-	a.consumeEnergy(energyCost)
+	if success && a.resources != nil {
+		a.resources.Request(energyCost)
+	}
 
-	return true, energyCost, nil
+	return success, energyCost, nil
 }
 
-// UpdateContext updates the agent's perception of its environment.
-func (a *Agent) UpdateContext() {
-	neighbors := 0
+// calculateLocalCoherence efficiently calculates coherence.
+func (a *Agent) calculateLocalCoherence() float64 {
+	var neighborList []*Agent
+	if a.useOptimizedNeighbors {
+		neighborList = a.optimizedNeighbors.All()
+	} else {
+		a.neighbors.Range(func(_, value any) bool {
+			if neighbor, ok := value.(*Agent); ok {
+				neighborList = append(neighborList, neighbor)
+			}
+			return true
+		})
+	}
+
+	if len(neighborList) == 0 {
+		return 0
+	}
+
+	myPhase := a.state.Load().Phase
 	sumCos := 0.0
 	sumSin := 0.0
-	myPhase := a.phase.Load()
 
-	a.neighbors.Range(func(_, value any) bool {
-		neighbor, ok := value.(*Agent)
-		if !ok {
-			return true
-		}
-		neighbors++
-
+	for _, neighbor := range neighborList {
 		diff := neighbor.Phase() - myPhase
 		sumCos += math.Cos(diff)
 		sumSin += math.Sin(diff)
-
-		return true
-	})
-
-	// Calculate local coherence
-	localCoherence := 0.0
-	if neighbors > 0 {
-		localCoherence = math.Sqrt(sumCos*sumCos+sumSin*sumSin) / float64(neighbors)
-
-		// Kuramoto coupling: set local goal based on average neighbor phase
-		// The agent should move toward the average phase of its neighbors
-		avgSin := sumSin / float64(neighbors)
-		avgCos := sumCos / float64(neighbors)
-		targetPhaseShift := math.Atan2(avgSin, avgCos)
-
-		// Apply attractor basin dynamics
-		// Stronger coupling when coherence is higher (positive feedback)
-		couplingStrength := 0.5 + 0.5*localCoherence // Range 0.5-1.0
-		effectiveShift := targetPhaseShift * couplingStrength
-
-		// Set local goal to current phase plus the calculated shift
-		// This implements the Kuramoto model where agents couple to neighbors
-		a.localGoal.Store(core.WrapPhase(myPhase + effectiveShift))
 	}
 
-	// Calculate density
-	maxNeighbors := a.assumedMaxNeighbors
-	if maxNeighbors == 0 {
-		maxNeighbors = a.swarmSize - 1
-	}
-	density := float64(neighbors) / float64(maxNeighbors)
-
-	// Store context
-	a.context.Store(core.Context{
-		Neighbors:      neighbors,
-		Density:        density,
-		LocalCoherence: localCoherence,
-		Stability:      a.calculateStability(),
-	})
+	return math.Sqrt(sumCos*sumCos+sumSin*sumSin) / float64(len(neighborList))
 }
 
 // ============= Option Functions =============
@@ -353,21 +499,27 @@ func (a *Agent) UpdateContext() {
 // WithPhase sets initial phase.
 func WithPhase(phase float64) Option {
 	return func(a *Agent) {
-		a.phase.Store(core.WrapPhase(phase))
+		a.state.Update(func(s *StateData) {
+			s.Phase = core.WrapPhase(phase)
+		})
 	}
 }
 
 // WithRandomPhase sets random initial phase.
 func WithRandomPhase() Option {
 	return func(a *Agent) {
-		a.phase.Store(random.Phase())
+		a.state.Update(func(s *StateData) {
+			s.Phase = random.Phase()
+		})
 	}
 }
 
 // WithFrequency sets oscillation frequency.
 func WithFrequency(freq time.Duration) Option {
 	return func(a *Agent) {
-		a.frequency.Store(freq)
+		a.state.Update(func(s *StateData) {
+			s.Frequency = freq
+		})
 	}
 }
 
@@ -376,28 +528,36 @@ func WithRandomFrequency() Option {
 	return func(a *Agent) {
 		baseFreq := 100 * time.Millisecond
 		variation := time.Duration(random.Float64()*50) * time.Millisecond
-		a.frequency.Store(baseFreq + variation)
+		a.state.Update(func(s *StateData) {
+			s.Frequency = baseFreq + variation
+		})
 	}
 }
 
 // WithLocalGoal sets the agent's individual target.
 func WithLocalGoal(g float64) Option {
 	return func(a *Agent) {
-		a.localGoal.Store(core.WrapPhase(g))
+		a.state.Update(func(s *StateData) {
+			s.LocalGoal = core.WrapPhase(g)
+		})
 	}
 }
 
 // WithRandomLocalGoal sets random local goal.
 func WithRandomLocalGoal() Option {
 	return func(a *Agent) {
-		a.localGoal.Store(random.Phase())
+		a.state.Update(func(s *StateData) {
+			s.LocalGoal = random.Phase()
+		})
 	}
 }
 
 // WithEnergy sets initial energy.
 func WithEnergy(energy float64) Option {
 	return func(a *Agent) {
-		a.energy.Store(math.Max(0, energy))
+		a.state.Update(func(s *StateData) {
+			s.Energy = math.Max(0, energy)
+		})
 	}
 }
 
@@ -433,7 +593,9 @@ func WithGoalManager(gm goal.Manager) Option {
 func WithResourceManager(rm core.ResourceManager) Option {
 	return func(a *Agent) {
 		a.resources = rm
-		a.energy.Store(rm.Available())
+		a.state.Update(func(s *StateData) {
+			s.Energy = rm.Available()
+		})
 	}
 }
 
@@ -452,55 +614,3 @@ func WithSwarmInfo(swarmSize, assumedMaxNeighbors int) Option {
 	}
 }
 
-// ============= Private Methods =============
-
-func (a *Agent) rejectsDueToStubbornness() bool {
-	return random.Float64() < a.stubbornness.Load()
-}
-
-func (a *Agent) adjustPhase(delta float64) {
-	newPhase := a.phase.Load() + delta
-	a.phase.Store(core.WrapPhase(newPhase))
-}
-
-func (a *Agent) consumeEnergy(amount float64) {
-	current := a.energy.Load()
-	a.energy.Store(math.Max(0, current-amount))
-
-	if a.resources != nil {
-		a.resources.Request(amount)
-	}
-}
-
-func (*Agent) calculateStability() float64 {
-	// Simple stability metric based on recent phase changes
-	// In a full implementation, this would track history
-	return 0.5 // Placeholder
-}
-
-func (a *Agent) calculateLocalCoherence() float64 {
-	neighbors := 0
-	sumCos := 0.0
-	sumSin := 0.0
-	myPhase := a.phase.Load()
-
-	a.neighbors.Range(func(_, value any) bool {
-		neighbor, ok := value.(*Agent)
-		if !ok {
-			return true
-		}
-		neighbors++
-
-		diff := neighbor.Phase() - myPhase
-		sumCos += math.Cos(diff)
-		sumSin += math.Sin(diff)
-
-		return true
-	})
-
-	if neighbors == 0 {
-		return 0
-	}
-
-	return math.Sqrt(sumCos*sumCos+sumSin*sumSin) / float64(neighbors)
-}

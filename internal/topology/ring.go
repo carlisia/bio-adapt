@@ -25,11 +25,11 @@ func Ring(s *swarm.Swarm) error {
 	for i, a := range agents {
 		// Connect to previous neighbor
 		prev := agents[(i-1+n)%n]
-		a.ConnectTo(prev)
+		a.ConnectTo(prev.ID, prev)
 
 		// Connect to next neighbor
 		next := agents[(i+1)%n]
-		a.ConnectTo(next)
+		a.ConnectTo(next.ID, next)
 	}
 
 	return nil

@@ -28,12 +28,12 @@ func Star(s *swarm.Swarm) error {
 			// Hub connects to everyone
 			for j, neighbor := range agents {
 				if j != 0 {
-					hub.ConnectTo(neighbor)
+					hub.ConnectTo(neighbor.ID, neighbor)
 				}
 			}
 		} else {
 			// Everyone else connects only to hub
-			a.ConnectTo(hub)
+			a.ConnectTo(hub.ID, hub)
 		}
 	}
 
