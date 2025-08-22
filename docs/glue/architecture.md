@@ -14,7 +14,7 @@ Distributed information becomes unified through synchronized binding, creating c
 
 The system models cognitive binding using simplified neural synchronization:
 
-```
+```text
 dφ/dt = ω + Σ(K_ij × B_ij × sin(φ_j - φ_i)) + η(t)
 ```
 
@@ -37,7 +37,7 @@ Multi-level objective structures:
 
 ## Package structure (planned)
 
-```
+```bash
 glue/
 ├── agent/          # Cognitive agent implementation
 │   ├── neuron.go         # Neural-like agent
@@ -116,7 +116,7 @@ Neural assemblies for different functions:
 
 ### Hierarchical processing
 
-```
+```text
 Meta-goal level     ━━━━━━━━━━━━━━━━━
                          ╱│╲
 Global consensus    ━━━━━━━━━━━━━━━━━
@@ -309,4 +309,3 @@ This package is in the planning phase. We're researching optimal approaches to i
 | Use case    | Coordination | Routing             | Consensus         |
 | Inspiration | Physics      | Biology             | Neuroscience      |
 | Maturity    | Production   | Development         | Research          |
-

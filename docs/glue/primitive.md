@@ -1,8 +1,8 @@
-# Glue package
+# Glue: Goal-Directed Collective Intelligence
+
+**Collective intelligence through adaptive consensus** - Systems that pursue shared understanding via multiple pathways, switching strategies when defaults fail to achieve collective goals.
 
 **Status:** 📋 Planned
-
-**Cognitive networks for emergent consensus** - Collective problem-solving and decision-making inspired by cognitive binding in neural systems.
 
 ## Overview
 

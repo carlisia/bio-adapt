@@ -1,183 +1,236 @@
-# Emerge package
+# Emerge: Goal-Directed Synchronization
 
-**Goal-directed synchronization through adaptive strategies** - Systems (concurrent or distributed) that pursue target coordination states through multiple pathways, finding alternatives when defaults fail.
+**Temporal coordination through adaptive strategies** - Systems that pursue synchronization targets via multiple pathways, switching strategies when defaults fail to achieve coordination goals.
 
-This package implements goal-directed temporal coordination, inspired by how biological systems reliably achieve morphological goals despite perturbations. Agents maintain synchronization targets as invariants and adaptively switch strategies to reach them.
+## Why Emerge?
+
+Traditional synchronization requires explicit coordination logic. Emerge lets you specify WHAT you want (target state) and automatically figures out HOW to achieve it through adaptive strategies.
+
+### Real-World Problems It Solves
+
+- **API Request Batching** - Reduce API calls by 80% through automatic coordination
+- **Load Distribution** - Spread work across workers without central control
+- **Connection Pooling** - Optimize database connections adaptively
+- **Task Scheduling** - Coordinate concurrent tasks without explicit locks
+- **Self-Healing Systems** - Maintain service levels despite failures
+
+## Quick Start
+
+```go
+import "github.com/carlisia/bio-adapt/emerge/swarm"
+
+// Simple: Use a preset for your goal
+cfg := swarm.For(goal.MinimizeAPICalls)
+swarm, _ := swarm.New(50, core.State{
+    Phase:     0,
+    Frequency: 200 * time.Millisecond,
+    Coherence: 0.9,  // Target: 90% synchronization
+}, swarm.WithGoalConfig(cfg))
+swarm.Run(ctx)  // Pursues goal through multiple strategies
+```
+
+## Configuration Options
+
+### 1. Presets (Goal-Based) - Recommended
+
+```go
+// Fluent builder API chains goal → trait → scale
+cfg := swarm.For(goal.MinimizeAPICalls).
+    TuneFor(trait.Stability).
+    With(scale.Large)
+
+swarm, _ := swarm.New(1000, targetState, swarm.WithGoalConfig(cfg))
+```
+
+### 2. Adaptive (Size-Based)
+
+```go
+// Automatically optimizes for swarm size
+config := config.AutoScaleConfig(1000)
+swarm, _ := swarm.New(1000, targetState, swarm.WithConfig(config))
+```
+
+### 3. Custom (Manual)
+
+```go
+customConfig := config.Swarm{
+    CouplingStrength:      0.8,
+    MinNeighbors:          3,
+    MaxNeighbors:          10,
+    ConnectionProbability: 0.15,
+    UpdateInterval:        50 * time.Millisecond,
+    UseBatchProcessing:    true,    // Enable for large swarms
+    MaxConcurrentAgents:   100,     // Limit concurrent updates
+}
+swarm, _ := swarm.New(500, targetState, swarm.WithConfig(customConfig))
+```
 
 ## Core Concepts
 
-### 📊 Phase (0 to 2π)
+### Goal State
 
-Where in the cycle each agent is - like the position of a clock hand. When phases align, agents act simultaneously.
+The target configuration you want the system to achieve:
 
-### 🎵 Frequency
+- **Phase**: Synchronization point (0 to 2π)
+- **Frequency**: How often agents act
+- **Coherence**: Synchronization level (0=chaos, 1=perfect)
 
-How fast agents cycle - like a heartbeat. Synchronized frequencies create rhythm.
+### Adaptive Strategies
 
-### 🎯 Coherence (0 to 1)
+System automatically switches between strategies to reach goals:
 
-The goal metric - how synchronized the swarm is. 0 = chaos, 1 = perfect sync. The system pursues target coherence levels through adaptive strategies.
+- **PhaseNudge**: Gentle adjustments for stability
+- **FrequencyLock**: Align oscillation speeds
+- **PulseCoupling**: Strong synchronization bursts
+- **EnergyAware**: Resource-constrained coordination
+- **Adaptive**: Context-aware strategy selection
 
-### ⚡ Energy
+### Energy Constraints
 
-Resource that agents spend to adjust behavior. Creates realistic constraints on adaptation.
-
-## Architecture
-
-```markdown
-┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-│ Agent 1 │◀────▶│ Agent 2 │◀────▶│ Agent 3 │
-│ φ=0.2π │ │ φ=0.3π │ │ φ=0.25π │
-└─────────────┘ └─────────────┘ └─────────────┘
-▲ ▲ ▲
-└────────────────────┼────────────────────┘
-Adaptive Strategies
-│
-▼
-┌─────────────────────────┐
-│ Goal State │
-│ Target: φ=0 │
-│ Coherence: 0.9 │
-│ Multiple Paths → │
-└─────────────────────────┘
-```
-
-## Real-World Use Cases
-
-### 📦 API Request Batching
-
-```go
-// Goal: Minimize API calls through coordinated batching
-swarm, _ := emerge.NewSwarm(50)
-target := emerge.State{
-    Frequency: 200 * time.Millisecond, // Target: 5 batches/second
-    Coherence: 0.9,                    // Goal: 90% synchronization
-}
-swarm.AchieveSynchronization(ctx, target)
-// Result: System finds optimal strategy to reduce API calls by 80%
-```
-
-### 🔄 Concurrent Task Scheduling
-
-```go
-// Goal: Prevent thundering herd through controlled desynchronization
-swarm, _ := emerge.NewSwarm(100)
-target := emerge.State{
-    Frequency: 1 * time.Hour,  // Target interval
-    Coherence: 0.1,            // Goal: Spread out (anti-sync)
-}
-swarm.AchieveSynchronization(ctx, target)
-// System maintains low coherence to distribute load
-```
-
-### 💾 Database Connection Pooling
-
-```go
-// Goal: Optimal connection distribution without overload
-swarm, _ := emerge.NewSwarm(200)
-target := emerge.State{
-    Frequency: 50 * time.Millisecond,  // Target connection rate
-    Coherence: 0.7,                    // Goal: Moderate clustering
-}
-swarm.AchieveSynchronization(ctx, target)
-// Adaptively maintains connection distributions despite load changes
-```
-
-## Advanced Features
-
-### Goal-Directed Strategy Switching
-
-```go
-// System automatically switches between strategies to achieve goals
-strategies := []Strategy{
-    &PhaseNudge{},      // Gentle phase adjustments
-    &FrequencyLock{},   // Frequency alignment
-    &PulseCoupling{},   // Strong synchronization pulses
-}
-
-swarm.SetStrategies(strategies)
-// System will adaptively switch strategies when convergence stalls
-```
-
-### Energy Management
+Realistic resource limits that prevent infinite adaptation:
 
 ```go
 agent.SetEnergy(100)                // Starting energy
 agent.SetEnergyRecoveryRate(5)      // Units per second
-agent.SetMinEnergyThreshold(20)     // Won't act below this
+agent.SetMinEnergyThreshold(20)     // Minimum to act
 ```
 
-### Disruption Handling
+## Use Case Examples
+
+### API Request Batching
 
 ```go
-swarm.DisruptAgents(0.3)            // Disrupt 30% of agents
-// Goal-directed system finds alternative paths to target state
-// Recovery isn't just stability - it's achieving the original goal
+// Goal: Minimize API calls through coordinated batching
+config := swarm.For(goal.MinimizeAPICalls)
+s, _ := swarm.New(50, core.State{
+    Phase:     0,
+    Frequency: 200 * time.Millisecond,
+    Coherence: 0.9,  // High synchronization for batching
+}, swarm.WithGoalConfig(config))
+s.Run(ctx)
+// Result: 80% reduction in API calls
 ```
 
-## Performance characteristics
+### Load Distribution
 
-- **Convergence time**: Sub-linear scaling with swarm size
-- **Memory usage**: ~2-3KB per agent at scale
-- **Fault tolerance**: Automatic recovery from disruptions
-- **Network traffic**: O(log N) - minimal coordination overhead
-
-See [optimization guide](../docs/emerge/optimization.md) for detailed benchmarks.
-
-## Package structure
-
+```go
+// Goal: Spread work evenly (anti-synchronization)
+config := swarm.For(goal.DistributeLoad)
+s, _ := swarm.New(100, core.State{
+    Phase:     0,
+    Frequency: 1 * time.Hour,
+    Coherence: 0.1,  // Low coherence for distribution
+}, swarm.WithGoalConfig(config))
+s.Run(ctx)
+// Result: Even load distribution without central scheduler
 ```
+
+### Database Connection Pooling
+
+```go
+// Goal: Balance connection reuse and distribution
+config := swarm.For(goal.OptimizeConnections)
+s, _ := swarm.New(200, core.State{
+    Phase:     0,
+    Frequency: 50 * time.Millisecond,
+    Coherence: 0.7,  // Moderate clustering
+}, swarm.WithGoalConfig(config))
+s.Run(ctx)
+// Result: Adaptive connection management under varying load
+```
+
+## Architecture
+
+```text
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Agent 1   │◀────▶│   Agent 2   │◀────▶│   Agent 3   │
+│   φ=0.2π    │     │   φ=0.3π    │     │   φ=0.25π   │
+└─────────────┘     └─────────────┘     └─────────────┘
+        ▲                   ▲                   ▲
+        └───────────────────┼───────────────────┘
+                   Adaptive Strategies
+                            │
+                            ▼
+                ┌─────────────────────────┐
+                │      Goal State         │
+                │   Target: Coherence=0.9 │
+                │   Multiple Paths →      │
+                └─────────────────────────┘
+```
+
+### Package Structure
+
+```bash
 emerge/
 ├── agent/          # Core agent implementation with optimizations
 ├── swarm/          # Swarm coordination and management
 ├── core/           # Fundamental types and interfaces
-├── strategy/       # Decision-making strategies
-├── goal/           # Goal management and weighting
-├── monitoring/     # Convergence monitoring
-└── decision/       # Decision engines
+├── strategy/       # Adaptive strategy implementations
+├── goal/           # Goal definitions and management
+├── monitoring/     # Convergence tracking
+└── decision/       # Strategy selection engines
 ```
 
-## Implementation details
+## Advanced Features
 
-### Agent optimization
+### Disruption Recovery
 
-Agents automatically optimize based on swarm size:
+```go
+swarm.DisruptAgents(0.3)  // Disrupt 30% of agents
+// System automatically finds alternative paths to target
+// Recovery means achieving the original goal, not just stability
+```
 
-- **Small swarms (≤100)**: Use sync.Map for simplicity
-- **Large swarms (>100)**: Switch to fixed arrays for cache locality
+### Performance Optimizations
 
-### State management
+The system automatically optimizes based on scale:
 
-Atomic operations are grouped to reduce cache line bouncing:
+- **Small swarms (≤100)**: Simple sync.Map for flexibility
+- **Large swarms (>100)**: Fixed arrays for cache locality
+- **Atomic grouping**: Related fields share cache lines
+- **Batch processing**: Configurable for massive swarms
 
-- `AtomicState`: Phase, energy, frequency (frequently accessed together)
-- `AtomicBehavior`: Influence, stubbornness (changed less often)
+### Performance Characteristics
 
-## Theory & Research
+- **Convergence**: Sub-linear scaling with swarm size
+- **Memory**: ~2-3KB per agent at scale
+- **Fault tolerance**: Automatic multi-path recovery
+- **Network overhead**: O(log N) coordination traffic
 
-This implementation combines goal-directedness from biology with mathematical models:
+## Theory Foundation
 
-- **Goal-Directedness** - Inspired by Michael Levin's research on how biological systems maintain target states as invariants
-- **Kuramoto Model** - Provides the synchronization dynamics
-- **Adaptive Strategies** - Multiple pathways to achieve goals, switching when stuck
-- **Attractor Basins** - Enable convergence through different routes to the same target
+Emerge combines mathematical models with goal-directed principles:
 
-## API stability
+- **Kuramoto Model**: Mathematical foundation for phase synchronization
+- **Goal-Directedness**: Systems maintain targets as invariants (Levin's research)
+- **Attractor Basins**: Multiple convergence paths to same target
+- **Adaptive Navigation**: Switch strategies when progress stalls
 
-The emerge package API is stable and production-ready. We follow semantic versioning:
+## API Stability
+
+Production-ready with semantic versioning:
 
 - Core interfaces (`Agent`, `Swarm`) are stable
-- Strategy interfaces allow custom implementations
+- Strategy interfaces support custom implementations
 - Internal optimizations are transparent to users
 
-## Documentation
+## Contributing
 
-### Package-specific
-- [Architecture](../docs/emerge/architecture.md) - Emerge design details
-- [Optimization](../docs/emerge/optimization.md) - Performance benchmarks
+We welcome contributions to make emerge even better! Areas of interest:
 
-### Project-wide
-- [Main README](../) - Project overview
-- [Primitives overview](../docs/primitives.md) - All available primitives
-- [Examples](../examples/emerge/) - Working code samples
-- [API Reference](https://pkg.go.dev/github.com/carlisia/bio-adapt/emerge) - Complete API documentation
+- Performance optimizations for massive swarms (10,000+ agents)
+- New adaptive strategies for goal achievement
+- Integration with distributed systems frameworks
+- More real-world use case examples
+- More benchmarking and performance analysis
+
+Please check our [development guide](../../docs/development.md) and open an issue to discuss your ideas.
+
+## Learn More
+
+- [Architecture](architecture.md) - Detailed design documentation
+- [Optimization Guide](optimization.md) - Performance benchmarks and tuning
+- [Examples](../../examples/emerge/) - Complete working examples
+- [API Reference](https://pkg.go.dev/github.com/carlisia/bio-adapt/emerge) - Full API documentation
+- [Main README](../../README.md) - Project overview
+- [Primitives Overview](../primitives.md) - Compare all coordination primitives

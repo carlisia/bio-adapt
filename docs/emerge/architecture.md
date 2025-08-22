@@ -35,26 +35,18 @@ Agents have limited energy for adjustments, preventing oscillation and ensuring 
 
 ```bash
 emerge/
-├── agent/          # Core agent implementation
-│   ├── agent.go           # Unified agent with optimizations
-│   ├── atomic_state.go    # Grouped atomic fields
-│   ├── neighbor_storage.go # Optimized neighbor storage
-│   └── pool.go            # Object pooling
-├── swarm/          # Swarm coordination
-│   ├── swarm.go           # Main swarm implementation
-│   └── goal_directed.go  # Adaptive goal achievement
-├── core/           # Fundamental types
-│   ├── state.go           # State definitions
-│   ├── phase.go           # Phase calculations
-│   └── errors.go          # Error types
+├── agent/          # Core agent implementation with optimizations
+├── swarm/          # Swarm coordination and goal-directed convergence
+│   └── goal_directed.go  # Adaptive strategy switching (key file)
+├── core/           # Fundamental types and interfaces
 ├── strategy/       # Multiple pathways to goals
-│   ├── phase_nudge.go     # Gentle phase adjustments
-│   ├── frequency_lock.go  # Frequency alignment first
-│   ├── pulse_coupling.go  # Strong synchronization pulses
-│   └── energy_aware.go    # Resource-conscious approach
-├── goal/           # Goal management
-├── monitoring/     # Convergence tracking
-└── decision/       # Decision engines
+├── completion/     # Pattern completion for gap filling
+├── convergence/    # Convergence monitoring
+├── goal/           # Goal management and blending
+├── monitoring/     # System monitoring and metrics
+├── decision/       # Decision engines
+├── scale/          # Scaling utilities
+└── trait/          # Agent traits
 ```
 
 ## Agent implementation
@@ -190,12 +182,12 @@ type DecisionContext struct {
 Coordinate microservices to batch API calls:
 
 ```go
-swarm := emerge.NewSwarm(50)
-target := emerge.Pattern{
+swarm, _ := emerge.New(50, emerge.State{
+    Phase:     0,
     Frequency: 200*time.Millisecond, // Goal: 5 batches/sec
     Coherence: 0.9,                  // Goal: 90% synchronization
-}
-swarm.AchieveSynchronization(ctx, target) // Pursues goal adaptively
+})
+swarm.Run(ctx) // Pursues goal adaptively
 ```
 
 ### Distributed cron
@@ -203,7 +195,8 @@ swarm.AchieveSynchronization(ctx, target) // Pursues goal adaptively
 Prevent thundering herd in scheduled tasks:
 
 ```go
-swarm := emerge.NewSwarm(100, emerge.State{
+swarm, _ := emerge.New(100, emerge.State{
+    Phase:     0,
     Frequency: 1*time.Hour,
     Coherence: 0.1, // Spread out (anti-sync)
 })
@@ -214,7 +207,9 @@ swarm := emerge.NewSwarm(100, emerge.State{
 Natural load distribution:
 
 ```go
-swarm := emerge.NewSwarm(200, emerge.State{
+swarm, _ := emerge.New(200, emerge.State{
+    Phase:     0,
+    Frequency: 250*time.Millisecond,
     Coherence: 0.5, // Moderate clustering
 })
 ```

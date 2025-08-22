@@ -1,8 +1,8 @@
-# Navigate package
+# Navigate: Goal-Directed Resource Allocation
+
+**Resource allocation through adaptive pathfinding** - Systems that pursue optimal resource targets via multiple pathways, switching strategies when defaults fail to achieve allocation goals.
 
 **Status:** 🚧 Coming soon
-
-**Goal-directed resource allocation through adaptive pathfinding** - Systems that navigate resource configuration spaces to reach target allocations via multiple paths, adapting when direct routes are blocked.
 
 ## Overview
 

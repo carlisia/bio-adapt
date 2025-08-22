@@ -37,7 +37,7 @@ When blocked by constraints:
 
 ## Package structure (planned)
 
-```
+```bash
 navigate/
 ├── agent/          # Resource agent implementation
 │   ├── navigator.go      # Navigation agent
@@ -257,3 +257,4 @@ This package is under active development. Core concepts are being refined based 
 - Distributed navigation consensus
 - Real-time constraint adaptation
 - Integration with emerge for synchronized allocation
+

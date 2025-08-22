@@ -39,11 +39,11 @@ go mod tidy
 ### Verify setup
 
 ```bash
+# Run all checks
+task check
+
 # Run tests
 task test
-
-# Run linter
-task lint
 
 # Build examples
 task build:examples
@@ -51,19 +51,16 @@ task build:examples
 
 ## Project structure
 
-```
+```bash
 bio-adapt/
-├── emerge/           # Main synchronization package
-│   ├── agent/       # Agent implementation
-│   ├── swarm/       # Swarm coordination
-│   ├── core/        # Core types and interfaces
-│   └── ...
-├── internal/        # Internal utilities
-├── examples/        # Usage examples
-├── e2e/            # End-to-end tests
-├── docs/           # Documentation
-├── scripts/        # Build and utility scripts
-└── Taskfile.yml    # Task definitions
+├── docs/            # Documentation
+├── e2e/             # End-to-end integration tests
+├── emerge/          # Goal-directed synchronization primitive
+├── examples/        # Usage examples and demos
+├── glue/            # Goal-directed collective intelligence (planned)
+├── internal/        # Internal utilities and helpers
+├── navigate/        # Goal-directed resource allocation (coming soon)
+└── Taskfile.yml     # Task runner configuration
 ```
 
 ## Development workflow
@@ -77,13 +74,16 @@ Task provides convenient commands for development:
 task --list
 
 # Common development tasks
-task test          # Run all tests
-task test:short    # Run quick tests only
-task test:coverage # Run tests with coverage
-task lint         # Run linter
-task fmt          # Format code
-task build:all    # Build everything
-task clean        # Clean build artifacts
+task check          # Run all checks (fmt, vet, lint, vuln)
+task test           # Run all tests
+task test:e2e       # Run all e2e tests (no caching)
+task test:short     # Run quick tests only
+task test:coverage  # Run tests with coverage
+task lint           # Run linter
+task lint:fix       # Run linter with auto-fix
+task fmt            # Format code
+task build:all      # Build everything
+task clean          # Clean build artifacts
 ```
 
 ### Watch mode development
@@ -94,11 +94,11 @@ If you have `entr` installed:
 # Auto-rebuild on file changes
 task dev
 
-# Watch specific package
-find emerge -name "*.go" | entr -r go test ./emerge/...
+# Watch and run tests
+task watch:test
 ```
 
-### Manual commands
+### Manual commands (when Task is not available)
 
 ```bash
 # Run tests
@@ -108,7 +108,7 @@ go test ./...
 go test -race ./...
 
 # Run benchmarks
-go test -bench=. ./emerge/...
+go test -bench=. -benchmem ./...
 
 # Build
 go build ./...
@@ -144,7 +144,7 @@ task test:coverage
 task bench
 
 # E2E tests only
-go test ./e2e -v
+task test:e2e
 
 # With race detector
 go test -race ./...
@@ -188,72 +188,19 @@ func BenchmarkAgent_UpdateContext(b *testing.B) {
 
 ### Test utilities
 
-Use the testutil package for common test helpers:
+Use the internal testutil packages for common test helpers:
 
 ```go
-import "github.com/carlisia/bio-adapt/internal/testutil/emerge"
+import (
+    "github.com/carlisia/bio-adapt/internal/testutil"
+    "github.com/carlisia/bio-adapt/emerge/swarm"
+)
 
 func TestSwarmConvergence(t *testing.T) {
-    swarm := emerge.NewTestSwarm(t, 10)
-    emerge.WaitForCoherence(t, swarm, 0.9, 5*time.Second)
-}
-```
-
-## Code style
-
-### Go conventions
-
-Follow standard Go conventions:
-
-- Use `gofmt` for formatting
-- Follow [Effective Go](https://go.dev/doc/effective_go)
-- Use meaningful variable names
-- Keep functions small and focused
-
-### Project conventions
-
-```go
-// Package comments describe the package purpose
-// Package agent implements goal-directed autonomous agents.
-package agent
-
-// Exported types have descriptive comments
-// Agent represents an autonomous agent in the swarm.
-type Agent struct {
-    // Exported fields are documented
-    ID string // Unique identifier for the agent
-
-    // unexported fields use camelCase
-    phase float64
-}
-
-// Method comments describe what the method does
-// UpdatePhase adjusts the agent's phase based on neighbor states.
-func (a *Agent) UpdatePhase(neighbors []*Agent) {
-    // Implementation
-}
-```
-
-### Error handling
-
-```go
-// Return errors with context
-func NewSwarm(size int, goal State) (*Swarm, error) {
-    if size <= 0 {
-        return nil, fmt.Errorf("invalid swarm size: %d", size)
-    }
-
-    if err := validateGoal(goal); err != nil {
-        return nil, fmt.Errorf("invalid goal: %w", err)
-    }
-
-    // ...
-}
-
-// Check errors immediately
-swarm, err := NewSwarm(100, goal)
-if err != nil {
-    return fmt.Errorf("failed to create swarm: %w", err)
+    // Example test utility usage
+    cfg := config.AutoScaleConfig(10)
+    s, _ := swarm.New(10, targetState, swarm.WithConfig(cfg))
+    // Test implementation
 }
 ```
 
@@ -262,19 +209,22 @@ if err != nil {
 ### Running benchmarks
 
 ```bash
-# All benchmarks
+# All benchmarks (preferred)
 task bench
 
-# Specific package
-go test -bench=. ./emerge/agent
+# Emerge package benchmarks
+task bench:emerge
 
-# With memory profiling
+# E2E benchmarks
+task test:e2e:bench
+
+# Manual: Specific package with memory profiling
 go test -bench=. -benchmem ./emerge/agent
 
-# Run specific benchmark
+# Manual: Run specific benchmark
 go test -bench=BenchmarkSwarmConvergence ./emerge/swarm
 
-# With CPU profile
+# Manual: With CPU profile
 go test -bench=. -cpuprofile=cpu.prof ./emerge/agent
 go tool pprof cpu.prof
 ```
@@ -302,32 +252,6 @@ func BenchmarkSwarmConvergence(b *testing.B) {
 
 ## Debugging
 
-### Debug logging
-
-```go
-// Enable debug logging in tests
-func TestDebugScenario(t *testing.T) {
-    if testing.Verbose() {
-        slog.SetLogLoggerLevel(slog.LevelDebug)
-    }
-
-    // Test code
-}
-```
-
-### Using delve debugger
-
-```bash
-# Install delve
-go install github.com/go-delve/delve/cmd/dlv@latest
-
-# Debug a test
-dlv test ./emerge/agent -- -test.run TestAgent_UpdatePhase
-
-# Debug an example
-dlv debug ./examples/emerge/basic_sync
-```
-
 ### Profiling
 
 ```bash
@@ -342,39 +266,6 @@ go tool pprof -http=:8080 mem.prof
 # Trace analysis
 go test -trace=trace.out ./emerge/swarm
 go tool trace trace.out
-```
-
-## Building
-
-### Build commands
-
-```bash
-# Build all packages
-task build:all
-
-# Build examples only
-task build:examples
-
-# Build specific example
-go build -o bin/basic_sync ./examples/emerge/basic_sync
-
-# Build with optimizations
-go build -ldflags="-s -w" ./...
-
-# Cross-compilation
-GOOS=linux GOARCH=amd64 go build ./...
-GOOS=darwin GOARCH=arm64 go build ./...
-```
-
-### Release builds
-
-```bash
-# Create optimized release build
-go build -ldflags="-s -w" -trimpath -o bio-adapt ./cmd/bio-adapt
-
-# With version information
-VERSION=$(git describe --tags --always)
-go build -ldflags="-s -w -X main.version=$VERSION" ./...
 ```
 
 ## Documentation
@@ -402,8 +293,8 @@ func (s *Swarm) MeasureCoherence() float64 {
 # View documentation locally
 go doc -http=:6060
 
-# Generate markdown docs (future)
-task docs:generate
+# View specific package docs
+go doc github.com/carlisia/bio-adapt/emerge/swarm
 ```
 
 ## Common development tasks
@@ -411,8 +302,8 @@ task docs:generate
 ### Adding a new strategy
 
 1. Create new file in `emerge/strategy/`
-2. Implement the `DecisionMaker` interface
-3. Add tests in `emerge/strategy/strategy_test.go`
+2. Implement the strategy interface
+3. Add tests in the same package
 4. Update examples to demonstrate usage
 
 ### Adding a new example
@@ -420,7 +311,7 @@ task docs:generate
 1. Create directory in `examples/emerge/`
 2. Add `main.go` with example code
 3. Update `examples/README.md`
-4. Test with `task run:example -- your_example`
+4. Test with `task run:example EXAMPLE=your_example`
 
 ### Performance optimization
 
@@ -437,7 +328,7 @@ task docs:generate
 **Tests failing**
 
 ```bash
-# Clean and retry
+# Clean test cache and retry
 task clean
 go mod tidy
 task test
@@ -454,36 +345,15 @@ go mod tidy
 **Linter errors**
 
 ```bash
-# Auto-fix some issues
+# Auto-fix formatting issues
 task fmt
-goimports -w .
 
-# Check specific issues
+# Auto-fix linter issues
+task lint:fix
+
+# Check specific issues manually
 golangci-lint run --fix
 ```
-
-## IDE setup
-
-### VS Code
-
-`.vscode/settings.json`:
-
-```json
-{
-  "go.lintTool": "golangci-lint",
-  "go.lintOnSave": "package",
-  "go.formatTool": "goimports",
-  "go.testFlags": ["-v"],
-  "go.testTimeout": "30s"
-}
-```
-
-### GoLand/IntelliJ
-
-1. Enable goimports on save
-2. Configure golangci-lint as external tool
-3. Set test timeout to 30s
-4. Enable race detector for tests
 
 ## Performance tips
 
@@ -493,4 +363,3 @@ golangci-lint run --fix
 4. **Batch operations** - Group related updates
 5. **Concurrent safe** - But avoid over-synchronization
 6. **Cache computations** - Especially in hot paths
-

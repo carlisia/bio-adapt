@@ -13,23 +13,17 @@ Drawing from [Dr. Michael Levin](https://grokkingtech.io/people/michael-levin)'s
 - Navigate: Finding what resources to use (resource allocation)
 - Glue: Finding how things work (collective understanding)
 
-## Quick start
+## Getting started
 
 ```bash
 go get github.com/carlisia/bio-adapt
 ```
 
-```go
-import "github.com/carlisia/bio-adapt/emerge"
+Each coordination primitive has its own quick start guide with code examples:
 
-// Create goal-directed swarm that pursues synchronization target
-target := emerge.State{
-    Frequency: 200 * time.Millisecond, // Target coordination interval
-    Coherence: 0.9,                    // Goal: 90% synchronization
-}
-swarm, _ := emerge.NewSwarm(20)
-swarm.AchieveSynchronization(ctx, target) // Pursues goal through multiple strategies
-```
+- **[Emerge Quick Start](docs/emerge/primitive.md#quick-start)** - Goal-directed synchronization
+- **[Navigate Quick Start](docs/navigate/primitive.md#quick-start)** - Goal-directed resource allocation (coming soon)
+- **[Glue Quick Start](docs/glue/primitive.md#quick-start)** - Goal-directed collective intelligence (planned)
 
 ## Features
 
