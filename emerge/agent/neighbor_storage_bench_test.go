@@ -1,3 +1,4 @@
+//nolint:intrange // benchmark loops need explicit indexing
 package agent
 
 import (

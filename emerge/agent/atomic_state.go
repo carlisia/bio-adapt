@@ -34,7 +34,9 @@ func NewAtomicState() *AtomicState {
 // Load atomically loads the state.
 func (a *AtomicState) Load() StateData {
 	if v := a.value.Load(); v != nil {
-		return *v.(*StateData)
+		if data, ok := v.(*StateData); ok {
+			return *data
+		}
 	}
 	return StateData{}
 }
@@ -68,7 +70,9 @@ func NewAtomicBehavior() *AtomicBehavior {
 // Load atomically loads the behavior.
 func (a *AtomicBehavior) Load() BehaviorData {
 	if v := a.value.Load(); v != nil {
-		return *v.(*BehaviorData)
+		if data, ok := v.(*BehaviorData); ok {
+			return *data
+		}
 	}
 	return BehaviorData{}
 }

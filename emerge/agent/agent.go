@@ -16,6 +16,12 @@ import (
 	"github.com/carlisia/bio-adapt/internal/resource"
 )
 
+// Strategy type constants
+const (
+	strategyPhaseNudge    = "phase_nudge"
+	strategyFrequencyLock = "frequency_lock"
+)
+
 // Option configures an Agent.
 type Option func(*Agent)
 
@@ -29,13 +35,13 @@ type Agent struct {
 	// Optimization 1: Grouped atomic fields to reduce cache line bouncing
 	state    *AtomicState    // Phase, Energy, LocalGoal, Frequency
 	behavior *AtomicBehavior // Influence, Stubbornness
-	
+
 	// Context is updated less frequently
 	context atomic.Value // stores Context
 
 	// Optimization 2: Fixed-size neighbor storage for better cache locality
-	optimizedNeighbors *NeighborStorage
-	neighbors          sync.Map // Fallback for compatibility
+	optimizedNeighbors    *NeighborStorage
+	neighbors             sync.Map // Fallback for compatibility
 	useOptimizedNeighbors bool
 
 	// Configuration (read-only after creation)
@@ -125,14 +131,12 @@ func NewOptimizedFromConfig(id string, cfg config.Agent) (*Agent, error) {
 	}
 
 	// Add decision maker based on type
-	switch cfg.DecisionMakerType {
-	case "simple":
+	if cfg.DecisionMakerType == "simple" {
 		opts = append(opts, WithDecisionMaker(&decision.SimpleDecisionMaker{}))
 	}
 
 	// Add goal manager based on type
-	switch cfg.GoalManagerType {
-	case "weighted":
+	if cfg.GoalManagerType == "weighted" {
 		opts = append(opts, WithGoalManager(&goal.WeightedManager{}))
 	}
 
@@ -143,9 +147,9 @@ func NewOptimizedFromConfig(id string, cfg config.Agent) (*Agent, error) {
 
 	// Add strategy based on type
 	switch cfg.StrategyType {
-	case "phase_nudge":
+	case strategyPhaseNudge:
 		opts = append(opts, WithStrategy(&strategy.PhaseNudge{Rate: cfg.StrategyRate}))
-	case "frequency_lock":
+	case strategyFrequencyLock:
 		opts = append(opts, WithStrategy(&strategy.FrequencyLock{SyncRate: 0.5}))
 	case "energy_aware":
 		opts = append(opts, WithStrategy(&strategy.EnergyAware{Threshold: 10}))
@@ -155,7 +159,6 @@ func NewOptimizedFromConfig(id string, cfg config.Agent) (*Agent, error) {
 
 	return New(id, opts...), nil
 }
-
 
 // Phase returns the agent's current phase.
 func (a *Agent) Phase() float64 {
@@ -251,13 +254,13 @@ func (a *Agent) NeighborCount() int {
 	if a.useOptimizedNeighbors && a.optimizedNeighbors != nil {
 		optimizedCount = a.optimizedNeighbors.Count()
 	}
-	
+
 	mapCount := 0
 	a.neighbors.Range(func(_, _ any) bool {
 		mapCount++
 		return true
 	})
-	
+
 	// Return the max to handle both cases
 	if optimizedCount > mapCount {
 		return optimizedCount
@@ -380,14 +383,14 @@ func (a *Agent) UpdateContext() {
 // ProposeAdjustment evaluates and potentially accepts an adjustment.
 func (a *Agent) ProposeAdjustment(globalGoal core.State) (core.Action, bool) {
 	behavior := a.behavior.Load()
-	
+
 	// Stubborn agents resist change
 	if random.Float64() < behavior.Stubbornness {
 		return core.Action{Type: "maintain"}, false
 	}
 
 	state := a.state.Load()
-	
+
 	// Use pure local goal for Kuramoto synchronization
 	blendedGoal := core.State{
 		Phase:     state.LocalGoal,
@@ -403,7 +406,12 @@ func (a *Agent) ProposeAdjustment(globalGoal core.State) (core.Action, bool) {
 	}
 
 	// Get context
-	ctx := a.context.Load().(core.Context)
+	ctx := core.Context{}
+	if ctxLoad := a.context.Load(); ctxLoad != nil {
+		if c, ok := ctxLoad.(core.Context); ok {
+			ctx = c
+		}
+	}
 
 	proposal, confidence := a.strategy.Propose(currentState, blendedGoal, ctx)
 
@@ -432,7 +440,7 @@ func (a *Agent) ProposeAdjustment(globalGoal core.State) (core.Action, bool) {
 func (a *Agent) ApplyAction(action core.Action) (bool, float64, error) {
 	state := a.state.Load()
 	energyCost := action.Cost
-	
+
 	if energyCost > state.Energy {
 		return false, 0, fmt.Errorf("%w: required %.2f, available %.2f",
 			core.ErrInsufficientEnergy, energyCost, state.Energy)
@@ -441,7 +449,7 @@ func (a *Agent) ApplyAction(action core.Action) (bool, float64, error) {
 	// Apply action and update energy in a single atomic operation
 	success := false
 	switch action.Type {
-	case "adjust_phase", "phase_nudge", "frequency_lock", "energy_save", "pulse":
+	case "adjust_phase", strategyPhaseNudge, strategyFrequencyLock, "energy_save", "pulse":
 		a.state.Update(func(s *StateData) {
 			s.Phase = core.WrapPhase(s.Phase + action.Value)
 			s.Energy = math.Max(0, s.Energy-energyCost)
@@ -613,4 +621,3 @@ func WithSwarmInfo(swarmSize, assumedMaxNeighbors int) Option {
 		a.assumedMaxNeighbors = assumedMaxNeighbors
 	}
 }
-

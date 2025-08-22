@@ -1,3 +1,4 @@
+//nolint:intrange // Benchmark loops need to use b.N
 package agent
 
 import (
@@ -52,7 +53,7 @@ func BenchmarkAtomicOperations(b *testing.B) {
 			LocalGoal: 0,
 			Frequency: 100 * time.Millisecond,
 		})
-		
+
 		b.ResetTimer()
 		b.ReportAllocs()
 
@@ -83,7 +84,7 @@ func BenchmarkConcurrentAccess(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			wg.Add(numGoroutines)
 			for g := 0; g < numGoroutines; g++ {
-				go func(id int) {
+				go func() {
 					defer wg.Done()
 					// Multiple atomic operations
 					phase := a.Phase()
@@ -91,7 +92,7 @@ func BenchmarkConcurrentAccess(b *testing.B) {
 					a.SetPhase(phase + 0.01)
 					a.SetEnergy(energy - 0.1)
 					a.SetLocalGoal(phase)
-				}(g)
+				}()
 			}
 			wg.Wait()
 		}
@@ -106,15 +107,15 @@ func BenchmarkConcurrentAccess(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			wg.Add(numGoroutines)
 			for g := 0; g < numGoroutines; g++ {
-				go func(id int) {
+				go func() {
 					defer wg.Done()
 					// Single atomic operation for all fields
 					a.state.Update(func(s *StateData) {
-						s.Phase = s.Phase + 0.01
-						s.Energy = s.Energy - 0.1
+						s.Phase += 0.01
+						s.Energy -= 0.1
 						s.LocalGoal = s.Phase
 					})
-				}(g)
+				}()
 			}
 			wg.Wait()
 		}
@@ -240,7 +241,7 @@ func BenchmarkMemoryLayout(b *testing.B) {
 				state := a.state.Load() // One atomic read
 				totalEnergy += state.Energy
 				a.state.Update(func(s *StateData) {
-					s.Phase = s.Phase + 0.001
+					s.Phase += 0.001
 				}) // One atomic write
 			}
 		}
