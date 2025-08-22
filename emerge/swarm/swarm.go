@@ -473,7 +473,7 @@ func (s *Swarm) Agents() map[string]*agent.Agent {
 
 	// Standard path
 	agents := make(map[string]*agent.Agent)
-	s.agents.Range(func(key, value interface{}) bool {
+	s.agents.Range(func(key, value any) bool {
 		if k, ok := key.(string); ok {
 			if a, ok := value.(*agent.Agent); ok {
 				agents[k] = a
@@ -588,7 +588,7 @@ func NewWorkerPool(workers int) *WorkerPool {
 	}
 
 	// Start workers
-	for i := 0; i < workers; i++ { //nolint:intrange // i is not used in the loop body
+	for range workers {
 		go wp.worker()
 	}
 

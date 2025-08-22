@@ -1,4 +1,3 @@
-//nolint:intrange // Need index for array operations
 package agent
 
 import (
@@ -36,7 +35,7 @@ func (ns *NeighborStorage) Store(id string, agent *Agent) bool {
 
 	// Check if already exists
 	currentCount := int(atomic.LoadInt32(&ns.count))
-	for i := 0; i < currentCount; i++ {
+	for i := range currentCount {
 		if ns.ids[i] == id {
 			ns.neighbors[i] = agent
 			return true
@@ -61,7 +60,7 @@ func (ns *NeighborStorage) Load(id string) (*Agent, bool) {
 	defer ns.mu.RUnlock()
 
 	currentCount := int(atomic.LoadInt32(&ns.count))
-	for i := 0; i < currentCount; i++ {
+	for i := range currentCount {
 		if ns.ids[i] == id {
 			return ns.neighbors[i], true
 		}
@@ -75,7 +74,7 @@ func (ns *NeighborStorage) Delete(id string) {
 	defer ns.mu.Unlock()
 
 	currentCount := int(atomic.LoadInt32(&ns.count))
-	for i := 0; i < currentCount; i++ {
+	for i := range currentCount {
 		if ns.ids[i] == id {
 			// Swap with last element and decrease count
 			lastIdx := currentCount - 1
@@ -98,7 +97,7 @@ func (ns *NeighborStorage) Range(f func(id string, agent *Agent) bool) {
 	defer ns.mu.RUnlock()
 
 	currentCount := int(atomic.LoadInt32(&ns.count))
-	for i := 0; i < currentCount; i++ {
+	for i := range currentCount {
 		if !f(ns.ids[i], ns.neighbors[i]) {
 			break
 		}
@@ -131,7 +130,7 @@ func (ns *NeighborStorage) Clear() {
 	defer ns.mu.Unlock()
 
 	currentCount := int(atomic.LoadInt32(&ns.count))
-	for i := 0; i < currentCount; i++ {
+	for i := range currentCount {
 		ns.ids[i] = ""
 		ns.neighbors[i] = nil
 	}
