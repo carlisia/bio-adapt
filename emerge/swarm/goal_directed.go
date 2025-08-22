@@ -24,6 +24,7 @@ type GoalDirectedSync struct {
 	strategies         []core.SyncStrategy
 	currentStrategy    core.SyncStrategy
 	strategyPerf       map[string]*StrategyPerformance
+	config             *Config // Configuration for goal-directed behavior
 	mu                 sync.RWMutex
 }
 
@@ -37,12 +38,18 @@ type StrategyPerformance struct {
 	AvgConvergence float64
 }
 
-// NewGoalDirectedSync creates a goal-directed synchronization system.
+// NewGoalDirectedSync creates a goal-directed synchronization system with default config.
 func NewGoalDirectedSync(s *Swarm) *GoalDirectedSync {
+	return NewGoalDirectedSyncWithConfig(s, defaultConfig())
+}
+
+// NewGoalDirectedSyncWithConfig creates a goal-directed synchronization system with custom config.
+func NewGoalDirectedSyncWithConfig(s *Swarm, cfg *Config) *GoalDirectedSync {
 	gds := &GoalDirectedSync{
 		swarm:              s,
 		completionEngine:   completion.NewEngine(),
 		convergenceMonitor: convergence.NewMonitor(10),
+		config:             cfg,
 		strategies: []core.SyncStrategy{
 			&strategy.PhaseNudge{Rate: 0.3},
 			&strategy.PhaseNudge{Rate: 0.7}, // Aggressive version
@@ -74,12 +81,25 @@ func (gds *GoalDirectedSync) AchieveSynchronization(ctx context.Context, target 
 	gds.targetPattern = target
 	gds.convergenceMonitor.SetTarget(target)
 
+	// Check if target is achievable
+	swarmSize := len(gds.swarm.Agents())
+	limits := GetCoherenceLimits(swarmSize)
+	if target.Coherence > limits.Theoretical {
+		// Impossible target - adjust to theoretical maximum
+		target.Coherence = limits.Theoretical
+		gds.targetPattern = target
+	}
+
+	// Adjust max iterations based on difficulty
+	timeFactor := GetConvergenceTimeFactor(swarmSize, target.Coherence)
+	maxIterations := int(gds.config.Strategy.MaxIterationsFactor * timeFactor)
+	maxIterations = min(maxIterations, 1000) // Cap at reasonable limit
+
 	// Goal-directed loop
-	ticker := time.NewTicker(100 * time.Millisecond)
+	ticker := time.NewTicker(gds.config.Strategy.UpdateInterval)
 	defer ticker.Stop()
 
 	iterationCount := 0
-	maxIterations := 200 // Safety limit
 
 	for iterationCount < maxIterations {
 		select {
@@ -162,14 +182,43 @@ func (gds *GoalDirectedSync) measureSystemPattern() *core.RhythmicPattern {
 func (gds *GoalDirectedSync) isPatternAchieved(current *core.RhythmicPattern) bool {
 	distance := core.PatternDistance(current, gds.targetPattern)
 
-	// Also check coherence threshold
-	coherenceAchieved := current.Coherence >= gds.targetPattern.Coherence-0.05
-	distanceAchieved := distance < 0.1
+	// Adaptive tolerance based on swarm size and theoretical limits
+	swarmSize := len(gds.swarm.Agents())
+	limits := GetCoherenceLimits(swarmSize)
+
+	// Use larger tolerance for small swarms where variance is higher
+	var tolerance float64
+	switch {
+	case swarmSize < 10:
+		tolerance = gds.config.Convergence.ToleranceSmall
+	case swarmSize < 50:
+		tolerance = gds.config.Convergence.ToleranceMedium
+	default:
+		tolerance = gds.config.Convergence.ToleranceLarge
+	}
+
+	// If we're very close to practical limit, be more lenient
+	if gds.targetPattern.Coherence >= limits.Practical*0.95 {
+		tolerance *= 2
+	}
+
+	coherenceAchieved := current.Coherence >= gds.targetPattern.Coherence-tolerance
+	distanceAchieved := distance < gds.config.Convergence.PatternDistanceThreshold
+
+	// Also check phase convergence for high coherence targets
+	// This ensures agents are actually at the same phase, not just synchronized
+	if gds.targetPattern.Coherence >= gds.config.Thresholds.HighCoherence {
+		phaseConvergence := gds.swarm.MeasurePhaseConvergence(gds.targetPattern.Phase)
+		phaseAchieved := phaseConvergence >= gds.config.Convergence.PhaseConvergenceGoal
+		return coherenceAchieved && distanceAchieved && phaseAchieved
+	}
 
 	return coherenceAchieved && distanceAchieved
 }
 
 // applyPatternCompletion applies the completed pattern to agents.
+//
+//nolint:gocyclo // Complex pattern completion logic requires multiple decision branches
 func (gds *GoalDirectedSync) applyPatternCompletion(completedPattern *completion.CompletedPattern) {
 	agents := gds.swarm.Agents()
 
@@ -179,9 +228,12 @@ func (gds *GoalDirectedSync) applyPatternCompletion(completedPattern *completion
 
 	// Apply adaptive adjustments for balanced convergence
 	// Use moderate base scale that provides good convergence without over-synchronization
-	baseScale := 0.65                               // Aggressive enough to ensure minimum improvement
+	baseScale := gds.config.Convergence.BaseAdjustmentScale
 	_ = gds.convergenceMonitor.GetConvergenceRate() // Available if needed
 	coherence := gds.swarm.MeasureCoherence()
+
+	// Check phase convergence as well
+	phaseVariance := gds.swarm.MeasurePhaseVariance()
 
 	// Scale adjustment based on distance to target
 	// This prevents overshooting while ensuring adequate improvement
@@ -191,23 +243,32 @@ func (gds *GoalDirectedSync) applyPatternCompletion(completedPattern *completion
 	// Calculate how far we are from target
 	distanceToTarget := targetCoherence - coherence
 
-	switch {
-	case distanceToTarget <= 0.05:
-		// Very close to target - minimal adjustments
-		adjustmentScale = 0.1
-	case distanceToTarget <= 0.1:
-		// Near target - moderate adjustments
-		adjustmentScale = 0.25
-	case distanceToTarget <= 0.2:
-		// Moderate distance - balanced adjustments
-		// This handles cases where initial coherence is already moderately high
-		adjustmentScale = 0.4
-	default:
-		// Far from target - more aggressive adjustments
-		// Scale based on distance, but ensure minimum progress
-		adjustmentScale = baseScale * (1.0 - coherence*0.15)
-		if adjustmentScale < 0.4 {
-			adjustmentScale = 0.4 // Ensure sufficient progress for test requirements
+	// Special handling for high coherence but poor phase convergence
+	// This occurs when agents are synchronized but at different phases
+	if coherence >= gds.config.Thresholds.HighCoherence && phaseVariance > gds.config.Thresholds.PhaseVariance {
+		// We have high coherence but agents are at different phases
+		// Need aggressive phase alignment without breaking coherence
+		adjustmentScale = gds.config.Convergence.BaseAdjustmentScale * 1.2 // More aggressive to pull phases together
+	} else {
+		switch {
+		case distanceToTarget <= 0.01:
+			// Extremely close to target - minimal adjustments to avoid overshooting
+			adjustmentScale = 0.1
+		case distanceToTarget <= 0.05:
+			// Very close to target - still need some push
+			adjustmentScale = 0.2
+		case distanceToTarget <= 0.1:
+			// Near target - moderate adjustments
+			adjustmentScale = 0.3
+		case distanceToTarget <= 0.2:
+			// Moderate distance - balanced adjustments
+			// This handles cases where initial coherence is already moderately high
+			adjustmentScale = 0.4
+		default:
+			// Far from target - more aggressive adjustments
+			// Scale based on distance, but ensure minimum progress
+			adjustmentScale = baseScale * (1.0 - coherence*0.15)
+			adjustmentScale = max(adjustmentScale, 0.4) // Ensure sufficient progress for test requirements
 		}
 	}
 
@@ -219,57 +280,73 @@ func (gds *GoalDirectedSync) applyPatternCompletion(completedPattern *completion
 	// Apply to all agents with some variation
 	agentIndex := 0
 	for _, a := range agents {
-		// Add variation to prevent perfect synchronization
-		// Small swarms get more variation, large swarms get less
-		// Also increase variation as we approach high coherence
-		baseVariation := 0.15 + (1.0-sizeNormalized)*0.15 // 0.15-0.30 based on size
-		coherenceVariation := coherence * 0.2             // Add up to 0.2 when coherence is high
-		variationScale := baseVariation + coherenceVariation
-		variation := (random.Float64() - 0.5) * variationScale
-
-		// Apply phase adjustment with threshold to prevent oscillation
 		currentPhase := a.Phase()
 		targetPhase := gds.targetPattern.Phase
 		phaseDiff := core.WrapPhase(targetPhase - currentPhase)
 
-		// Adaptive threshold based on coherence level and swarm size
-		// Larger threshold when coherence is high to maintain natural variation
-		// Small swarms get larger threshold to prevent over-synchronization
-		sizeThreshold := (1.0 - sizeNormalized) * 0.02     // 0-0.02 based on size
-		threshold := 0.01 + coherence*0.03 + sizeThreshold // Range: 0.01 to 0.06 radians
-
-		// Prevent over-synchronization by limiting adjustments when coherence is very high
-		// This ensures we stay below the suspicious threshold of 0.95
-		if coherence > 0.92 {
-			// When coherence is very high, only adjust a fraction of agents
-			// This maintains natural variation
-			if agentIndex%3 != 0 { // Skip 2/3 of agents
-				// Add small random walk to maintain variation
-				randomWalk := (random.Float64() - 0.5) * 0.1
-				a.SetPhase(core.WrapPhase(currentPhase + randomWalk))
-				agentIndex++
-				continue
+		// Special handling for high coherence but poor phase convergence
+		if coherence >= gds.config.Thresholds.HighCoherence && phaseVariance > gds.config.Thresholds.PhaseVariance {
+			// Agents are synchronized but at different phases
+			// Need to pull them toward target phase more aggressively
+			// Use direct phase correction with less variation
+			if math.Abs(phaseDiff) > gds.config.Convergence.PatternDistanceThreshold {
+				// Strong pull toward target phase
+				correction := phaseDiff * adjustmentScale * 0.9
+				// Add small random factor to avoid perfect synchronization
+				randomFactor := 0.95 + random.Float64()*0.1
+				newPhase := core.WrapPhase(currentPhase + correction*randomFactor)
+				a.SetPhase(newPhase)
 			}
-			// For the remaining 1/3, use very small adjustments
-			adjustmentScale *= 0.2
-		}
+		} else {
+			// Normal operation - balance coherence and variation
+			// Add variation to prevent perfect synchronization
+			// Small swarms get more variation, large swarms get less
+			// Also increase variation as we approach high coherence
+			rangeSize := gds.config.Variation.BaseRange[1] - gds.config.Variation.BaseRange[0]
+			baseVariation := gds.config.Variation.BaseRange[0] + (1.0-sizeNormalized)*rangeSize
+			coherenceVariation := coherence * gds.config.Variation.CoherenceFactor
+			variationScale := baseVariation + coherenceVariation
+			variation := (random.Float64() - 0.5) * variationScale
 
-		if math.Abs(phaseDiff) > threshold {
-			// Use combination of completion adjustment and direct pull to target
-			// Add some randomness to prevent perfect lock-step
-			// More randomness for small swarms
-			randomRange := 0.3 + (1.0-sizeNormalized)*0.2                      // 0.3-0.5 range based on size
-			randomFactor := 1.0 - randomRange/2 + random.Float64()*randomRange // Center around 1.0
-			effectiveAdjustment := (phaseAdjustment*0.3 + phaseDiff*adjustmentScale) * randomFactor
+			// Adaptive threshold based on coherence level and swarm size
+			// Larger threshold when coherence is high to maintain natural variation
+			// Small swarms get larger threshold to prevent over-synchronization
+			sizeThreshold := (1.0 - sizeNormalized) * 0.02     // 0-0.02 based on size
+			threshold := 0.01 + coherence*0.03 + sizeThreshold // Range: 0.01 to 0.06 radians
 
-			// Apply adjustment with variation
-			newPhase := core.WrapPhase(currentPhase + effectiveAdjustment*(1+variation))
-			a.SetPhase(newPhase)
-		} else if coherence > 0.85 && random.Float64() < 0.15 {
-			// More frequent random perturbations when coherence is high
-			// This prevents perfect synchronization
-			perturbation := (random.Float64() - 0.5) * 0.08
-			a.SetPhase(core.WrapPhase(currentPhase + perturbation))
+			// Prevent over-synchronization by limiting adjustments when coherence is very high
+			// This ensures we stay below the suspicious threshold
+			if coherence > gds.config.Thresholds.VeryHighCoherence && phaseVariance < gds.config.Thresholds.PhaseVariance {
+				// When coherence is very high AND phases are already converged,
+				// only adjust a fraction of agents to maintain natural variation
+				if agentIndex%3 != 0 { // Skip 2/3 of agents
+					// Add small random walk to maintain variation
+					randomWalk := (random.Float64() - 0.5) * gds.config.Variation.RandomWalkMagnitude
+					a.SetPhase(core.WrapPhase(currentPhase + randomWalk))
+					agentIndex++
+					continue
+				}
+				// For the remaining 1/3, use very small adjustments
+				adjustmentScale *= 0.2
+			}
+
+			if math.Abs(phaseDiff) > threshold {
+				// Use combination of completion adjustment and direct pull to target
+				// Add some randomness to prevent perfect lock-step
+				// More randomness for small swarms
+				randomRange := 0.3 + (1.0-sizeNormalized)*0.2                      // 0.3-0.5 range based on size
+				randomFactor := 1.0 - randomRange/2 + random.Float64()*randomRange // Center around 1.0
+				effectiveAdjustment := (phaseAdjustment*0.3 + phaseDiff*adjustmentScale) * randomFactor
+
+				// Apply adjustment with variation
+				newPhase := core.WrapPhase(currentPhase + effectiveAdjustment*(1+variation))
+				a.SetPhase(newPhase)
+			} else if coherence > gds.config.Thresholds.ModerateCoherence && random.Float64() < gds.config.Variation.PerturbationChance {
+				// More frequent random perturbations when coherence is high
+				// This prevents perfect synchronization
+				perturbation := (random.Float64() - 0.5) * gds.config.Variation.PerturbationMagnitude
+				a.SetPhase(core.WrapPhase(currentPhase + perturbation))
+			}
 		}
 
 		agentIndex++
@@ -312,11 +389,12 @@ func (gds *GoalDirectedSync) switchStrategy() {
 
 		// Add exploration bonus for less-used strategies
 		timeSinceUsed := time.Since(perf.LastUsed).Seconds()
-		explorationBonus := math.Min(timeSinceUsed/60.0, 0.3) // Up to 30% bonus
+		timeWindow := gds.config.Strategy.ExplorationTimeWindow.Seconds()
+		explorationBonus := math.Min(timeSinceUsed/timeWindow, gds.config.Strategy.ExplorationBonusMax)
 		score += explorationBonus
 
 		// Add randomness for exploration
-		score += random.Float64() * 0.1
+		score += random.Float64() * gds.config.Strategy.RandomExploration
 
 		if score > bestScore {
 			bestScore = score
@@ -331,11 +409,9 @@ func (gds *GoalDirectedSync) switchStrategy() {
 func (gds *GoalDirectedSync) addStochasticResonance() {
 	agents := gds.swarm.Agents()
 
-	// Add small random perturbations to 10% of agents
-	perturbCount := len(agents) / 10
-	if perturbCount < 1 {
-		perturbCount = 1
-	}
+	// Add small random perturbations to configured percentage of agents
+	perturbCount := int(float64(len(agents)) * gds.config.Resonance.AffectedAgents)
+	perturbCount = max(perturbCount, 1)
 
 	// Randomly select agents to perturb
 	for range perturbCount {
@@ -353,7 +429,7 @@ func (gds *GoalDirectedSync) addStochasticResonance() {
 
 		if targetAgent != nil {
 			// Add phase noise
-			noise := (random.Float64() - 0.5) * 0.5 // ±0.25 radians
+			noise := (random.Float64() - 0.5) * gds.config.Resonance.NoiseMagnitude
 			currentPhase := targetAgent.Phase()
 			targetAgent.SetPhase(core.WrapPhase(currentPhase + noise))
 		}

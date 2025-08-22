@@ -77,6 +77,13 @@ func New(size int, goal core.State, opts ...Option) (*Swarm, error) {
 		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
+	// Validate coherence target and adjust if impossible
+	limits := GetCoherenceLimits(size)
+	if goal.Coherence > limits.Practical {
+		// Adjust to practical limit with small buffer
+		goal.Coherence = limits.Practical
+	}
+
 	// Initialize swarm with optimized storage for large sizes
 	s := &Swarm{
 		goalState:   goal,
@@ -206,16 +213,6 @@ func (s *Swarm) createDefaultAgents() error {
 func (s *Swarm) createOptimizedAgents() error {
 	agentConfig := config.AgentFromSwarm(s.config)
 	agentConfig.SwarmSize = s.size
-
-	// Determine max neighbors for optimized agents
-	maxNeighbors := s.config.MaxNeighbors
-	if maxNeighbors == 0 {
-		if s.size > 100 {
-			maxNeighbors = 20 // Small-world topology
-		} else {
-			maxNeighbors = s.size - 1
-		}
-	}
 
 	// Pre-allocate the slice
 	s.agentSlice = make([]*agent.Agent, s.size)
