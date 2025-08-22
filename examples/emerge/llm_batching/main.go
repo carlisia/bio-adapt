@@ -11,6 +11,7 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 
 	"github.com/carlisia/bio-adapt/emerge/core"
+	"github.com/carlisia/bio-adapt/emerge/goal"
 	"github.com/carlisia/bio-adapt/emerge/swarm"
 	"github.com/carlisia/bio-adapt/internal/analysis"
 	"github.com/carlisia/bio-adapt/internal/display"
@@ -18,24 +19,28 @@ import (
 
 // batchingConfig holds the batching simulation configuration.
 type batchingConfig struct {
-	numAgents     int
-	maxIterations int
-	checkInterval time.Duration
-	timeout       time.Duration
-	targetState   core.State
+	numAgents         int
+	maxIterations     int
+	checkInterval     time.Duration
+	timeout           time.Duration
+	targetState       core.State
+	enableDisruption  bool
+	disruptionStep    int
 }
 
 // setupBatchingConfig creates the configuration for the batching demo.
 func setupBatchingConfig() batchingConfig {
 	return batchingConfig{
-		numAgents:     20,
-		maxIterations: 15,
-		checkInterval: 500 * time.Millisecond,
-		timeout:       15 * time.Second,
+		numAgents:        20,
+		maxIterations:    20, // Increased to show disruption recovery
+		checkInterval:    500 * time.Millisecond,
+		timeout:          20 * time.Second,
+		enableDisruption: true,
+		disruptionStep:   12, // When to trigger disruption
 		targetState: core.State{
 			Phase:     0,
 			Frequency: 200 * time.Millisecond, // Batch window size
-			Coherence: 0.75,                   // Target synchronization
+			Coherence: 0.85,                   // Higher target for better batching
 		},
 	}
 }
@@ -55,12 +60,15 @@ func printBatchingIntro(config batchingConfig) {
 	// 2. What to observe
 	display.Section("What to Observe")
 	display.Bullet(
-		"20 independent agents start with random request timing",
-		"Agents gradually align their request phases",
+		"20 independent services start with random request timing",
+		"Services gradually align their request phases",
 		"Natural batch windows emerge as phases converge",
 		fmt.Sprintf("Target: %.0f%% synchronization for optimal batching", config.targetState.Coherence*100),
 		"Typical 70-85% reduction in total API calls",
 	)
+	if config.enableDisruption {
+		display.Bullet("Watch for disruption recovery midway through demo")
+	}
 	fmt.Println()
 
 	// 3. Key concepts
@@ -84,7 +92,7 @@ func printKeyConcepts(config batchingConfig) {
 
 	fmt.Println("BATCH WINDOW = Time period for collecting requests")
 	fmt.Printf("• Window size: %dms\n", config.targetState.Frequency.Milliseconds())
-	fmt.Println("• Agents aligning = requests clustering")
+	fmt.Println("• Services aligning = requests clustering")
 	fmt.Println("• Higher coherence = better batching")
 	fmt.Println()
 }
@@ -92,12 +100,15 @@ func printKeyConcepts(config batchingConfig) {
 // printSimulationSetup prints the simulation setup information.
 func printSimulationSetup(config batchingConfig) {
 	display.Section("Simulation Setup")
-	fmt.Printf("• Agents: %d independent workloads\n", config.numAgents)
+	fmt.Printf("• Services: %d independent microservices\n", config.numAgents)
 	fmt.Printf("• Batch window: %v\n", config.targetState.Frequency)
 	fmt.Printf("• Target coherence: %.0f%%\n", config.targetState.Coherence*100)
 	fmt.Printf("• Max iterations: %d\n", config.maxIterations)
 	fmt.Printf("• Check interval: %v\n", config.checkInterval)
-	fmt.Println("• Scenario: Each agent represents a service needing LLM API access")
+	if config.enableDisruption {
+		fmt.Printf("• Disruption: Simulated at step %d\n", config.disruptionStep)
+	}
+	fmt.Println("• Scenario: Each service needs LLM API access for different tasks")
 	fmt.Println()
 }
 
@@ -107,9 +118,9 @@ func printParameterTradeoffs() {
 	t := display.NewTable()
 	t.AppendHeader(table.Row{"Parameter", "Lower Value", "Higher Value", "Sweet Spot"})
 	t.AppendRows([]table.Row{
-		{"Agent Count", "5-10 (simple system)", "50-100 (complex system)", "15-30"},
+		{"Service Count", "5-10 (simple system)", "50-100 (complex system)", "15-30"},
 		{"Batch Window", "100ms (low latency)", "500ms (max batching)", "200-300ms"},
-		{"Target Coherence", "0.6 (loose batching)", "0.9 (tight batching)", "0.7-0.8"},
+		{"Target Coherence", "0.6 (loose batching)", "0.9 (tight batching)", "0.75-0.85"},
 		{"Update Rate", "Fast (responsive)", "Slow (stable)", "Balanced"},
 	})
 	t.Render()
@@ -120,12 +131,10 @@ func printParameterTradeoffs() {
 func monitorBatchingProgress(
 	ctx context.Context,
 	s *swarm.Swarm,
-	targetState core.State,
+	config batchingConfig,
 	errChan chan error,
-	checkInterval time.Duration,
-	maxIterations int,
 ) (int, int) {
-	ticker := time.NewTicker(checkInterval)
+	ticker := time.NewTicker(config.checkInterval)
 	defer ticker.Stop()
 
 	iterations := 0
@@ -137,7 +146,20 @@ func monitorBatchingProgress(
 		case <-ticker.C:
 			iterations++
 
-			if done, stuck := processProgressIteration(s, targetState, iterations, maxIterations, lastCoherence, stuckCount); done {
+			// Simulate disruption (new services added, network jitter, etc)
+			if config.enableDisruption && iterations == config.disruptionStep {
+				fmt.Println()
+				if display.UseEmoji() {
+					fmt.Println("⚠️  DISRUPTION: Network jitter affecting 30% of services")
+				} else {
+					fmt.Println("[!] DISRUPTION: Network jitter affecting 30% of services")
+				}
+				s.DisruptAgents(0.3) // 30% phase disruption
+				fmt.Println("    Services will now recover and re-synchronize...")
+				fmt.Println()
+			}
+
+			if done, stuck := processProgressIteration(s, config.targetState, iterations, config.maxIterations, lastCoherence, stuckCount); done {
 				return iterations, stuck
 			} else {
 				stuckCount = stuck
@@ -203,9 +225,9 @@ func analyzeTrend(coherence, lastCoherence float64, stuckCount int) int {
 	switch {
 	case coherence > lastCoherence+0.01:
 		fmt.Print(" [improving]")
-		return stuckCount
+		return 0 // Reset stuck count when improving
 	case coherence < lastCoherence-0.01:
-		fmt.Print(" [degrading]")
+		fmt.Print(" [recovering]") // More positive framing after disruption
 		return stuckCount
 	default:
 		fmt.Print(" [stable]")
@@ -267,6 +289,48 @@ func printResults(s *swarm.Swarm, config batchingConfig, initialCoherence float6
 	fmt.Println()
 }
 
+// printHowToApply shows how to use the API in real code
+func printHowToApply(config batchingConfig) {
+	display.Section("How to Apply in Your System")
+	
+	fmt.Println("Simple integration with goal-based configuration:")
+	fmt.Println()
+	fmt.Println("```go")
+	fmt.Println("// 1. Create swarm with goal-based preset")
+	fmt.Println("cfg := swarm.For(goal.MinimizeAPICalls)")
+	fmt.Println("s, _ := swarm.New(20, core.State{")
+	fmt.Println("    Phase:     0,")
+	fmt.Println("    Frequency: 200 * time.Millisecond,  // Batch window")
+	fmt.Printf("    Coherence: %.2f,                     // Target sync\n", config.targetState.Coherence)
+	fmt.Println("}, swarm.WithGoalConfig(cfg))")
+	fmt.Println()
+	fmt.Println("// 2. Run in background")
+	fmt.Println("go s.Run(ctx)")
+	fmt.Println()
+	fmt.Println("// 3. In your request handler")
+	fmt.Println("agent := s.Agents()[serviceID % s.Size()]")
+	fmt.Println("if agent.Phase() < 0.1 { // Near batch window")
+	fmt.Println("    batch := collectPendingRequests()")
+	fmt.Println("    resp := llmClient.BatchCall(batch)")
+	fmt.Println("    distributeResponses(resp)")
+	fmt.Println("}")
+	fmt.Println("```")
+	fmt.Println()
+	
+	fmt.Println("Advanced configuration options:")
+	fmt.Println()
+	fmt.Println("```go")
+	fmt.Println("// Fluent API for fine-tuning")
+	fmt.Println("cfg := swarm.For(goal.MinimizeAPICalls).")
+	fmt.Println("    TuneFor(trait.Stability).")
+	fmt.Println("    With(scale.Large)")
+	fmt.Println()
+	fmt.Println("// Or auto-scale based on service count")
+	fmt.Println("cfg := config.AutoScaleConfig(serviceCount)")
+	fmt.Println("```")
+	fmt.Println()
+}
+
 func main() {
 	// Configuration
 	config := setupBatchingConfig()
@@ -274,12 +338,19 @@ func main() {
 	// Print introduction and setup
 	printBatchingIntro(config)
 
-	// Create swarm
-	s, err := swarm.New(config.numAgents, config.targetState)
+	// Create swarm using goal-based configuration (more user-friendly)
+	display.Section("Creating Swarm")
+	fmt.Println("Using goal-based configuration for API batching...")
+	
+	// Show the actual API usage
+	cfg := swarm.For(goal.MinimizeAPICalls)
+	s, err := swarm.New(config.numAgents, config.targetState, swarm.WithGoalConfig(cfg))
 	if err != nil {
 		fmt.Printf("Error: failed to create swarm: %v\n", err)
 		return
 	}
+	fmt.Println("Swarm created with optimized settings for API batching")
+	fmt.Println()
 
 	// 6. Run loop and monitoring
 	display.Section("Run Loop and Monitoring")
@@ -308,8 +379,8 @@ func main() {
 	}()
 
 	// Monitor progress
-	iterations, stuckCount := monitorBatchingProgress(
-		ctx, s, config.targetState, errChan, config.checkInterval, config.maxIterations)
+	iterations, stuckCount := monitorBatchingProgress(ctx, s, config, errChan)
+	
 	// 7. Diagnostics and fixes
 	printDiagnostics(s, config, initialCoherence, iterations, stuckCount)
 
@@ -317,52 +388,38 @@ func main() {
 	printResults(s, config, initialCoherence)
 
 	// 9. Real-world mappings
-	display.Section("Real-World Mappings")
+	display.Section("Real-World Applications")
 	fmt.Println("This batching primitive applies to:")
 	display.Bullet(
-		"OpenAI/Anthropic API calls from multiple services",
-		"Database writes from distributed workers",
-		"Message queue batch processing",
-		"Elasticsearch bulk indexing",
-		"Cloud storage batch uploads",
-		"Monitoring metric aggregation",
+		"OpenAI/Anthropic/Claude API calls from microservices",
+		"Database write batching from distributed workers",
+		"Elasticsearch bulk indexing operations",
+		"Message queue batch processing (Kafka, SQS)",
+		"Cloud storage batch uploads (S3, GCS)",
+		"Monitoring metric aggregation (Prometheus, DataDog)",
 	)
 	fmt.Println("\nProduction considerations:")
 	display.Bullet(
 		"Network topology affects convergence speed",
-		"Partial sync (70-80%) often better than perfect sync",
+		"Partial sync (75-85%) often better than perfect sync",
 		"Monitor batch size vs latency tradeoff",
 		"Use circuit breakers for API failures",
 		"Consider priority queues for urgent requests",
+		"Handles service restarts/scaling automatically",
 	)
 	fmt.Println()
 
 	// 10. API/how to apply
-	display.Section("How to Apply in Your System")
-	fmt.Println("1. Wrap your API client with an Agent")
-	fmt.Println("2. Set batch window (frequency) based on latency tolerance")
-	fmt.Println("3. Configure target coherence (0.7-0.8 recommended)")
-	fmt.Println("4. Connect agents via service discovery or mesh")
-	fmt.Println("5. Collect requests when phases align")
-	fmt.Println()
-	fmt.Println("Example implementation:")
-	fmt.Println("  agent := emerge.NewAgent(\"api-worker-1\")")
-	fmt.Println("  swarm.AddAgent(agent)")
-	fmt.Println("  ")
-	fmt.Println("  // In request handler")
-	fmt.Println("  if agent.IsNearPhaseZero() {")
-	fmt.Println("      batch := collectPendingRequests()")
-	fmt.Println("      response := llmClient.BatchCall(batch)")
-	fmt.Println("      distributResponses(response)")
-	fmt.Println("  }")
-	fmt.Println()
+	printHowToApply(config)
+	
 	fmt.Println("Benefits over traditional approaches:")
 	display.Bullet(
 		"No central batch coordinator needed",
-		"Self-healing if services restart",
+		"Self-healing after service disruptions",
 		"Works across languages/platforms",
-		"Scales horizontally without configuration",
-		"Natural load distribution",
+		"Scales horizontally without reconfiguration",
+		"Natural load distribution across batch windows",
+		"Resilient to network partitions",
 	)
 }
 
