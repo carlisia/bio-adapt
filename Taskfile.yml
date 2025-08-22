@@ -112,6 +112,31 @@ tasks:
     cmds:
       - go test -v -short ./...
 
+  # Run E2E tests
+  test:e2e:
+    desc: Run end-to-end integration tests
+    cmds:
+      - go test -v -tags=e2e -timeout=5m ./e2e
+
+  # Run E2E tests with verbose output
+  test:e2e:verbose:
+    desc: Run E2E tests with detailed output
+    cmds:
+      - go test -v -tags=e2e -timeout=10m -run TestE2E ./e2e
+
+  # Run E2E benchmarks
+  test:e2e:bench:
+    desc: Run E2E performance benchmarks
+    cmds:
+      - go test -tags=e2e -bench=BenchmarkE2E -benchmem -benchtime=10s ./e2e
+
+  # Run stress tests (long running)
+  test:stress:
+    desc: Run stress tests with large swarms
+    cmds:
+      - go test -v -tags=e2e -timeout=30m -run TestE2E.*Scalability ./e2e
+      - go test -v -tags=e2e -timeout=30m -run TestE2E.*Resilience ./e2e
+
   # Run benchmarks
   bench:
     desc: Run all benchmarks
