@@ -1,4 +1,4 @@
-// Package main demonstrates the fundamental concepts of bio-inspired attractor basin
+// Package main demonstrates the fundamental concepts of goal-directed
 // synchronization using a minimal example.
 package main
 
@@ -32,7 +32,7 @@ func main() {
 
 	display.Section("Purpose and Context")
 	fmt.Println("This demo shows core synchronization algorithm operation.")
-	fmt.Println("Based on bio-inspired phase coupling (Kuramoto model).")
+	fmt.Println("Based on phase coupling dynamics (Kuramoto model).")
 	fmt.Println("Pure algorithm demonstration - no external systems involved.")
 	fmt.Println()
 

@@ -7,7 +7,7 @@ import (
 )
 
 // PhaseNudge gently adjusts phase toward target.
-// This mimics gradual biological entrainment like circadian rhythm adjustment.
+// This implements gradual phase adjustment toward target synchronization.
 type PhaseNudge struct {
 	Rate float64 // Adjustment rate [0, 1]
 }

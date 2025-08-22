@@ -397,8 +397,8 @@ func (s *Swarm) ensureMinimumConnectivity(a *agent.Agent, agents []*agent.Agent,
 	}
 }
 
-// Run starts the swarm and achieves synchronization using bioelectric pattern completion.
-// Uses adaptive strategies and attractor basin dynamics to ensure convergence.
+// Run starts the swarm and achieves synchronization using goal-directed pattern completion.
+// Uses adaptive strategies and convergence dynamics to ensure goal achievement.
 func (s *Swarm) Run(ctx context.Context) error {
 	// Create target pattern from goal state
 	targetPattern := &core.RhythmicPattern{

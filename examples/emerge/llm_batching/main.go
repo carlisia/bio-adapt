@@ -1,4 +1,4 @@
-// Package main demonstrates how bio-inspired synchronization solves real-world
+// Package main demonstrates how goal-directed synchronization solves real-world
 // API batching challenges without centralized coordination.
 package main
 

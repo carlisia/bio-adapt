@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// RhythmicPattern represents a complete synchronization pattern (bioelectric morphology).
+// RhythmicPattern represents a target synchronization state for distributed coordination.
 type RhythmicPattern struct {
 	Phase     float64
 	Frequency time.Duration

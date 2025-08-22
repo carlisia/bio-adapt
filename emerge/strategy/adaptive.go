@@ -3,7 +3,7 @@ package strategy
 import "github.com/carlisia/bio-adapt/emerge/core"
 
 // AdaptiveStrategy switches between strategies based on context.
-// This represents biological systems that change behavior based on conditions.
+// This implements context-aware strategy switching based on system conditions.
 type AdaptiveStrategy struct {
 	strategies []core.SyncStrategy
 	selector   func(core.Context) int // Returns index of strategy to use

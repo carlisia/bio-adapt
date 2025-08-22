@@ -8,7 +8,7 @@ import (
 	"github.com/carlisia/bio-adapt/emerge/core"
 )
 
-// ConvergenceMonitor tracks system convergence toward attractor basins.
+// ConvergenceMonitor tracks system convergence toward target states.
 // This extracts and enhances the monitoring logic from monitor.go.
 type ConvergenceMonitor struct {
 	history       []float64   // Coherence history

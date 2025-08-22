@@ -128,7 +128,7 @@ func (gds *GoalDirectedSync) AchieveSynchronization(ctx context.Context, target 
 			// Step 5: Identify pattern gaps
 			gaps := core.IdentifyGaps(currentPattern, target)
 
-			// Step 6: Complete pattern using bioelectric memory
+			// Step 6: Complete pattern using pattern memory
 			completedPattern := gds.completionEngine.CompletePattern(currentPattern, gaps)
 
 			// Step 7: Apply adjustments through current strategy

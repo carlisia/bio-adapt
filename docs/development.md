@@ -214,7 +214,7 @@ Follow standard Go conventions:
 
 ```go
 // Package comments describe the package purpose
-// Package agent implements bio-inspired adaptive agents.
+// Package agent implements goal-directed autonomous agents.
 package agent
 
 // Exported types have descriptive comments

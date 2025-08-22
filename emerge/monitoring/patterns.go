@@ -8,8 +8,7 @@ import (
 )
 
 // RhythmicPattern represents a temporal pattern of phases and frequencies.
-// This captures repeating biological patterns like heartbeats, circadian rhythms,
-// or neural oscillations.
+// This captures temporal coordination patterns for distributed synchronization.
 type RhythmicPattern struct {
 	Phases      []float64       // Phase values at each time point
 	Frequencies []time.Duration // Frequency at each time point
@@ -129,7 +128,7 @@ func (p *RhythmicPattern) Similarity(other *RhythmicPattern) float64 {
 }
 
 // PatternTemplate represents a known pattern archetype.
-// These are like "morphogenetic templates" that guide development.
+// These are templates that guide system convergence.
 type PatternTemplate struct {
 	Name        string
 	BasePattern RhythmicPattern

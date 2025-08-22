@@ -7,7 +7,7 @@ import (
 )
 
 // EnergyAware conserves energy while synchronizing.
-// This mimics biological systems that must balance synchronization with resource conservation.
+// This implements resource-aware synchronization that balances coordination with efficiency.
 type EnergyAware struct {
 	Threshold float64 // Minimum energy threshold for action
 }

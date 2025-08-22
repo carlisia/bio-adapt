@@ -1,9 +1,9 @@
-// Package core implements distributed agent synchronization inspired by
-// biological goal-directedness. Unlike traditional consensus algorithms, this pattern
+// Package core implements distributed agent synchronization through
+// goal-directed coordination. Unlike traditional consensus algorithms, this pattern
 // achieves synchronization through autonomous agents with local goals that contribute
 // to emergent global behavior - no central orchestrator required.
 //
-// Key biological properties:
+// Key system properties:
 //   - Agents have genuine autonomy and can refuse adjustments
 //   - Local goals blend with global goals hierarchically
 //   - Coordination emerges from gossip, not central control
@@ -16,7 +16,7 @@
 //   - Probabilistic but robust convergence
 //   - Graceful degradation under agent failures
 //
-// This implementation prioritizes biological authenticity and code simplicity
+// This implementation prioritizes emergent behavior and code simplicity
 // over raw performance. The modular design allows upgrading to more sophisticated
-// biological behaviors without architectural changes.
+// adaptive behaviors without architectural changes.
 package core

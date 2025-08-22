@@ -1,10 +1,10 @@
-# emerge package's bio-inspired adaptive system capabilities
+# emerge package's goal-directed coordination capabilities
 
 ## Examples Overview
 
 ### 1. Basic Synchronization (`basic_sync/`)
 
-Demonstrates fundamental bioelectric attractor basin synchronization with a small swarm converging to a target state.
+Demonstrates fundamental goal-directed synchronization with a small swarm converging to a target state.
 
 **Key concepts:**
 
@@ -91,7 +91,7 @@ task run:example -- disruption_recovery
 
 ### 6. LLM Request Batching (`llm_batching/`)
 
-Demonstrates how bio-inspired synchronization can efficiently batch LLM API requests from multiple workloads, reducing API calls and improving system efficiency.
+Demonstrates how goal-directed synchronization can efficiently batch LLM API requests from multiple workloads, reducing API calls and improving system efficiency.
 
 **Key concepts:**
 

@@ -7,10 +7,10 @@ import (
 	"github.com/carlisia/bio-adapt/emerge/core"
 )
 
-// RhythmicPattern represents a temporal pattern of phases and frequencies.
-// This captures repeating biological patterns like heartbeats, circadian rhythms,
-// or neural oscillations.
-type RhythmicPattern struct {
+// TargetPattern defines the coordination goal that the system pursues.
+// It specifies the target phase, frequency, and coherence level that emerges
+// from agent interactions without central control.
+type TargetPattern struct {
 	Phases      []float64       // Phase values at each time point
 	Frequencies []time.Duration // Frequency at each time point
 	Amplitude   float64         // Pattern strength/amplitude

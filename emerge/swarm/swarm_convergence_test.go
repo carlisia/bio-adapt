@@ -75,7 +75,7 @@ func TestSwarmConvergence(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
 			defer cancel()
 
-			// Run swarm (this should now work with bioelectric pattern completion)
+			// Run swarm (this should now work with goal-directed pattern completion)
 			err = swarm.Run(ctx)
 			if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 				t.Fatalf("Swarm run failed: %v", err)

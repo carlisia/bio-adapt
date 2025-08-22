@@ -748,11 +748,11 @@ func TestPatternLibrary(t *testing.T) {
 		description string
 	}{
 		{
-			name: "identify circadian pattern",
+			name: "identify periodic pattern",
 			setupFn: func() *PatternLibrary {
 				library := NewPatternLibrary()
-				circadian := &PatternTemplate{
-					Name: "circadian",
+				periodic := &PatternTemplate{
+					Name: "periodic",
 					BasePattern: RhythmicPattern{
 						Phases:      []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 						Frequencies: []time.Duration{6 * time.Hour, 6 * time.Hour, 6 * time.Hour, 6 * time.Hour},
@@ -762,7 +762,7 @@ func TestPatternLibrary(t *testing.T) {
 					},
 					Tolerance: 0.15,
 				}
-				library.Add("circadian", circadian)
+				library.Add("periodic", periodic)
 				return library
 			},
 			testPattern: &RhythmicPattern{
@@ -772,17 +772,17 @@ func TestPatternLibrary(t *testing.T) {
 				Period:      24 * time.Hour,
 				Confidence:  0.9,
 			},
-			expectedID:  "circadian",
+			expectedID:  "periodic",
 			minSim:      0.8,
-			description: "Should identify circadian pattern",
+			description: "Should identify periodic pattern",
 		},
 		{
 			name: "identify best match among multiple",
 			setupFn: func() *PatternLibrary {
 				library := NewPatternLibrary()
 
-				circadian := &PatternTemplate{
-					Name: "circadian",
+				periodic24h := &PatternTemplate{
+					Name: "periodic24h",
 					BasePattern: *NewRhythmicPattern(
 						[]float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 						[]time.Duration{6 * time.Hour, 6 * time.Hour, 6 * time.Hour, 6 * time.Hour},
@@ -799,7 +799,7 @@ func TestPatternLibrary(t *testing.T) {
 					Tolerance: 0.2,
 				}
 
-				library.Add("circadian", circadian)
+				library.Add("periodic24h", periodic24h)
 				library.Add("ultradian", ultradian)
 				return library
 			},
@@ -815,15 +815,15 @@ func TestPatternLibrary(t *testing.T) {
 			name: "no match found",
 			setupFn: func() *PatternLibrary {
 				library := NewPatternLibrary()
-				circadian := &PatternTemplate{
-					Name: "circadian",
+				periodic24h := &PatternTemplate{
+					Name: "periodic24h",
 					BasePattern: RhythmicPattern{
 						Phases:      []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 						Frequencies: []time.Duration{6 * time.Hour, 6 * time.Hour, 6 * time.Hour, 6 * time.Hour},
 					},
 					Tolerance: 0.15,
 				}
-				library.Add("circadian", circadian)
+				library.Add("periodic24h", periodic24h)
 				return library
 			},
 			testPattern: &RhythmicPattern{

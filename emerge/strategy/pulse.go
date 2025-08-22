@@ -8,7 +8,7 @@ import (
 )
 
 // Pulse sends periodic synchronization pulses.
-// This mimics pacemaker cells in biological systems.
+// This implements periodic synchronization signals for phase alignment.
 type Pulse struct {
 	Period    time.Duration
 	Amplitude float64
