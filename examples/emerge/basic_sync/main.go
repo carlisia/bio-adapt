@@ -219,7 +219,7 @@ done:
 
 	// 9. Real-world mappings
 	display.Section("Real-World Mappings")
-	fmt.Println("This synchronization pattern applies to:")
+	fmt.Println("This synchronization primitive applies to:")
 	display.Bullet(
 		"Microservice coordination",
 		"Distributed cache invalidation",

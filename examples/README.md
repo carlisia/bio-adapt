@@ -1,6 +1,6 @@
 # Examples
 
-Production-ready examples demonstrating bio-adapt's capabilities for distributed coordination.
+Production-ready examples demonstrating bio-adapt's capabilities for concurrent and distributed coordination.
 
 ## Quick start
 
@@ -20,11 +20,11 @@ task run:example -- llm_batching
 - **[basic_sync](emerge/basic_sync)** - Fundamental attractor basin synchronization
 - **[energy_management](emerge/energy_management)** - Resource-aware coordination
 
-### Production patterns
+### Production use cases
 
 - **[llm_batching](emerge/llm_batching)** - Reduce LLM API calls by 80% through natural batching
-- **[distributed_swarm](emerge/distributed_swarm)** - Multi-region coordination without central control
-- **[disruption_recovery](emerge/disruption_recovery)** - Self-healing and resilience patterns
+- **[distributed_swarm](emerge/distributed_swarm)** - Multi-node network coordination without central control
+- **[disruption_recovery](emerge/disruption_recovery)** - Self-healing and resilience capabilities
 
 ### Advanced customization
 

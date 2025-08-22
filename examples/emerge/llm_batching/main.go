@@ -318,7 +318,7 @@ func main() {
 
 	// 9. Real-world mappings
 	display.Section("Real-World Mappings")
-	fmt.Println("This batching pattern applies to:")
+	fmt.Println("This batching primitive applies to:")
 	display.Bullet(
 		"OpenAI/Anthropic API calls from multiple services",
 		"Database writes from distributed workers",
