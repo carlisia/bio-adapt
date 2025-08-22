@@ -45,7 +45,7 @@ glue/
 │   ├── memory.go         # Collective memory
 │   └── attention.go      # Attention mechanisms
 ├── network/        # Cognitive network management
-│   ├── network.go        # Network orchestration
+│   ├── network.go        # Network coordination
 │   ├── assembly.go       # Neural assemblies
 │   ├── hierarchy.go      # Goal hierarchies
 │   └── consensus.go      # Consensus formation
@@ -302,7 +302,7 @@ This package is in the planning phase. We're researching optimal approaches to i
 
 ## Comparison with other patterns
 
-| Aspect      | Emerge       | Bioelectric         | Glue              |
+| Aspect      | Emerge       | Navigate            | Glue              |
 | ----------- | ------------ | ------------------- | ----------------- |
 | Mechanism   | Phase sync   | Voltage propagation | Cognitive binding |
 | Complexity  | Low          | Medium              | High              |

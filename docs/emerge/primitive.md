@@ -1,6 +1,6 @@
 # Emerge package
 
-**Goal-directed synchronization through adaptive strategies** - Distributed systems that pursue target coordination states through multiple pathways, finding alternatives when defaults fail.
+**Goal-directed synchronization through adaptive strategies** - Systems (concurrent or distributed) that pursue target coordination states through multiple pathways, finding alternatives when defaults fail.
 
 This package implements goal-directed temporal coordination, inspired by how biological systems reliably achieve morphological goals despite perturbations. Agents maintain synchronization targets as invariants and adaptively switch strategies to reach them.
 
@@ -49,7 +49,7 @@ Adaptive Strategies
 ```go
 // Goal: Minimize API calls through coordinated batching
 swarm, _ := emerge.NewSwarm(50)
-target := emerge.Pattern{
+target := emerge.State{
     Frequency: 200 * time.Millisecond, // Target: 5 batches/second
     Coherence: 0.9,                    // Goal: 90% synchronization
 }
@@ -57,12 +57,12 @@ swarm.AchieveSynchronization(ctx, target)
 // Result: System finds optimal strategy to reduce API calls by 80%
 ```
 
-### 🔄 Distributed Cron Jobs
+### 🔄 Concurrent Task Scheduling
 
 ```go
 // Goal: Prevent thundering herd through controlled desynchronization
 swarm, _ := emerge.NewSwarm(100)
-target := emerge.Pattern{
+target := emerge.State{
     Frequency: 1 * time.Hour,  // Target interval
     Coherence: 0.1,            // Goal: Spread out (anti-sync)
 }
@@ -75,12 +75,12 @@ swarm.AchieveSynchronization(ctx, target)
 ```go
 // Goal: Optimal connection distribution without overload
 swarm, _ := emerge.NewSwarm(200)
-target := emerge.Pattern{
+target := emerge.State{
     Frequency: 50 * time.Millisecond,  // Target connection rate
     Coherence: 0.7,                    // Goal: Moderate clustering
 }
 swarm.AchieveSynchronization(ctx, target)
-// Adaptively maintains connection patterns despite load changes
+// Adaptively maintains connection distributions despite load changes
 ```
 
 ## Advanced Features
@@ -178,6 +178,6 @@ The emerge package API is stable and production-ready. We follow semantic versio
 
 ### Project-wide
 - [Main README](../) - Project overview
-- [Patterns overview](../docs/patterns.md) - All available patterns
+- [Primitives overview](../docs/primitives.md) - All available primitives
 - [Examples](../examples/emerge/) - Working code samples
 - [API Reference](https://pkg.go.dev/github.com/carlisia/bio-adapt/emerge) - Complete API documentation

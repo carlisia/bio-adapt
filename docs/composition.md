@@ -1,12 +1,12 @@
-# Orchestration Patterns
+# Composition Guide
 
-The bio-adapt library provides three complementary packages that solve orthogonal distributed systems problems. This document describes how to compose and orchestrate them effectively.
+The bio-adapt library provides three composable packages that solve orthogonal coordination problems. This document describes how to compose them effectively.
 
-## The Three Patterns
+## The Three Primitives
 
 ### Overview
 
-```
+```text
 ┌─────────────────────────────────────┐
 │          bio-adapt library          │
 ├─────────────────────────────────────┤
@@ -21,7 +21,7 @@ The bio-adapt library provides three complementary packages that solve orthogona
 └─────────────────────────────────────┘
 ```
 
-### Core Questions Each Pattern Answers
+### Core Questions Each Primitive Answers
 
 | Package      | Problem Domain        | Core Question             | Output              |
 | ------------ | --------------------- | ------------------------- | ------------------- |
@@ -37,7 +37,7 @@ Each package can be used independently:
 // Just synchronization
 import "github.com/carlisia/bio-adapt/emerge"
 swarm := emerge.NewSwarm()
-swarm.Synchronize(ctx, targetPattern)
+swarm.Synchronize(ctx, targetState)
 
 // Just resource allocation
 import "github.com/carlisia/bio-adapt/navigate"
@@ -50,7 +50,7 @@ network := glue.NewNetwork()
 schema := network.SolveSchema(ctx, observations)
 ```
 
-## Composition Patterns
+## Composition Strategies
 
 ### 1. Synchronized Resource Allocation
 
@@ -95,15 +95,15 @@ func (ai *AdaptiveIntegrator) MigrateAPI(ctx context.Context, observations []Obs
     }
 
     // Then: Synchronize switchover to new schema
-    switchPattern := &emerge.Pattern{
+    switchState := &emerge.State{
         Phase:     0,
         Frequency: 100 * time.Millisecond,
     }
-    return ai.Timing.Synchronize(ctx, switchPattern)
+    return ai.Timing.Synchronize(ctx, switchState)
 }
 ```
 
-### 3. Full Stack Orchestration
+### 3. Full Stack Composition
 
 Combine all three for complete adaptive systems:
 
@@ -131,12 +131,12 @@ func (as *AdaptiveSystem) HandleAPIChange(ctx context.Context) error {
     }
 
     // 4. Synchronize all agents to switch at same time
-    switchPattern := &emerge.Pattern{
+    switchState := &emerge.State{
         Phase:     0,
         Frequency: 50 * time.Millisecond,
         Coherence: 0.95,
     }
-    return as.Timing.Synchronize(ctx, switchPattern)
+    return as.Timing.Synchronize(ctx, switchState)
 }
 
 func (as *AdaptiveSystem) calculateResourcesForSchema(schema *glue.Schema) *navigate.ResourceState {
@@ -157,14 +157,14 @@ func (as *AdaptiveSystem) calculateResourcesForSchema(schema *glue.Schema) *navi
 }
 ```
 
-## Orchestration Strategies
+## Composition Strategies
 
-### Sequential Orchestration
+### Sequential Composition
 
-Execute patterns in sequence when order matters:
+Execute primitives in sequence when order matters:
 
 ```go
-func SequentialOrchestration(ctx context.Context) error {
+func SequentialComposition(ctx context.Context) error {
     // 1. First discover what we're dealing with
     schema := glueNetwork.Discover(ctx)
 
@@ -176,12 +176,12 @@ func SequentialOrchestration(ctx context.Context) error {
 }
 ```
 
-### Parallel Orchestration
+### Parallel Composition
 
-Execute independent patterns concurrently:
+Execute independent primitives concurrently:
 
 ```go
-func ParallelOrchestration(ctx context.Context) error {
+func ParallelComposition(ctx context.Context) error {
     g, ctx := errgroup.WithContext(ctx)
 
     // Run resource allocation and schema discovery in parallel
@@ -203,12 +203,12 @@ func ParallelOrchestration(ctx context.Context) error {
 }
 ```
 
-### Feedback Loop Orchestration
+### Feedback Loop Composition
 
-Use output from one pattern to drive another:
+Use output from one primitive to drive another:
 
 ```go
-func FeedbackOrchestration(ctx context.Context) {
+func FeedbackComposition(ctx context.Context) {
     for {
         // Measure synchronization quality
         coherence := swarm.MeasureCoherence()
@@ -241,53 +241,53 @@ func FeedbackOrchestration(ctx context.Context) {
 
 ### 1. Start Simple
 
-Begin with individual patterns before composing:
+Begin with individual primitives before composing:
 
 - Master `emerge` for synchronization
 - Then add `navigate` for resource management
 - Finally integrate `glue` for schema discovery
 
-### 2. Monitor Pattern Health
+### 2. Monitor Primitive Health
 
-Each pattern provides health metrics:
+Each primitive provides health metrics:
 
 ```go
 type SystemHealth struct {
     Synchronization float64  // emerge: coherence metric
-    ResourceUsage   float64  // navigate: allocation efficiency
-    SchemaAccuracy  float64  // glue: consensus strength
+    // ResourceUsage   float64  // (not yet implemented) navigate: allocation efficiency
+    // SchemaAccuracy  float64  // (not yet implemented) glue: consensus strength
 }
 
 func (as *AdaptiveSystem) GetHealth() SystemHealth {
     return SystemHealth{
         Synchronization: as.Timing.MeasureCoherence(),
-        ResourceUsage:   as.Resources.GetEfficiency(),
-        SchemaAccuracy:  as.Contracts.GetConsensusStrength(),
+        // ResourceUsage:   as.Resources.GetEfficiency(), // (not yet implemented)
+        // SchemaAccuracy:  as.Contracts.GetConsensusStrength(), //(not yet implemented)
     }
 }
 ```
 
 ### 3. Handle Failures Gracefully
 
-Each pattern can fail independently:
+Each primitive can fail independently:
 
 ```go
-func ResilientOrchestration(ctx context.Context) error {
+func ResilientComposition(ctx context.Context) error {
     // Try primary strategy
     if err := as.HandleAPIChange(ctx); err != nil {
         // Fall back to simpler approach
-        log.Printf("Primary orchestration failed: %v, trying fallback", err)
+        log.Printf("Primary composition failed: %v, trying fallback", err)
 
         // Just synchronize without resource changes
-        return as.Timing.Synchronize(ctx, emerge.DefaultPattern())
+        return as.Timing.Synchronize(ctx, emerge.DefaultState())
     }
     return nil
 }
 ```
 
-### 4. Use Pattern-Specific Configurations
+### 4. Use Primitive-Specific Configurations
 
-Each pattern has its own tuning parameters:
+Each primitive has its own tuning parameters:
 
 ```go
 // emerge: Focus on timing
@@ -348,5 +348,4 @@ glueConfig := glue.Config{
 
 ## Conclusion
 
-The three bio-adapt patterns are designed to work independently or together. Like biological systems that separate timing (circadian rhythms), resource management (metabolism), and information processing (neural networks), these patterns provide focused solutions that compose into sophisticated adaptive systems.
-
+The three bio-adapt primitives are designed to work independently or together. Like biological systems that separate timing (circadian rhythms), resource management (metabolism), and information processing (neural networks), these primitives provide focused solutions that compose into sophisticated adaptive systems.

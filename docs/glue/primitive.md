@@ -67,7 +67,7 @@ Please open an issue to share your ideas!
 
 ## Documentation
 
-- [Patterns overview](../docs/patterns.md) - Compare with other patterns
+- [Primitives overview](../primitives.md) - Compare with other primitives
 - [Main project](../) - Bio-adapt overview
 - [Examples](../examples/) - Will include glue examples when ready
 

@@ -299,7 +299,7 @@ benchmark_assembly_formation_rate
 
 ## Comparison with other patterns
 
-| Optimization       | Emerge         | Bioelectric       | Glue              |
+| Optimization       | Emerge         | Navigate          | Glue              |
 | ------------------ | -------------- | ----------------- | ----------------- |
 | Primary bottleneck | Phase updates  | Field computation | Binding formation |
 | Parallelism        | Natural        | Regional          | Hierarchical      |

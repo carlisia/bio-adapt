@@ -1,23 +1,23 @@
-# Goal-directed patterns
+# Goal-directed primitives
 
 ## Overview
 
-Bio-adapt provides three complementary patterns for goal-directed distributed coordination, inspired by Michael Levin's research on how biological systems achieve reliable outcomes through multiple pathways. Each pattern enables systems to pursue specific goals despite disruptions, finding alternative routes when defaults fail.
+Bio-adapt provides three complementary primitives for goal-directed coordination in concurrent and distributed systems, inspired by Michael Levin's research on how biological systems achieve reliable outcomes through multiple pathways. Each primitive enables systems to pursue specific goals despite disruptions, finding alternative routes when defaults fail.
 
-## Available patterns
+## Available primitives
 
 ### 🧲 Emerge - Goal-directed synchronization
 
 **Status:** Production-ready
 
-Distributed systems that converge on target coordination states through multiple pathways. When one synchronization strategy fails, the system adaptively switches to alternatives, ensuring the goal is achieved.
+Systems (concurrent or distributed) that converge on target coordination states through multiple pathways. When one synchronization strategy fails, the system adaptively switches to alternatives, ensuring the goal is achieved.
 
 **Core question:** "When should agents act?"
 
 **Use cases:**
 
 - API request batching (Goal: minimize API calls)
-- Distributed task synchronization (Goal: achieve coherence)
+- Multi-agent task synchronization (Goal: achieve coherence)
 - Load balancing (Goal: optimal distribution)
 - Natural clustering (Goal: stable groupings)
 
@@ -27,7 +27,7 @@ Distributed systems that converge on target coordination states through multiple
 - Multiple strategies to achieve target states
 - Adaptive strategy switching when stuck
 
-[Learn more →](emerge/pattern.md)
+[Learn more →](emerge/primitive.md)
 
 ### ⚡ Navigate - Goal-directed resource allocation
 
@@ -51,35 +51,35 @@ Systems that navigate resource configuration spaces to reach target allocations 
 - Gradient-based optimization toward goals
 - Memory of successful resource paths
 
-[Learn more →](bioelectric/pattern.md)
+[Learn more →](navigate/primitive.md)
 
 ### 🔗 Glue - Goal-directed collective intelligence
 
 **Status:** Planned
 
-Collective goal-seeking enables distributed agents to converge on shared understanding through local interactions. Agents collectively discover solutions that no individual could find alone.
+Collective goal-seeking enables independent agents to converge on shared understanding through local interactions. Agents collectively discover solutions that no individual could find alone.
 
 **Core question:** "How does this system/API work?"
 
 **Planned use cases:**
 
 - Schema discovery (Goal: understand API contracts)
-- Distributed consensus (Goal: agreement despite failures)
+- Decentralized consensus (Goal: agreement despite failures)
 - Collective decision making (Goal: optimal group choices)
 - Emergent problem solving (Goal: find solutions together)
 
 **Key features:**
 
-- Distributed hypothesis testing
+- Collaborative hypothesis testing
 - Collective knowledge building
 - Consensus through local interactions
 - Emergent understanding from partial observations
 
-[Learn more →](glue/pattern.md)
+[Learn more →](glue/primitive.md)
 
-## Choosing a pattern
+## Choosing a primitive
 
-| Pattern      | Core Question              | Goal Type           | Maturity       |
+| Primitive    | Core Question              | Goal Type           | Maturity       |
 | ------------ | -------------------------- | ------------------- | -------------- |
 | **Emerge**   | When should agents act?    | Temporal coordination | Production     |
 | **Navigate** | What resources to use?     | Resource allocation | In development |
