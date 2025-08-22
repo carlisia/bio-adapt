@@ -8,13 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewRhythmicPattern(t *testing.T) {
+func TestNewTargetPattern(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name        string
 		phases      []float64
 		frequencies []time.Duration
-		validateFn  func(t *testing.T, pattern *RhythmicPattern)
+		validateFn  func(t *testing.T, pattern *TargetPattern)
 		description string
 	}{
 		// Happy path cases
@@ -28,7 +28,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 				100 * time.Millisecond,
 				100 * time.Millisecond,
 			},
-			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+			validateFn: func(t *testing.T, pattern *TargetPattern) {
 				t.Helper()
 				assert.Len(t, pattern.Phases, 5, "Should have 5 phases")
 				assert.Len(t, pattern.Frequencies, 5, "Should have 5 frequencies")
@@ -42,7 +42,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			name:        "empty pattern",
 			phases:      []float64{},
 			frequencies: []time.Duration{},
-			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+			validateFn: func(t *testing.T, pattern *TargetPattern) {
 				t.Helper()
 				assert.Empty(t, pattern.Phases, "Should have 0 phases")
 				assert.Equal(t, 0.0, pattern.Amplitude, "Amplitude should be 0 for empty pattern")
@@ -54,7 +54,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			name:        "single phase",
 			phases:      []float64{math.Pi},
 			frequencies: []time.Duration{100 * time.Millisecond},
-			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+			validateFn: func(t *testing.T, pattern *TargetPattern) {
 				t.Helper()
 				assert.Len(t, pattern.Phases, 1, "Should have 1 phase")
 				assert.Equal(t, 0.0, pattern.Amplitude, "Amplitude should be 0 for single phase")
@@ -71,7 +71,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 				150 * time.Millisecond,
 				200 * time.Millisecond,
 			},
-			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+			validateFn: func(t *testing.T, pattern *TargetPattern) {
 				t.Helper()
 				expectedPeriod := 125 * time.Millisecond // Average
 				assert.Equal(t, expectedPeriod, pattern.Period, "Period should be average of frequencies")
@@ -83,7 +83,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			name:        "zero phases",
 			phases:      []float64{0, 0, 0, 0},
 			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
-			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+			validateFn: func(t *testing.T, pattern *TargetPattern) {
 				t.Helper()
 				assert.Equal(t, 0.0, pattern.Amplitude, "Amplitude should be 0 for uniform zero phases")
 			},
@@ -93,7 +93,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			name:        "negative phases",
 			phases:      []float64{-math.Pi, -math.Pi / 2, 0, math.Pi / 2},
 			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
-			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+			validateFn: func(t *testing.T, pattern *TargetPattern) {
 				t.Helper()
 				assert.Greater(t, pattern.Amplitude, 0.0, "Should calculate amplitude for negative phases")
 			},
@@ -103,7 +103,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			name:        "very large phases",
 			phases:      []float64{0, 10 * math.Pi, 20 * math.Pi, 30 * math.Pi},
 			frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
-			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+			validateFn: func(t *testing.T, pattern *TargetPattern) {
 				t.Helper()
 				assert.Greater(t, pattern.Amplitude, 0.0, "Should calculate amplitude for large phases")
 			},
@@ -113,7 +113,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			name:        "zero duration frequencies",
 			phases:      []float64{0, math.Pi},
 			frequencies: []time.Duration{0, 0},
-			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+			validateFn: func(t *testing.T, pattern *TargetPattern) {
 				t.Helper()
 				assert.Equal(t, time.Duration(0), pattern.Period, "Period should be 0 for zero frequencies")
 			},
@@ -123,7 +123,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			name:        "negative duration frequencies",
 			phases:      []float64{0, math.Pi},
 			frequencies: []time.Duration{-100 * time.Millisecond, -100 * time.Millisecond},
-			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+			validateFn: func(t *testing.T, pattern *TargetPattern) {
 				t.Helper()
 				assert.Equal(t, -100*time.Millisecond, pattern.Period, "Negative duration frequencies should be preserved")
 			},
@@ -133,7 +133,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 			name:        "mismatched lengths",
 			phases:      []float64{0, math.Pi, math.Pi / 2},
 			frequencies: []time.Duration{100 * time.Millisecond},
-			validateFn: func(t *testing.T, pattern *RhythmicPattern) {
+			validateFn: func(t *testing.T, pattern *TargetPattern) {
 				t.Helper()
 				assert.Len(t, pattern.Phases, 3, "Should have 3 phases")
 				assert.Len(t, pattern.Frequencies, 1, "Should have 1 frequency")
@@ -145,7 +145,7 @@ func TestNewRhythmicPattern(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			pattern := NewRhythmicPattern(tt.phases, tt.frequencies)
+			pattern := NewTargetPattern(tt.phases, tt.frequencies)
 			tt.validateFn(t, pattern)
 		})
 	}
@@ -251,7 +251,7 @@ func TestPatternDetectGaps(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			pattern := NewRhythmicPattern(tt.phases, tt.frequencies)
+			pattern := NewTargetPattern(tt.phases, tt.frequencies)
 			gaps := pattern.Detect()
 			tt.validateFn(t, gaps)
 		})
@@ -268,7 +268,7 @@ func TestPatternComplete(t *testing.T) {
 		100 * time.Millisecond,
 		100 * time.Millisecond,
 	}
-	pattern := NewRhythmicPattern(basePhases, baseFrequencies)
+	pattern := NewTargetPattern(basePhases, baseFrequencies)
 
 	tests := []struct {
 		name        string
@@ -418,25 +418,25 @@ func TestPatternSimilarity(t *testing.T) {
 	t.Parallel()
 	phases1 := []float64{0, math.Pi / 4, math.Pi / 2, 3 * math.Pi / 4}
 	frequencies1 := []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond}
-	pattern1 := NewRhythmicPattern(phases1, frequencies1)
+	pattern1 := NewTargetPattern(phases1, frequencies1)
 
 	tests := []struct {
 		name        string
-		other       *RhythmicPattern
+		other       *TargetPattern
 		minSim      float64
 		maxSim      float64
 		description string
 	}{
 		{
 			name:        "identical pattern",
-			other:       NewRhythmicPattern(phases1, frequencies1),
+			other:       NewTargetPattern(phases1, frequencies1),
 			minSim:      0.95,
 			maxSim:      1.0,
 			description: "Identical patterns should have high similarity",
 		},
 		{
 			name: "similar pattern",
-			other: NewRhythmicPattern(
+			other: NewTargetPattern(
 				[]float64{0, math.Pi/4 + 0.1, math.Pi / 2, 3*math.Pi/4 - 0.1},
 				frequencies1,
 			),
@@ -446,7 +446,7 @@ func TestPatternSimilarity(t *testing.T) {
 		},
 		{
 			name: "different pattern",
-			other: NewRhythmicPattern(
+			other: NewTargetPattern(
 				[]float64{math.Pi, math.Pi * 1.25, math.Pi * 1.5, math.Pi * 1.75},
 				[]time.Duration{200 * time.Millisecond, 200 * time.Millisecond, 200 * time.Millisecond, 200 * time.Millisecond},
 			),
@@ -463,14 +463,14 @@ func TestPatternSimilarity(t *testing.T) {
 		},
 		{
 			name:        "empty pattern",
-			other:       NewRhythmicPattern([]float64{}, []time.Duration{}),
+			other:       NewTargetPattern([]float64{}, []time.Duration{}),
 			minSim:      0.0,
 			maxSim:      0.0,
 			description: "Empty pattern should have zero similarity",
 		},
 		{
 			name: "different length patterns",
-			other: NewRhythmicPattern(
+			other: NewTargetPattern(
 				[]float64{0, math.Pi / 2},
 				[]time.Duration{100 * time.Millisecond, 100 * time.Millisecond},
 			),
@@ -480,7 +480,7 @@ func TestPatternSimilarity(t *testing.T) {
 		},
 		{
 			name: "shifted pattern",
-			other: NewRhythmicPattern(
+			other: NewTargetPattern(
 				[]float64{math.Pi / 4, math.Pi / 2, 3 * math.Pi / 4, math.Pi},
 				frequencies1,
 			),
@@ -490,7 +490,7 @@ func TestPatternSimilarity(t *testing.T) {
 		},
 		{
 			name: "inverted pattern",
-			other: NewRhythmicPattern(
+			other: NewTargetPattern(
 				[]float64{3 * math.Pi / 4, math.Pi / 2, math.Pi / 4, 0},
 				frequencies1,
 			),
@@ -500,7 +500,7 @@ func TestPatternSimilarity(t *testing.T) {
 		},
 		{
 			name: "same phases different frequencies",
-			other: NewRhythmicPattern(
+			other: NewTargetPattern(
 				phases1,
 				[]time.Duration{50 * time.Millisecond, 50 * time.Millisecond, 50 * time.Millisecond, 50 * time.Millisecond},
 			),
@@ -510,7 +510,7 @@ func TestPatternSimilarity(t *testing.T) {
 		},
 		{
 			name: "negative phases",
-			other: NewRhythmicPattern(
+			other: NewTargetPattern(
 				[]float64{-math.Pi / 4, -math.Pi / 2, -3 * math.Pi / 4, -math.Pi},
 				frequencies1,
 			),
@@ -520,7 +520,7 @@ func TestPatternSimilarity(t *testing.T) {
 		},
 		{
 			name: "invalid pattern with NaN phases",
-			other: &RhythmicPattern{
+			other: &TargetPattern{
 				Phases:      []float64{0, math.NaN(), math.Pi},
 				Frequencies: frequencies1[:3],
 				Amplitude:   math.NaN(),
@@ -531,7 +531,7 @@ func TestPatternSimilarity(t *testing.T) {
 		},
 		{
 			name: "pattern with infinite phases",
-			other: &RhythmicPattern{
+			other: &TargetPattern{
 				Phases:      []float64{0, math.Inf(1), math.Pi},
 				Frequencies: frequencies1[:3],
 				Amplitude:   math.Inf(1),
@@ -542,7 +542,7 @@ func TestPatternSimilarity(t *testing.T) {
 		},
 		{
 			name: "massively different scale patterns",
-			other: NewRhythmicPattern(
+			other: NewTargetPattern(
 				[]float64{0, 1000 * math.Pi, 2000 * math.Pi, 3000 * math.Pi},
 				[]time.Duration{1 * time.Nanosecond, 1 * time.Nanosecond, 1 * time.Nanosecond, 1 * time.Nanosecond},
 			),
@@ -570,7 +570,7 @@ func TestPatternSimilarity(t *testing.T) {
 
 func TestPatternTemplate(t *testing.T) {
 	t.Parallel()
-	basePattern := RhythmicPattern{
+	basePattern := TargetPattern{
 		Phases:      []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 		Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
 		Amplitude:   1.0,
@@ -581,7 +581,7 @@ func TestPatternTemplate(t *testing.T) {
 	tests := []struct {
 		name        string
 		template    *PatternTemplate
-		pattern     *RhythmicPattern
+		pattern     *TargetPattern
 		expected    bool
 		description string
 	}{
@@ -592,7 +592,7 @@ func TestPatternTemplate(t *testing.T) {
 				BasePattern: basePattern,
 				Tolerance:   0.2,
 			},
-			pattern: &RhythmicPattern{
+			pattern: &TargetPattern{
 				Phases:      []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 				Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
 				Amplitude:   1.0,
@@ -609,7 +609,7 @@ func TestPatternTemplate(t *testing.T) {
 				BasePattern: basePattern,
 				Tolerance:   0.2,
 			},
-			pattern: &RhythmicPattern{
+			pattern: &TargetPattern{
 				Phases:      []float64{0.1, math.Pi/2 + 0.1, math.Pi, 3*math.Pi/2 - 0.1},
 				Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
 				Amplitude:   0.9,
@@ -626,7 +626,7 @@ func TestPatternTemplate(t *testing.T) {
 				BasePattern: basePattern,
 				Tolerance:   0.2,
 			},
-			pattern: &RhythmicPattern{
+			pattern: &TargetPattern{
 				Phases:      []float64{math.Pi / 4, 3 * math.Pi / 4, 5 * math.Pi / 4, 7 * math.Pi / 4},
 				Frequencies: []time.Duration{200 * time.Millisecond, 200 * time.Millisecond, 200 * time.Millisecond, 200 * time.Millisecond},
 				Amplitude:   2.0,
@@ -676,7 +676,7 @@ func TestPatternTemplate(t *testing.T) {
 				BasePattern: basePattern,
 				Tolerance:   10.0,
 			},
-			pattern: &RhythmicPattern{
+			pattern: &TargetPattern{
 				Phases:      []float64{0, 0, 0, 0},
 				Frequencies: []time.Duration{1 * time.Second, 1 * time.Second, 1 * time.Second, 1 * time.Second},
 				Amplitude:   0,
@@ -690,13 +690,13 @@ func TestPatternTemplate(t *testing.T) {
 			name: "empty template pattern",
 			template: &PatternTemplate{
 				Name: "test",
-				BasePattern: RhythmicPattern{
+				BasePattern: TargetPattern{
 					Phases:      []float64{},
 					Frequencies: []time.Duration{},
 				},
 				Tolerance: 0.2,
 			},
-			pattern: &RhythmicPattern{
+			pattern: &TargetPattern{
 				Phases:      []float64{0, math.Pi},
 				Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond},
 			},
@@ -708,7 +708,7 @@ func TestPatternTemplate(t *testing.T) {
 			template: &PatternTemplate{
 				Name:        "test",
 				BasePattern: basePattern,
-				Variations: []RhythmicPattern{
+				Variations: []TargetPattern{
 					{
 						Phases:      []float64{0.1, math.Pi/2 + 0.1, math.Pi + 0.1, 3*math.Pi/2 + 0.1},
 						Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
@@ -716,7 +716,7 @@ func TestPatternTemplate(t *testing.T) {
 				},
 				Tolerance: 0.1,
 			},
-			pattern: &RhythmicPattern{
+			pattern: &TargetPattern{
 				Phases:      []float64{0.1, math.Pi/2 + 0.1, math.Pi + 0.1, 3*math.Pi/2 + 0.1},
 				Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
 				Amplitude:   1.0,
@@ -742,7 +742,7 @@ func TestPatternLibrary(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupFn     func() *PatternLibrary
-		testPattern *RhythmicPattern
+		testPattern *TargetPattern
 		expectedID  string
 		minSim      float64
 		description string
@@ -753,7 +753,7 @@ func TestPatternLibrary(t *testing.T) {
 				library := NewPatternLibrary()
 				periodic := &PatternTemplate{
 					Name: "periodic",
-					BasePattern: RhythmicPattern{
+					BasePattern: TargetPattern{
 						Phases:      []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 						Frequencies: []time.Duration{6 * time.Hour, 6 * time.Hour, 6 * time.Hour, 6 * time.Hour},
 						Amplitude:   1.0,
@@ -765,7 +765,7 @@ func TestPatternLibrary(t *testing.T) {
 				library.Add("periodic", periodic)
 				return library
 			},
-			testPattern: &RhythmicPattern{
+			testPattern: &TargetPattern{
 				Phases:      []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 				Frequencies: []time.Duration{6 * time.Hour, 6 * time.Hour, 6 * time.Hour, 6 * time.Hour},
 				Amplitude:   0.95,
@@ -783,7 +783,7 @@ func TestPatternLibrary(t *testing.T) {
 
 				periodic24h := &PatternTemplate{
 					Name: "periodic24h",
-					BasePattern: *NewRhythmicPattern(
+					BasePattern: *NewTargetPattern(
 						[]float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 						[]time.Duration{6 * time.Hour, 6 * time.Hour, 6 * time.Hour, 6 * time.Hour},
 					),
@@ -792,7 +792,7 @@ func TestPatternLibrary(t *testing.T) {
 
 				ultradian := &PatternTemplate{
 					Name: "ultradian",
-					BasePattern: *NewRhythmicPattern(
+					BasePattern: *NewTargetPattern(
 						[]float64{0, math.Pi},
 						[]time.Duration{45 * time.Minute, 45 * time.Minute},
 					),
@@ -803,7 +803,7 @@ func TestPatternLibrary(t *testing.T) {
 				library.Add("ultradian", ultradian)
 				return library
 			},
-			testPattern: NewRhythmicPattern(
+			testPattern: NewTargetPattern(
 				[]float64{0, math.Pi},
 				[]time.Duration{45 * time.Minute, 45 * time.Minute},
 			),
@@ -817,7 +817,7 @@ func TestPatternLibrary(t *testing.T) {
 				library := NewPatternLibrary()
 				periodic24h := &PatternTemplate{
 					Name: "periodic24h",
-					BasePattern: RhythmicPattern{
+					BasePattern: TargetPattern{
 						Phases:      []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 						Frequencies: []time.Duration{6 * time.Hour, 6 * time.Hour, 6 * time.Hour, 6 * time.Hour},
 					},
@@ -826,7 +826,7 @@ func TestPatternLibrary(t *testing.T) {
 				library.Add("periodic24h", periodic24h)
 				return library
 			},
-			testPattern: &RhythmicPattern{
+			testPattern: &TargetPattern{
 				Phases:      []float64{0, 0.1, 0.2, 0.3},
 				Frequencies: []time.Duration{1 * time.Second, 1 * time.Second, 1 * time.Second, 1 * time.Second},
 			},
@@ -837,7 +837,7 @@ func TestPatternLibrary(t *testing.T) {
 		{
 			name:    "empty library",
 			setupFn: NewPatternLibrary,
-			testPattern: &RhythmicPattern{
+			testPattern: &TargetPattern{
 				Phases:      []float64{0, math.Pi},
 				Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond},
 			},
@@ -851,7 +851,7 @@ func TestPatternLibrary(t *testing.T) {
 				library := NewPatternLibrary()
 				template := &PatternTemplate{
 					Name:        "test",
-					BasePattern: RhythmicPattern{Phases: []float64{0, math.Pi}},
+					BasePattern: TargetPattern{Phases: []float64{0, math.Pi}},
 				}
 				library.Add("test", template)
 				return library
@@ -1119,7 +1119,7 @@ func TestHelperFunctions(t *testing.T) {
 
 func TestPatternConcurrency(t *testing.T) {
 	t.Parallel()
-	pattern := NewRhythmicPattern(
+	pattern := NewTargetPattern(
 		[]float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 		[]time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
 	)
@@ -1173,7 +1173,7 @@ func BenchmarkPatternDetect(b *testing.B) {
 		frequencies[i] = 100 * time.Millisecond
 	}
 
-	pattern := NewRhythmicPattern(phases, frequencies)
+	pattern := NewTargetPattern(phases, frequencies)
 
 	b.ResetTimer()
 	for range b.N {
@@ -1185,8 +1185,8 @@ func BenchmarkPatternSimilarity(b *testing.B) {
 	phases := []float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2}
 	frequencies := []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond}
 
-	pattern1 := NewRhythmicPattern(phases, frequencies)
-	pattern2 := NewRhythmicPattern(phases, frequencies)
+	pattern1 := NewTargetPattern(phases, frequencies)
+	pattern2 := NewTargetPattern(phases, frequencies)
 
 	b.ResetTimer()
 	for range b.N {
@@ -1205,7 +1205,7 @@ func BenchmarkLibraryIdentify(b *testing.B) {
 		}
 		template := &PatternTemplate{
 			Name: "template",
-			BasePattern: RhythmicPattern{
+			BasePattern: TargetPattern{
 				Phases:      phases,
 				Frequencies: []time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
 			},
@@ -1214,7 +1214,7 @@ func BenchmarkLibraryIdentify(b *testing.B) {
 		library.Add("template", template)
 	}
 
-	testPattern := NewRhythmicPattern(
+	testPattern := NewTargetPattern(
 		[]float64{0, math.Pi / 2, math.Pi, 3 * math.Pi / 2},
 		[]time.Duration{100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond},
 	)

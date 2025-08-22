@@ -7,9 +7,9 @@ import (
 	"github.com/carlisia/bio-adapt/emerge/core"
 )
 
-// RhythmicPattern represents a temporal pattern of phases and frequencies.
-// This captures temporal coordination patterns for distributed synchronization.
-type RhythmicPattern struct {
+// TargetPattern represents a temporal coordination state with phases and frequencies.
+// This captures the coordination state for distributed synchronization.
+type TargetPattern struct {
 	Phases      []float64       // Phase values at each time point
 	Frequencies []time.Duration // Frequency at each time point
 	Amplitude   float64         // Pattern strength/amplitude
@@ -17,12 +17,12 @@ type RhythmicPattern struct {
 	Confidence  float64         // Confidence in pattern detection [0, 1]
 }
 
-// NewRhythmicPattern creates a new rhythmic pattern.
-func NewRhythmicPattern(phases []float64, frequencies []time.Duration) *RhythmicPattern {
+// NewTargetPattern creates a new target coordination state.
+func NewTargetPattern(phases []float64, frequencies []time.Duration) *TargetPattern {
 	amplitude := calculateAmplitude(phases)
 	period := calculatePeriod(frequencies)
 
-	return &RhythmicPattern{
+	return &TargetPattern{
 		Phases:      phases,
 		Frequencies: frequencies,
 		Amplitude:   amplitude,
@@ -31,8 +31,8 @@ func NewRhythmicPattern(phases []float64, frequencies []time.Duration) *Rhythmic
 	}
 }
 
-// PatternGap represents a missing segment in a pattern.
-// These gaps need to be filled through pattern completion.
+// PatternGap represents a missing segment in a coordination state.
+// These gaps need to be filled through state completion.
 type PatternGap struct {
 	StartIdx  int           // Start index in pattern
 	EndIdx    int           // End index in pattern
@@ -40,8 +40,8 @@ type PatternGap struct {
 	Predicted []float64     // Predicted values for the gap
 }
 
-// Detect finds gaps in the pattern that need completion.
-func (p *RhythmicPattern) Detect() []PatternGap {
+// Detect finds gaps in the coordination state that need completion.
+func (p *TargetPattern) Detect() []PatternGap {
 	gaps := make([]PatternGap, 0)
 
 	// Simple gap detection: look for sudden phase jumps
@@ -62,8 +62,8 @@ func (p *RhythmicPattern) Detect() []PatternGap {
 	return gaps
 }
 
-// Complete fills in missing parts of a pattern.
-func (p *RhythmicPattern) Complete(gap PatternGap) []float64 {
+// Complete fills in missing parts of a coordination state.
+func (p *TargetPattern) Complete(gap PatternGap) []float64 {
 	if gap.StartIdx < 0 || gap.EndIdx >= len(p.Phases) || gap.StartIdx >= gap.EndIdx {
 		return nil
 	}
@@ -88,9 +88,9 @@ func (p *RhythmicPattern) Complete(gap PatternGap) []float64 {
 	return completed
 }
 
-// Similarity calculates how similar two patterns are.
+// Similarity calculates how similar two coordination states are.
 // Returns a value between 0 (completely different) and 1 (identical).
-func (p *RhythmicPattern) Similarity(other *RhythmicPattern) float64 {
+func (p *TargetPattern) Similarity(other *TargetPattern) float64 {
 	if other == nil || len(p.Phases) == 0 || len(other.Phases) == 0 {
 		return 0
 	}
@@ -127,17 +127,17 @@ func (p *RhythmicPattern) Similarity(other *RhythmicPattern) float64 {
 	return (ampSim*0.3 + periodSim*0.3 + phaseSim*0.4)
 }
 
-// PatternTemplate represents a known pattern archetype.
-// These are templates that guide system convergence.
+// PatternTemplate represents a known coordination archetype.
+// These templates guide system convergence.
 type PatternTemplate struct {
 	Name        string
-	BasePattern RhythmicPattern
-	Variations  []RhythmicPattern // Acceptable variations
-	Tolerance   float64           // How much deviation is acceptable
+	BasePattern TargetPattern
+	Variations  []TargetPattern // Acceptable variations
+	Tolerance   float64         // How much deviation is acceptable
 }
 
-// Matches checks if a pattern matches this template.
-func (t *PatternTemplate) Matches(pattern *RhythmicPattern) bool {
+// Matches checks if a coordination state matches this template.
+func (t *PatternTemplate) Matches(pattern *TargetPattern) bool {
 	// Check against base pattern
 	similarity := t.BasePattern.Similarity(pattern)
 	if similarity >= (1.0 - t.Tolerance) {
@@ -154,25 +154,25 @@ func (t *PatternTemplate) Matches(pattern *RhythmicPattern) bool {
 	return false
 }
 
-// PatternLibrary stores known pattern templates.
+// PatternLibrary stores known coordination templates.
 type PatternLibrary struct {
 	templates map[string]*PatternTemplate
 }
 
-// NewPatternLibrary creates a new pattern library.
+// NewPatternLibrary creates a new coordination template library.
 func NewPatternLibrary() *PatternLibrary {
 	return &PatternLibrary{
 		templates: make(map[string]*PatternTemplate),
 	}
 }
 
-// Add registers a new pattern template.
+// Add registers a new coordination template.
 func (l *PatternLibrary) Add(name string, template *PatternTemplate) {
 	l.templates[name] = template
 }
 
-// Identify attempts to identify which template a pattern matches.
-func (l *PatternLibrary) Identify(pattern *RhythmicPattern) (string, float64) {
+// Identify attempts to identify which template a coordination state matches.
+func (l *PatternLibrary) Identify(pattern *TargetPattern) (string, float64) {
 	var bestMatch string
 	var bestSimilarity float64
 
