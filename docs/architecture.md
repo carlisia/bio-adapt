@@ -2,14 +2,14 @@
 
 ## Overview
 
-Bio-adapt implements goal-directed distributed coordination inspired by Michael Levin's research on how biological systems achieve reliable outcomes through multiple pathways. The architecture enables systems to maintain target states as invariants, finding alternative routes when defaults fail.
+Bio-adapt implements goal-directed coordination for concurrent and distributed systems, inspired by Michael Levin's research on how biological systems achieve reliable outcomes through multiple pathways. The architecture enables systems to maintain target states as invariants, finding alternative routes when defaults fail.
 
-The library provides three complementary patterns for goal-directed behavior:
+The library provides three complementary primitives for goal-directed behavior:
 - **Emerge**: When should agents act? (temporal coordination)
 - **Navigate**: What resources to use? (resource allocation)
 - **Glue**: How does the API work? (collective understanding)
 
-See [patterns overview](patterns.md) for details.
+See [primitives overview](primitives.md) for details.
 
 ## Core design principles
 
@@ -19,7 +19,7 @@ Inspired by Levin's research, systems maintain goals as invariants rather than f
 
 ### 2. Local interactions, global emergence
 
-Agents only interact with nearby neighbors (local coupling), yet global synchronization emerges naturally - similar to how fireflies synchronize their flashing or how cardiac cells coordinate heartbeats.
+Agents only interact with nearby neighbors (local coupling), yet global synchronization emerges naturally. This works whether agents are goroutines in one process or services across a network - similar to how fireflies synchronize their flashing or how cardiac cells coordinate heartbeats.
 
 ### 3. Multiple pathways to goals
 
@@ -41,7 +41,7 @@ Agents have limited energy for actions, creating realistic constraints that prev
 │              Bio-Adapt Library               │
 │                                              │
 │  ┌─────────────────────────────────────┐    │
-│  │       Goal-Directed Orchestration    │    │
+│  │       Goal-Directed Coordination      │    │
 │  │   - Target state maintenance         │    │
 │  │   - Strategy adaptation              │    │
 │  │   - Multi-pathway exploration        │    │
@@ -71,19 +71,19 @@ Agents have limited energy for actions, creating realistic constraints that prev
 
 - Pursues target coordination states through adaptive strategies
 - Kuramoto model provides the dynamics, goal-directedness provides the adaptation
-- See [emerge documentation](emerge/pattern.md)
+- See [emerge documentation](emerge/primitive.md)
 
 **navigate/** - Goal-directed resource allocation (coming soon)
 
 - Navigates resource configuration spaces to reach allocation goals
 - Discovers alternative paths when constraints block direct routes
-- See [navigate documentation](navigate/pattern.md)
+- See [navigate documentation](navigate/primitive.md)
 
 **glue/** - Goal-directed collective intelligence (planned)
 
 - Collectively discovers solutions through distributed hypothesis testing
 - Achieves understanding that no individual agent could reach alone
-- See [glue documentation](glue/pattern.md)
+- See [glue documentation](glue/primitive.md)
 
 ### Shared packages
 
@@ -251,6 +251,6 @@ schema := network.SolveSchema(ctx, observations)
 
 - Cross-pattern integration APIs
 - Hardware acceleration (SIMD, GPU)
-- Distributed multi-node deployments
+- Enhanced multi-node network deployments
 - Real-time visualization tools
 

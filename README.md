@@ -1,11 +1,11 @@
 # Bio-adapt
 
-Goal-directed distributed coordination inspired by biological intelligence.
+Goal-directed coordination for concurrent and distributed systems, inspired by biological intelligence.
 
-Drawing from Michael Levin's research on how biological systems reliably achieve goals through multiple pathways, bio-adapt brings these principles to distributed systems—without implementing biological mechanisms directly.
+Drawing from [Dr. Michael Levin](https://grokkingtech.io/people/michael-levin)'s research on how biological systems reliably achieve goals through multiple pathways, bio-adapt brings these principles to software systems—from single-process concurrency to distributed architectures.
 
 **What:** Goal-directedness, adaptive pathfinding, collective intelligence  
-**How:** Distributed algorithms that pursue goals through multiple strategies
+**How:** Decentralized algorithms that pursue goals through multiple strategies
 
 **Why:** Instead of programming HOW (procedures), you program WHAT (goals). Go goroutines figure out the HOW through:
 
@@ -23,7 +23,7 @@ go get github.com/carlisia/bio-adapt
 import "github.com/carlisia/bio-adapt/emerge"
 
 // Create goal-directed swarm that pursues synchronization target
-target := emerge.Pattern{
+target := emerge.State{
     Frequency: 200 * time.Millisecond, // Target coordination interval
     Coherence: 0.9,                    // Goal: 90% synchronization
 }
@@ -36,23 +36,23 @@ swarm.AchieveSynchronization(ctx, target) // Pursues goal through multiple strat
 🎯 **Goal-directed** - Systems maintain target states as invariants, finding alternative paths when defaults fail  
 🔄 **Multiple pathways** - Inspired by how biological systems reach goals despite perturbations  
 ⚡ **Emergent coordination** - Collective intelligence without central control  
-🧬 **Bio-inspired principles** - Computational patterns derived from Levin's research on adaptive biological systems
+🧬 **Bio-inspired principles** - Computational primitives derived from Levin's research on adaptive biological systems
 
-## Patterns
+## Coordination primitives
 
-Bio-adapt provides three complementary patterns for distributed coordination:
+Bio-adapt provides three complementary primitives for system coordination:
 
-### 🧲 [Emerge](docs/emerge/pattern.md) - Goal-directed synchronization
+### 🧲 [Emerge](docs/emerge/primitive.md) - Goal-directed synchronization
 
 **Status:** ✅ Production-ready
 
-Distributed systems that converge on target coordination states through multiple pathways, inspired by how biological systems reliably achieve morphological goals.
+Systems (concurrent or distributed) that converge on target coordination states through multiple pathways, inspired by how biological systems reliably achieve morphological goals.
 
 - Temporal coordination (when agents act)
 - Self-organizing synchronization
 - Adaptive strategy switching
 
-### ⚡ [Navigate](docs/navigate/pattern.md) - Goal-directed resource allocation
+### ⚡ [Navigate](docs/navigate/primitive.md) - Goal-directed resource allocation
 
 **Status:** 🚧 Coming soon
 
@@ -62,22 +62,22 @@ Systems that navigate resource configuration spaces to reach target allocations 
 - Alternative path discovery
 - Constraint-aware navigation
 
-### 🔗 [Glue](docs/glue/pattern.md) - Goal-directed collective intelligence
+### 🔗 [Glue](docs/glue/primitive.md) - Goal-directed collective intelligence
 
 **Status:** 📋 Planned
 
-Collective goal-seeking enables distributed agents to converge on shared understanding through local interactions, achieving insights no individual could reach alone.
+Collective goal-seeking enables independent agents to converge on shared understanding through local interactions, achieving insights no individual could reach alone.
 
 - Schema discovery (how APIs work)
 - Distributed hypothesis testing
 - Emergent consensus
 
-See [patterns overview](docs/patterns.md) for detailed comparison.
+See [primitives overview](docs/primitives.md) for detailed comparison.
 
 ## Use cases
 
 - **API batching** - Goal: minimize API calls; emerge finds optimal coordination timing
-- **Distributed synchronization** - Goal: achieve coherence; multiple strategies ensure convergence
+- **Multi-agent synchronization** - Goal: achieve coherence; multiple strategies ensure convergence
 - **Self-healing systems** - Goal: maintain service levels; alternative paths when failures occur
 - **Load balancing** - Goal: optimal resource usage; navigate finds best allocation paths
 
@@ -87,7 +87,7 @@ Perfect for systems that need to maintain goals despite disruptions, with 100+ a
 
 ### Getting started
 
-- [Patterns overview](docs/patterns.md) - Choose the right pattern
+- [Primitives overview](docs/primitives.md) - Choose the right primitive
 - [Architecture](docs/architecture.md) - System design and principles
 - [Examples](examples/) - Production-ready code samples
 
@@ -97,18 +97,18 @@ Perfect for systems that need to maintain goals despite disruptions, with 100+ a
 - [Deployment](docs/deployment.md) - Production guidelines
 - [API reference](https://pkg.go.dev/github.com/carlisia/bio-adapt) - Complete API docs
 
-### Pattern-specific docs
+### Primitive-specific docs
 
-- [Emerge documentation](docs/emerge/pattern.md) - Goal-directed synchronization
-- [Navigate documentation](docs/navigate/pattern.md) - Goal-directed resource allocation (coming soon)
-- [Glue documentation](docs/glue/pattern.md) - Goal-directed collective intelligence (planned)
-- [Orchestration guide](docs/orchestration.md) - Composing patterns for complex systems
+- [Emerge documentation](docs/emerge/primitive.md) - Goal-directed synchronization
+- [Navigate documentation](docs/navigate/primitive.md) - Goal-directed resource allocation (coming soon)
+- [Glue documentation](docs/glue/primitive.md) - Goal-directed collective intelligence (planned)
+- [Composition guide](docs/composition.md) - Composing primitives for complex systems
 
 ## Examples
 
 🔄 [Basic synchronization](examples/emerge/basic_sync) - Learn the fundamentals  
 📦 [LLM batching](examples/emerge/llm_batching) - Reduce API calls by 80%  
-🌐 [Distributed swarm](examples/emerge/distributed_swarm) - Multi-region coordination  
+🌐 [Network swarm](examples/emerge/distributed_swarm) - Multi-node coordination  
 💪 [Disruption recovery](examples/emerge/disruption_recovery) - Self-healing demos
 
 ## Development
@@ -117,7 +117,7 @@ See [development guide](docs/development.md) for setup, building, testing, and c
 
 ## Performance
 
-The emerge pattern is optimized for production with 1000+ agents:
+The emerge primitive is optimized for production with 1000+ agents:
 
 - **Sub-linear convergence** - Better performance at scale
 - **~2KB memory per agent** - Efficient resource usage
@@ -128,7 +128,7 @@ See [emerge optimization guide](docs/emerge/optimization.md) for details.
 
 ## Research foundation
 
-Inspired by Dr. Michael Levin's research on goal-directedness in biological systems, where cells and tissues achieve target morphologies through multiple pathways despite perturbations.
+Inspired by [Dr. Michael Levin](https://grokkingtech.io/people/michael-levin)'s research on goal-directedness in biological systems, where cells and tissues achieve target morphologies through multiple pathways despite perturbations.
 
 Key concepts adapted:
 
