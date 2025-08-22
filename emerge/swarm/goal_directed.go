@@ -18,7 +18,7 @@ import (
 // GoalDirectedSync achieves synchronization through adaptive strategies.
 type GoalDirectedSync struct {
 	swarm              *Swarm
-	targetPattern      *core.RhythmicPattern
+	targetPattern      *core.TargetPattern
 	completionEngine   *completion.Engine
 	convergenceMonitor *convergence.Monitor
 	strategies         []core.SyncStrategy
@@ -77,7 +77,7 @@ func NewGoalDirectedSyncWithConfig(s *Swarm, cfg *Config) *GoalDirectedSync {
 }
 
 // AchieveSynchronization runs goal-directed synchronization loop.
-func (gds *GoalDirectedSync) AchieveSynchronization(ctx context.Context, target *core.RhythmicPattern) error {
+func (gds *GoalDirectedSync) AchieveSynchronization(ctx context.Context, target *core.TargetPattern) error {
 	gds.targetPattern = target
 	gds.convergenceMonitor.SetTarget(target)
 
@@ -145,10 +145,10 @@ func (gds *GoalDirectedSync) AchieveSynchronization(ctx context.Context, target 
 }
 
 // measureSystemPattern calculates the current system-wide pattern.
-func (gds *GoalDirectedSync) measureSystemPattern() *core.RhythmicPattern {
+func (gds *GoalDirectedSync) measureSystemPattern() *core.TargetPattern {
 	agents := gds.swarm.Agents()
 	if len(agents) == 0 {
-		return &core.RhythmicPattern{}
+		return &core.TargetPattern{}
 	}
 
 	// Calculate average phase using circular mean
@@ -169,7 +169,7 @@ func (gds *GoalDirectedSync) measureSystemPattern() *core.RhythmicPattern {
 	avgFreq := totalFreq / time.Duration(count)
 	coherence := gds.swarm.MeasureCoherence()
 
-	return &core.RhythmicPattern{
+	return &core.TargetPattern{
 		Phase:     avgPhase,
 		Frequency: avgFreq,
 		Amplitude: 1.0,
@@ -179,7 +179,7 @@ func (gds *GoalDirectedSync) measureSystemPattern() *core.RhythmicPattern {
 }
 
 // isPatternAchieved checks if we've reached the target.
-func (gds *GoalDirectedSync) isPatternAchieved(current *core.RhythmicPattern) bool {
+func (gds *GoalDirectedSync) isPatternAchieved(current *core.TargetPattern) bool {
 	distance := core.PatternDistance(current, gds.targetPattern)
 
 	// Adaptive tolerance based on swarm size and theoretical limits
@@ -216,7 +216,7 @@ func (gds *GoalDirectedSync) isPatternAchieved(current *core.RhythmicPattern) bo
 	return coherenceAchieved && distanceAchieved
 }
 
-// applyPatternCompletion applies the completed pattern to agents.
+// applyPatternCompletion applies the completed coordination state to agents.
 //
 //nolint:gocyclo // Complex pattern completion logic requires multiple decision branches
 func (gds *GoalDirectedSync) applyPatternCompletion(completedPattern *completion.CompletedPattern) {

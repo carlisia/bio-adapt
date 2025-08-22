@@ -10,12 +10,12 @@ import (
 	"github.com/carlisia/bio-adapt/emerge/core"
 )
 
-// Monitor tracks convergence toward target pattern.
+// Monitor tracks convergence toward target coordination state.
 type Monitor struct {
 	history    []Sample
 	historyMu  sync.RWMutex
 	windowSize int
-	target     *core.RhythmicPattern
+	target     *core.TargetPattern
 	converging atomic.Bool
 	stuckCount atomic.Int32
 }
@@ -40,13 +40,13 @@ func NewMonitor(windowSize int) *Monitor {
 	}
 }
 
-// SetTarget sets the target pattern to converge toward.
-func (m *Monitor) SetTarget(target *core.RhythmicPattern) {
+// SetTarget sets the target coordination state to converge toward.
+func (m *Monitor) SetTarget(target *core.TargetPattern) {
 	m.target = target
 }
 
 // RecordSample records a new convergence sample.
-func (m *Monitor) RecordSample(current *core.RhythmicPattern, coherence float64) {
+func (m *Monitor) RecordSample(current *core.TargetPattern, coherence float64) {
 	m.historyMu.Lock()
 	defer m.historyMu.Unlock()
 

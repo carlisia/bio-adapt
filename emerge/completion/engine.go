@@ -1,4 +1,4 @@
-// Package completion provides pattern completion and recognition for emergent systems.
+// Package completion provides coordination state completion and recognition for emergent systems.
 package completion
 
 import (
@@ -9,23 +9,23 @@ import (
 	"github.com/carlisia/bio-adapt/emerge/core"
 )
 
-// Engine fills in missing parts of synchronization patterns.
+// Engine fills in missing parts of coordination states for synchronization.
 type Engine struct {
-	templates      map[string]*core.RhythmicPattern
+	templates      map[string]*core.TargetPattern
 	templatesMu    sync.RWMutex
 	matchThreshold float64
 }
 
-// NewEngine creates a pattern completion engine.
+// NewEngine creates a coordination state completion engine.
 func NewEngine() *Engine {
 	return &Engine{
-		templates:      make(map[string]*core.RhythmicPattern),
+		templates:      make(map[string]*core.TargetPattern),
 		matchThreshold: 0.7,
 	}
 }
 
-// CompletePattern fills gaps in the current pattern.
-func (e *Engine) CompletePattern(current *core.RhythmicPattern, gaps []core.PatternGap) *CompletedPattern {
+// CompletePattern fills gaps in the current coordination state.
+func (e *Engine) CompletePattern(current *core.TargetPattern, gaps []core.PatternGap) *CompletedPattern {
 	// Find best matching template
 	template := e.findBestTemplate(current)
 
@@ -65,10 +65,10 @@ func (e *Engine) CompletePattern(current *core.RhythmicPattern, gaps []core.Patt
 	return completed
 }
 
-// CompletedPattern represents a pattern with gaps filled.
+// CompletedPattern represents a coordination state with gaps filled.
 type CompletedPattern struct {
-	Base     *core.RhythmicPattern
-	Template *core.RhythmicPattern
+	Base     *core.TargetPattern
+	Template *core.TargetPattern
 	Filled   map[string]interface{}
 }
 
@@ -88,12 +88,12 @@ func (cp *CompletedPattern) GetFrequencyAdjustment() time.Duration {
 	return 0
 }
 
-// findBestTemplate finds the closest matching pattern template.
-func (e *Engine) findBestTemplate(current *core.RhythmicPattern) *core.RhythmicPattern {
+// findBestTemplate finds the closest matching coordination template.
+func (e *Engine) findBestTemplate(current *core.TargetPattern) *core.TargetPattern {
 	e.templatesMu.RLock()
 	defer e.templatesMu.RUnlock()
 
-	var bestTemplate *core.RhythmicPattern
+	var bestTemplate *core.TargetPattern
 	bestDistance := math.MaxFloat64
 
 	for _, template := range e.templates {
@@ -107,8 +107,8 @@ func (e *Engine) findBestTemplate(current *core.RhythmicPattern) *core.RhythmicP
 	return bestTemplate
 }
 
-// interpolatePattern creates interpolated values toward target.
-func (*Engine) interpolatePattern(current *core.RhythmicPattern, gaps []core.PatternGap) *CompletedPattern {
+// interpolatePattern creates interpolated values toward target coordination state.
+func (*Engine) interpolatePattern(current *core.TargetPattern, gaps []core.PatternGap) *CompletedPattern {
 	completed := &CompletedPattern{
 		Base:   current,
 		Filled: make(map[string]interface{}),
@@ -176,17 +176,17 @@ func (*Engine) morphWaveform(current, template []float64, weight float64) []floa
 	return morphed
 }
 
-// AddTemplate adds a learned pattern template.
-func (e *Engine) AddTemplate(name string, pattern *core.RhythmicPattern) {
+// AddTemplate adds a learned coordination template.
+func (e *Engine) AddTemplate(name string, pattern *core.TargetPattern) {
 	e.templatesMu.Lock()
 	defer e.templatesMu.Unlock()
 	e.templates[name] = pattern
 }
 
-// LoadDefaultTemplates loads standard synchronization patterns.
+// LoadDefaultTemplates loads standard synchronization templates.
 func (e *Engine) LoadDefaultTemplates() {
 	// Perfect sync template
-	e.AddTemplate("perfect_sync", &core.RhythmicPattern{
+	e.AddTemplate("perfect_sync", &core.TargetPattern{
 		Phase:     0,
 		Frequency: 250 * time.Millisecond,
 		Amplitude: 1.0,
@@ -196,7 +196,7 @@ func (e *Engine) LoadDefaultTemplates() {
 	})
 
 	// Partial sync template
-	e.AddTemplate("partial_sync", &core.RhythmicPattern{
+	e.AddTemplate("partial_sync", &core.TargetPattern{
 		Phase:     0,
 		Frequency: 250 * time.Millisecond,
 		Amplitude: 0.8,
@@ -206,7 +206,7 @@ func (e *Engine) LoadDefaultTemplates() {
 	})
 
 	// Recovery template (for disrupted systems)
-	e.AddTemplate("recovery", &core.RhythmicPattern{
+	e.AddTemplate("recovery", &core.TargetPattern{
 		Phase:     0,
 		Frequency: 200 * time.Millisecond,
 		Amplitude: 0.6,

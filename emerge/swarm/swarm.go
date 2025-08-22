@@ -48,6 +48,7 @@ type Swarm struct {
 
 	// Goal-directed synchronization
 	goalDirectedSync *GoalDirectedSync
+	goalConfig       *Config // Configuration for goal-directed sync
 
 	// Performance optimization for large swarms
 	workerPool *WorkerPool // Goroutine pool for concurrent updates
@@ -149,7 +150,11 @@ func New(size int, goal core.State, opts ...Option) (*Swarm, error) {
 	}
 
 	// Initialize goal-directed synchronization
-	s.goalDirectedSync = NewGoalDirectedSync(s)
+	if s.goalConfig != nil {
+		s.goalDirectedSync = NewGoalDirectedSyncWithConfig(s, s.goalConfig)
+	} else {
+		s.goalDirectedSync = NewGoalDirectedSync(s)
+	}
 
 	return s, nil
 }
@@ -189,7 +194,11 @@ func NewSwarmFromConfig(size int, goal core.State, cfg config.Swarm) (*Swarm, er
 	s.establishConnections()
 
 	// Initialize goal-directed synchronization
-	s.goalDirectedSync = NewGoalDirectedSync(s)
+	if s.goalConfig != nil {
+		s.goalDirectedSync = NewGoalDirectedSyncWithConfig(s, s.goalConfig)
+	} else {
+		s.goalDirectedSync = NewGoalDirectedSync(s)
+	}
 
 	return s, nil
 }
@@ -249,6 +258,17 @@ func WithConfig(cfg config.Swarm) Option {
 		s.config = cfg
 		// Update basin and convergence with new config
 		s.basin = emerge.NewAttractorBasin(s.goalState, cfg.BasinStrength, cfg.BasinWidth)
+		return nil
+	}
+}
+
+// WithGoalConfig sets a custom configuration for goal-directed synchronization.
+func WithGoalConfig(cfg *Config) Option {
+	return func(s *Swarm) error {
+		if err := cfg.Validate(); err != nil {
+			return fmt.Errorf("goal config validation failed: %w", err)
+		}
+		s.goalConfig = cfg
 		return nil
 	}
 }
@@ -401,7 +421,7 @@ func (s *Swarm) ensureMinimumConnectivity(a *agent.Agent, agents []*agent.Agent,
 // Uses adaptive strategies and convergence dynamics to ensure goal achievement.
 func (s *Swarm) Run(ctx context.Context) error {
 	// Create target pattern from goal state
-	targetPattern := &core.RhythmicPattern{
+	targetPattern := &core.TargetPattern{
 		Phase:     s.goalState.Phase,
 		Frequency: s.goalState.Frequency,
 		Coherence: s.goalState.Coherence,
