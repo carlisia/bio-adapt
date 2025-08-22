@@ -9,12 +9,11 @@ vars:
   LDFLAGS: -s -w
 
 tasks:
-  # Default task
+  # Default task - shows available tasks
   default:
-    desc: Build and run the demo
+    desc: Show available tasks
     cmds:
-      - task: build
-      - task: run
+      - task --list
 
   # Build the main binary
   build:
@@ -116,7 +115,7 @@ tasks:
   test:e2e:
     desc: Run end-to-end integration tests
     cmds:
-      - go test -v -tags=e2e -timeout=5m ./e2e
+      - go test -v -tags=e2e -timeout=5m -count=1 ./e2e
 
   # Run E2E tests with verbose output
   test:e2e:verbose:
