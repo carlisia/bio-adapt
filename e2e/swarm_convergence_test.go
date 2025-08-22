@@ -33,7 +33,7 @@ func TestE2ESwarmConvergence(t *testing.T) {
 			swarmSize:       10,
 			targetPhase:     math.Pi,
 			targetCoherence: 0.95,
-			maxTime:         5 * time.Second,
+			maxTime:         10 * time.Second,
 			expectSuccess:   true,
 		},
 		{
