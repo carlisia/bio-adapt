@@ -1,154 +1,148 @@
-# Bio-Adapt
+# Bio-adapt
 
-**Bio-inspired adaptive systems for Go** - Self-organizing coordination patterns that achieve goals despite disruptions.
+Goal-directed distributed coordination inspired by biological intelligence.
 
-## Overview
+Drawing from Michael Levin's research on how biological systems reliably achieve goals through multiple pathways, bio-adapt brings these principles to distributed systems—without implementing biological mechanisms directly.
 
-Bio-Adapt brings biological intelligence principles to distributed systems. Just as cells self-organize to heal wounds or regenerate limbs, your systems can adaptively coordinate to maintain desired states even when disrupted.
+**What:** Goal-directedness, adaptive pathfinding, collective intelligence  
+**How:** Distributed algorithms that pursue goals through multiple strategies
 
-Inspired by Dr. Michael Levin's bioelectric research showing how cellular networks achieve reliable outcomes through goal-directed behavior rather than fixed instruction sequences.
+**Why:** Instead of programming HOW (procedures), you program WHAT (goals). Go goroutines figure out the HOW through:
 
-## Key Benefits
+- Emerge: Finding when to coordinate (temporal synchronization)
+- Navigate: Finding what resources to use (resource allocation)
+- Glue: Finding how things work (collective understanding)
 
-🎯 **Goal-Directed** - Systems pursue target states, not rigid procedures
-
-🔄 **Self-Healing** - Automatic recovery from disruptions
-
-⚡ **Emergent Coordination** - No central orchestrator needed
-
-🧬 **Biologically Inspired** - Proven patterns from nature
-
-## Core Patterns
-
-### 🧲 Attractor Basin Synchronization
-
-**Package:** `emerge`
-
-**Use Case:** Coordinate timing across distributed workloads
-
-**Example:** Batch LLM API calls naturally without central control
-
-### ⚡ Morphospace Navigation
-
-**Package:** `bioelectric` _(coming soon)_
-
-**Use Case:** Dynamic resource allocation around bottlenecks
-
-**Example:** Reroute processing when nodes fail
-
-### 🔗 Cognitive Glue Networks
-
-**Package:** `glue` _(coming soon)_
-
-**Use Case:** Emergent consensus through collective problem-solving
-
-**Example:** Distributed schema evolution
-
-## When to Use Bio-Adapt
-
-✅ **Perfect for:**
-
-- Systems with 100+ concurrent workloads needing coordination
-- API rate limiting and request batching
-- Self-healing distributed systems
-- Workload synchronization without central control
-- Natural load balancing across resources
-
-❌ **Not ideal for:**
-
-- Systems requiring strict deterministic guarantees
-- Simple request-response patterns
-- Tightly coupled synchronous operations
-
-## Quick Start
+## Quick start
 
 ```bash
-# Clone the repository
-git clone https://github.com/carlisia/bio-adapt
-cd bio-adapt
-
-# Build and run examples
-task build:examples
-task run:example -- llm_batching
+go get github.com/carlisia/bio-adapt
 ```
 
 ```go
-// Synchronize workloads naturally
 import "github.com/carlisia/bio-adapt/emerge"
 
-// Define target state
-goal := emerge.State{
-    Phase:     0,                      // Alignment point
-    Frequency: 200 * time.Millisecond, // Batch window
-    Coherence: 0.9,                    // 90% sync target
+// Create goal-directed swarm that pursues synchronization target
+target := emerge.Pattern{
+    Frequency: 200 * time.Millisecond, // Target coordination interval
+    Coherence: 0.9,                    // Goal: 90% synchronization
 }
-
-// Create self-organizing swarm
-swarm, _ := emerge.NewSwarm(20, goal)
-swarm.Run(ctx)
+swarm, _ := emerge.NewSwarm(20)
+swarm.AchieveSynchronization(ctx, target) // Pursues goal through multiple strategies
 ```
 
-## Examples
+## Features
 
-🔄 **[Basic Synchronization](examples/emerge/basic_sync)** - Learn the fundamentals
+🎯 **Goal-directed** - Systems maintain target states as invariants, finding alternative paths when defaults fail  
+🔄 **Multiple pathways** - Inspired by how biological systems reach goals despite perturbations  
+⚡ **Emergent coordination** - Collective intelligence without central control  
+🧬 **Bio-inspired principles** - Computational patterns derived from Levin's research on adaptive biological systems
 
-📦 **[LLM Batching](examples/emerge/llm_batching)** - Reduce API calls by 80%
+## Patterns
 
-🌐 **[Distributed Swarm](examples/emerge/distributed_swarm)** - Multi-region coordination
+Bio-adapt provides three complementary patterns for distributed coordination:
 
-💪 **[Disruption Recovery](examples/emerge/disruption_recovery)** - Self-healing demos
+### 🧲 [Emerge](docs/emerge/pattern.md) - Goal-directed synchronization
 
-See [examples/](examples/) for all available examples.
+**Status:** ✅ Production-ready
+
+Distributed systems that converge on target coordination states through multiple pathways, inspired by how biological systems reliably achieve morphological goals.
+
+- Temporal coordination (when agents act)
+- Self-organizing synchronization
+- Adaptive strategy switching
+
+### ⚡ [Navigate](docs/navigate/pattern.md) - Goal-directed resource allocation
+
+**Status:** 🚧 Coming soon
+
+Systems that navigate resource configuration spaces to reach target allocations via multiple paths, adapting when direct routes are blocked.
+
+- Dynamic resource allocation (what resources to use)
+- Alternative path discovery
+- Constraint-aware navigation
+
+### 🔗 [Glue](docs/glue/pattern.md) - Goal-directed collective intelligence
+
+**Status:** 📋 Planned
+
+Collective goal-seeking enables distributed agents to converge on shared understanding through local interactions, achieving insights no individual could reach alone.
+
+- Schema discovery (how APIs work)
+- Distributed hypothesis testing
+- Emergent consensus
+
+See [patterns overview](docs/patterns.md) for detailed comparison.
+
+## Use cases
+
+- **API batching** - Goal: minimize API calls; emerge finds optimal coordination timing
+- **Distributed synchronization** - Goal: achieve coherence; multiple strategies ensure convergence
+- **Self-healing systems** - Goal: maintain service levels; alternative paths when failures occur
+- **Load balancing** - Goal: optimal resource usage; navigate finds best allocation paths
+
+Perfect for systems that need to maintain goals despite disruptions, with 100+ agents requiring coordination.
 
 ## Documentation
 
-- [Emerge Package Guide](emerge/README.md) - Deep dive into synchronization
-- [Examples Overview](examples/emerge/README.md) - Hands-on tutorials
-- [API Reference](https://pkg.go.dev/github.com/carlisia/bio-adapt) - Complete API docs
+### Getting started
+
+- [Patterns overview](docs/patterns.md) - Choose the right pattern
+- [Architecture](docs/architecture.md) - System design and principles
+- [Examples](examples/) - Production-ready code samples
+
+### Guides
+
+- [Development](docs/development.md) - Build, test, contribute
+- [Deployment](docs/deployment.md) - Production guidelines
+- [API reference](https://pkg.go.dev/github.com/carlisia/bio-adapt) - Complete API docs
+
+### Pattern-specific docs
+
+- [Emerge documentation](docs/emerge/pattern.md) - Goal-directed synchronization
+- [Navigate documentation](docs/navigate/pattern.md) - Goal-directed resource allocation (coming soon)
+- [Glue documentation](docs/glue/pattern.md) - Goal-directed collective intelligence (planned)
+- [Orchestration guide](docs/orchestration.md) - Composing patterns for complex systems
+
+## Examples
+
+🔄 [Basic synchronization](examples/emerge/basic_sync) - Learn the fundamentals  
+📦 [LLM batching](examples/emerge/llm_batching) - Reduce API calls by 80%  
+🌐 [Distributed swarm](examples/emerge/distributed_swarm) - Multi-region coordination  
+💪 [Disruption recovery](examples/emerge/disruption_recovery) - Self-healing demos
 
 ## Development
 
-```bash
-# Build everything
-task build:all
+See [development guide](docs/development.md) for setup, building, testing, and contributing.
 
-# Run tests
-task test
+## Performance
 
-# Run linter
-task lint
+The emerge pattern is optimized for production with 1000+ agents:
 
-# Format code
-task fmt
+- **Sub-linear convergence** - Better performance at scale
+- **~2KB memory per agent** - Efficient resource usage
+- **<1ms convergence latency** - Fast coordination
+- **Automatic optimization** - Adapts storage strategy by swarm size
 
-# Check for vulnerabilities
-task vuln
+See [emerge optimization guide](docs/emerge/optimization.md) for details.
 
-# Development mode (auto-rebuild)
-task dev  # requires entr
+## Research foundation
 
-# Clean build artifacts
-task clean
-```
+Inspired by Dr. Michael Levin's research on goal-directedness in biological systems, where cells and tissues achieve target morphologies through multiple pathways despite perturbations.
 
-## Contributing
+Key concepts adapted:
 
-Contributions welcome! Areas of interest:
+- **Goal-directedness** - Systems that maintain target states as invariants
+- **Multiple pathways** - Alternative routes to achieve the same outcome
+- **Collective intelligence** - Problem-solving that emerges from local interactions
+- **Adaptive navigation** - Finding new solutions when defaults are blocked
 
-- Additional synchronization strategies
-- Performance optimizations
-- New bio-inspired patterns
-- Real-world use cases
+Implementation foundations:
 
-## Research Foundation
-
-Based on groundbreaking research:
-
-- Dr. Michael Levin's work on bioelectric networks and regeneration
-- Kuramoto model of coupled oscillators
-- Swarm intelligence and emergent behavior
-- Dynamical systems and attractor theory
+- Kuramoto model for synchronization dynamics (emerge)
+- Pathfinding algorithms for resource navigation (navigate)
+- Distributed consensus protocols for collective intelligence (glue)
 
 ## License
 
-MIT - See [LICENSE](LICENSE) file
+MIT - See [LICENSE](LICENSE)
