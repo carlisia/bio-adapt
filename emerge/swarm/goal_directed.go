@@ -243,6 +243,19 @@ func (gds *GoalDirectedSync) applyPatternCompletion(completedPattern *completion
 	// Calculate how far we are from target
 	distanceToTarget := targetCoherence - coherence
 
+	// Special case: Low coherence target (for load distribution)
+	if targetCoherence < 0.4 && coherence > targetCoherence {
+		// We want to maintain distributed phases, not synchronize
+		// Apply randomization to prevent synchronization
+		for _, a := range agents {
+			// Add random perturbation to maintain distribution
+			currentPhase := a.Phase()
+			perturbation := (random.Float64() - 0.5) * math.Pi
+			a.SetPhase(currentPhase + perturbation*0.3)
+		}
+		return // Skip normal synchronization logic
+	}
+
 	// Special handling for high coherence but poor phase convergence
 	// This occurs when agents are synchronized but at different phases
 	if coherence >= gds.config.Thresholds.HighCoherence && phaseVariance > gds.config.Thresholds.PhaseVariance {

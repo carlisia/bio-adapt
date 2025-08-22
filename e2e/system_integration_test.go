@@ -394,7 +394,7 @@ func testRealWorldScenarios(t *testing.T) {
 		goal := core.State{
 			Phase:     0, // Balanced state
 			Frequency: 50 * time.Millisecond,
-			Coherence: 0.90,
+			Coherence: 0.30, // Low coherence for distributed load
 		}
 
 		// Use distribute load configuration for better load balancing
