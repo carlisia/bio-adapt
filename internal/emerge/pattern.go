@@ -18,12 +18,12 @@ type TargetPattern struct {
 	Confidence  float64         // Confidence in pattern detection [0, 1]
 }
 
-// NewRhythmicPattern creates a new rhythmic pattern.
-func NewRhythmicPattern(phases []float64, frequencies []time.Duration) *RhythmicPattern {
+// NewTargetPattern creates a new target pattern.
+func NewTargetPattern(phases []float64, frequencies []time.Duration) *TargetPattern {
 	amplitude := calculateAmplitude(phases)
 	period := calculatePeriod(frequencies)
 
-	return &RhythmicPattern{
+	return &TargetPattern{
 		Phases:      phases,
 		Frequencies: frequencies,
 		Amplitude:   amplitude,
@@ -42,7 +42,7 @@ type PatternGap struct {
 }
 
 // Detect finds gaps in the pattern that need completion.
-func (p *RhythmicPattern) Detect() []PatternGap {
+func (p *TargetPattern) Detect() []PatternGap {
 	gaps := make([]PatternGap, 0)
 
 	// Simple gap detection: look for sudden phase jumps
@@ -64,7 +64,7 @@ func (p *RhythmicPattern) Detect() []PatternGap {
 }
 
 // Complete fills in missing parts of a pattern.
-func (p *RhythmicPattern) Complete(gap PatternGap) []float64 {
+func (p *TargetPattern) Complete(gap PatternGap) []float64 {
 	if gap.StartIdx < 0 || gap.EndIdx >= len(p.Phases) || gap.StartIdx >= gap.EndIdx {
 		return nil
 	}
@@ -91,7 +91,7 @@ func (p *RhythmicPattern) Complete(gap PatternGap) []float64 {
 
 // Similarity calculates how similar two patterns are.
 // Returns a value between 0 (completely different) and 1 (identical).
-func (p *RhythmicPattern) Similarity(other *RhythmicPattern) float64 {
+func (p *TargetPattern) Similarity(other *TargetPattern) float64 {
 	if other == nil || len(p.Phases) == 0 || len(other.Phases) == 0 {
 		return 0
 	}
@@ -132,13 +132,13 @@ func (p *RhythmicPattern) Similarity(other *RhythmicPattern) float64 {
 // These are like "morphogenetic templates" that guide development.
 type PatternTemplate struct {
 	Name        string
-	BasePattern RhythmicPattern
-	Variations  []RhythmicPattern // Acceptable variations
-	Tolerance   float64           // How much deviation is acceptable
+	BasePattern TargetPattern
+	Variations  []TargetPattern // Acceptable variations
+	Tolerance   float64         // How much deviation is acceptable
 }
 
 // Matches checks if a pattern matches this template.
-func (t *PatternTemplate) Matches(pattern *RhythmicPattern) bool {
+func (t *PatternTemplate) Matches(pattern *TargetPattern) bool {
 	// Check against base pattern
 	similarity := t.BasePattern.Similarity(pattern)
 	if similarity >= (1.0 - t.Tolerance) {
@@ -173,7 +173,7 @@ func (l *PatternLibrary) Add(name string, template *PatternTemplate) {
 }
 
 // Identify attempts to identify which template a pattern matches.
-func (l *PatternLibrary) Identify(pattern *RhythmicPattern) (string, float64) {
+func (l *PatternLibrary) Identify(pattern *TargetPattern) (string, float64) {
 	var bestMatch string
 	var bestSimilarity float64
 

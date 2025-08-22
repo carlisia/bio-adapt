@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// RhythmicPattern represents a target synchronization state for distributed coordination.
-type RhythmicPattern struct {
+// TargetPattern represents a target synchronization state for distributed coordination.
+type TargetPattern struct {
 	Phase     float64
 	Frequency time.Duration
 	Amplitude float64
@@ -24,7 +24,7 @@ type PatternGap struct {
 }
 
 // PatternDistance calculates how far current pattern is from target.
-func PatternDistance(current, target *RhythmicPattern) float64 {
+func PatternDistance(current, target *TargetPattern) float64 {
 	if current == nil || target == nil {
 		return math.MaxFloat64
 	}
@@ -48,7 +48,7 @@ func PatternDistance(current, target *RhythmicPattern) float64 {
 }
 
 // IdentifyGaps finds what's missing from current pattern.
-func IdentifyGaps(current, target *RhythmicPattern) []PatternGap {
+func IdentifyGaps(current, target *TargetPattern) []PatternGap {
 	var gaps []PatternGap
 
 	// Phase gap

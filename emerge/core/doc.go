@@ -1,7 +1,7 @@
 // Package core implements distributed agent synchronization through
-// goal-directed coordination. Unlike traditional consensus algorithms, this pattern
+// goal-directed coordination. Unlike traditional consensus algorithms, this approach
 // achieves synchronization through autonomous agents with local goals that contribute
-// to emergent global behavior - no central orchestrator required.
+// to emergent global behavior - no central coordinator required.
 //
 // Key system properties:
 //   - Agents have genuine autonomy and can refuse adjustments
