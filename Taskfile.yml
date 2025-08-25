@@ -3,8 +3,6 @@
 version: "3"
 
 vars:
-  BINARY: bio-adapt
-  BIN_DIR: ./bin
   GO_FLAGS: -v
   LDFLAGS: -s -w
 
@@ -15,81 +13,90 @@ tasks:
     cmds:
       - task --list
 
-  # Build the main binary
+  # Build everything
   build:
-    desc: Build the bio-adapt binary
+    desc: Build all simulations
     cmds:
-      - mkdir -p {{.BIN_DIR}}
-      - go build {{.GO_FLAGS}} -ldflags="{{.LDFLAGS}}" -o {{.BIN_DIR}}/{{.BINARY}} ./examples/emerge/basic_sync
-    sources:
-      - ./**/*.go
-      - go.mod
-      - go.sum
-    generates:
-      - "{{.BIN_DIR}}/{{.BINARY}}"
+      - task: build:simulations
 
-  # Build all binaries (main + examples)
-  build:all:
-    desc: Build all binaries including examples
+  # Build simulation binaries
+  build:simulations:
+    desc: Build all simulation binaries
     cmds:
-      - task: build
-      - task: build:examples
-
-  # Build example binaries
-  build:examples:
-    desc: Build all example binaries
-    cmds:
-      - mkdir -p {{.BIN_DIR}}/examples
       - |
-        for dir in examples/emerge/*/; do
-          if [ -f "$dir/main.go" ]; then
+        echo "Building simulations..."
+        # Build emerge simulation
+        if [ -f "simulations/emerge/main.go" ]; then
+          echo "  - Building emerge simulation"
+          mkdir -p simulations/emerge/bin
+          go build {{.GO_FLAGS}} -ldflags="{{.LDFLAGS}}" -o simulations/emerge/bin/emerge ./simulations/emerge
+        fi
+        # Look for other simulations (future-proofing)
+        for dir in simulations/*/; do
+          if [ -f "$dir/main.go" ] && [ "$(basename $dir)" != "emerge" ]; then
             name=$(basename "$dir")
-            echo "Building example: $name"
-            go build {{.GO_FLAGS}} -ldflags="{{.LDFLAGS}}" -o {{.BIN_DIR}}/examples/$name ./$dir
+            echo "  - Building $name simulation"
+            mkdir -p "$dir/bin"
+            go build {{.GO_FLAGS}} -ldflags="{{.LDFLAGS}}" -o "$dir/bin/$name" "./$dir"
           fi
         done
     sources:
-      - examples/**/*.go
+      - simulations/**/*.go
       - emerge/**/*.go
-      - internal/**/*.go
       - go.mod
       - go.sum
     generates:
-      - "{{.BIN_DIR}}/examples/*"
+      - "simulations/*/bin/*"
 
-  # Run the main demo
-  run:
-    desc: Run the bio-adapt demo
-    deps: [build]
+  # Alias for backward compatibility
+  build:examples:
+    desc: Build all simulation binaries (alias for build:simulations)
     cmds:
-      - "{{.BIN_DIR}}/{{.BINARY}}"
+      - task: build:simulations
 
-  # Run a specific example
-  run:example:
-    desc: Run a specific example (use task run:example -- name)
-    deps: [build:examples]
+
+  # Run a simulation
+  run:sim:
+    desc: Run a simulation (use 'task run:sim -- emerge')
+    deps: [build:simulations]
     cmds:
       - |
         if [ -z "{{.CLI_ARGS}}" ]; then
-          echo "Available examples:"
-          ls -1 {{.BIN_DIR}}/examples/ 2>/dev/null || echo "No examples built yet"
-          echo ""
-          echo "Usage: task run:example -- basic_sync"
-          echo "   or: task run:example -- llm_batching"
+          echo "Usage: task run:sim -- emerge"
+          echo "   or: task run:sim -- emerge -scale tiny"
+          echo "   or: task run:sim -- emerge -list"
         else
-          {{.BIN_DIR}}/examples/{{.CLI_ARGS}}
+          # Extract the first argument as the simulation name
+          sim_name=$(echo "{{.CLI_ARGS}}" | cut -d' ' -f1)
+          sim_args=$(echo "{{.CLI_ARGS}}" | cut -d' ' -f2-)
+          
+          if [ "$sim_name" = "emerge" ]; then
+            if [ "$sim_args" = "$sim_name" ]; then
+              # No additional arguments
+              simulations/emerge/bin/emerge
+            else
+              # Pass additional arguments
+              simulations/emerge/bin/emerge $sim_args
+            fi
+          else
+            echo "Unknown simulation: $sim_name"
+            echo "Available simulations: emerge"
+          fi
         fi
 
   # List all available binaries
   list:binaries:
-    desc: List all built binaries
+    desc: List all built simulation binaries
     cmds:
       - |
-        echo "Main binary:"
-        ls -lh {{.BIN_DIR}}/{{.BINARY}} 2>/dev/null || echo "  Not built yet"
+        echo "Simulation binaries:"
+        if [ -f "simulations/emerge/bin/emerge" ]; then
+          echo "  emerge: $(ls -lh simulations/emerge/bin/emerge | awk '{print $5}')"
+        fi
         echo ""
-        echo "Example binaries:"
-        ls -lh {{.BIN_DIR}}/examples/ 2>/dev/null || echo "  No examples built yet"
+        echo "Run with: task run:sim -- emerge"
+        echo "   or: task run:sim -- emerge -scale tiny"
+        echo "   or: task run:sim -- emerge -list"
 
   # Run tests
   test:
@@ -110,6 +117,34 @@ tasks:
     desc: Run tests in short mode
     cmds:
       - go test -v -short ./...
+
+  # Run simulation tests
+  test:sim:
+    desc: Run simulation tests
+    cmds:
+      - go test -v -shuffle=on ./simulations/...
+
+  # Run simulation tests with coverage
+  test:sim:coverage:
+    desc: Run simulation tests with coverage report
+    cmds:
+      - go test -v -shuffle=on -coverprofile=coverage-sim.out ./simulations/...
+      - go tool cover -html=coverage-sim.out -o coverage-sim.html
+      - echo "Simulation coverage report generated at coverage-sim.html"
+
+  # Run simulation tests
+  test:sim:
+    desc: Run simulation tests
+    cmds:
+      - go test -v -shuffle=on ./simulations/...
+
+  # Run simulation tests with coverage
+  test:sim:coverage:
+    desc: Run simulation tests with coverage report
+    cmds:
+      - go test -v -shuffle=on -coverprofile=coverage-sim.out ./simulations/...
+      - go tool cover -html=coverage-sim.out -o coverage-sim.html
+      - echo "Simulation coverage report generated at coverage-sim.html"
 
   # Run E2E tests
   test:e2e:
@@ -218,7 +253,7 @@ tasks:
   clean:
     desc: Clean build artifacts
     cmds:
-      - rm -rf {{.BIN_DIR}}
+      - rm -rf simulations/*/bin
       - rm -f coverage.out coverage.html
       - go clean -cache
       - go clean -testcache
@@ -257,27 +292,7 @@ tasks:
       - sh: command -v govulncheck
         msg: "Install with: go install golang.org/x/vuln/cmd/govulncheck@latest"
 
-  # Install binary to GOPATH
-  install:
-    desc: Install binary to GOPATH/bin
-    deps: [build]
-    cmds:
-      - cp {{.BIN_DIR}}/{{.BINARY}} $(go env GOPATH)/bin/
 
-  # Uninstall binary from GOPATH
-  uninstall:
-    desc: Remove binary from GOPATH/bin
-    cmds:
-      - rm -f $(go env GOPATH)/bin/{{.BINARY}}
-
-  # Development mode with file watching
-  dev:
-    desc: Development mode - rebuild on file changes (requires entr)
-    cmds:
-      - find . -name "*.go" | entr -r task run
-    preconditions:
-      - sh: command -v entr
-        msg: "Install entr for file watching"
 
   # Watch and run tests
   watch:test:
