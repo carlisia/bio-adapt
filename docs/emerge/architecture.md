@@ -21,7 +21,7 @@ dθᵢ/dt = ωᵢ + (K/N) × Σⱼ sin(θⱼ - θᵢ)
 Where:
 
 - θᵢ = phase of agent i
-- ωᵢ = natural frequency of agent i  
+- ωᵢ = natural frequency of agent i
 - K = coupling strength (adaptively adjusted)
 - N = number of neighbors
 
@@ -182,12 +182,20 @@ type DecisionContext struct {
 Coordinate microservices to batch API calls:
 
 ```go
-swarm, _ := emerge.New(50, emerge.State{
-    Phase:     0,
-    Frequency: 200*time.Millisecond, // Goal: 5 batches/sec
-    Coherence: 0.9,                  // Goal: 90% synchronization
-})
-swarm.Run(ctx) // Pursues goal adaptively
+import (
+    "github.com/carlisia/bio-adapt/client/emerge"
+    "github.com/carlisia/bio-adapt/emerge/scale"
+)
+
+// Simple: Use client API
+client := emerge.MinimizeAPICalls(scale.Small)  // 50 agents
+client.Start(ctx)  // Pursues goal adaptively
+
+// Advanced: Direct swarm access if needed
+import "github.com/carlisia/bio-adapt/emerge/swarm"
+cfg := swarm.For(goal.MinimizeAPICalls)
+swarm, _ := swarm.New(50, targetState, swarm.WithGoalConfig(cfg))
+swarm.Run(ctx)
 ```
 
 ### Distributed cron
@@ -195,11 +203,9 @@ swarm.Run(ctx) // Pursues goal adaptively
 Prevent thundering herd in scheduled tasks:
 
 ```go
-swarm, _ := emerge.New(100, emerge.State{
-    Phase:     0,
-    Frequency: 1*time.Hour,
-    Coherence: 0.1, // Spread out (anti-sync)
-})
+// Use load distribution for anti-synchronization
+client := emerge.DistributeLoad(scale.Small)  // Automatically targets low coherence
+client.Start(ctx)
 ```
 
 ### Load balancing
@@ -207,11 +213,14 @@ swarm, _ := emerge.New(100, emerge.State{
 Natural load distribution:
 
 ```go
-swarm, _ := emerge.New(200, emerge.State{
-    Phase:     0,
-    Frequency: 250*time.Millisecond,
-    Coherence: 0.5, // Moderate clustering
-})
+// Custom configuration for moderate clustering
+client := emerge.Custom().
+    WithGoal(goal.DistributeLoad).
+    WithScale(scale.Medium).  // 200 agents
+    WithTargetCoherence(0.5).  // Moderate clustering
+    Build()
+
+client.Start(ctx)
 ```
 
 ## Fault tolerance
@@ -235,4 +244,3 @@ swarm, _ := emerge.New(200, emerge.State{
 - Energy limits prevent unlimited disruption
 - Stubbornness limits influence spread
 - Statistical convergence despite bad actors
-

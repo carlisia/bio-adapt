@@ -17,52 +17,51 @@ Traditional synchronization requires explicit coordination logic. Emerge lets yo
 ## Quick Start
 
 ```go
-import "github.com/carlisia/bio-adapt/emerge/swarm"
+import (
+    "github.com/carlisia/bio-adapt/client/emerge"
+    "github.com/carlisia/bio-adapt/emerge/scale"
+)
 
-// Simple: Use a preset for your goal
-cfg := swarm.For(goal.MinimizeAPICalls)
-swarm, _ := swarm.New(50, core.State{
-    Phase:     0,
-    Frequency: 200 * time.Millisecond,
-    Coherence: 0.9,  // Target: 90% synchronization
-}, swarm.WithGoalConfig(cfg))
-swarm.Run(ctx)  // Pursues goal through multiple strategies
+// Simple: Use the client API for your goal
+client := emerge.MinimizeAPICalls(scale.Small)  // 50 agents
+err := client.Start(ctx)  // Pursues goal through multiple strategies
+
+// Check synchronization status
+if client.IsConverged() {
+    // Target coherence achieved
+}
 ```
 
 ## Configuration Options
 
-### 1. Presets (Goal-Based) - Recommended
+### 1. Simple Presets - Recommended
 
 ```go
-// Fluent builder API chains goal → trait → scale
-cfg := swarm.For(goal.MinimizeAPICalls).
-    TuneFor(trait.Stability).
-    With(scale.Large)
+// Use predefined configurations for common goals
+client := emerge.MinimizeAPICalls(scale.Large)   // API batching
+client := emerge.DistributeLoad(scale.Medium)    // Load balancing
+```
 
+### 2. Custom Configuration
+
+```go
+// Fine-tune parameters with builder pattern
+client := emerge.Custom().
+    WithGoal(goal.MinimizeAPICalls).
+    WithScale(scale.Large).
+    WithTargetCoherence(0.95).
+    Build()
+```
+
+### 3. Direct Swarm Access (Advanced)
+
+```go
+// For advanced users who need direct swarm control
+import "github.com/carlisia/bio-adapt/emerge/swarm"
+
+cfg := swarm.For(goal.MinimizeAPICalls).With(scale.Large)
 swarm, _ := swarm.New(1000, targetState, swarm.WithGoalConfig(cfg))
-```
-
-### 2. Adaptive (Size-Based)
-
-```go
-// Automatically optimizes for swarm size
-config := config.AutoScaleConfig(1000)
-swarm, _ := swarm.New(1000, targetState, swarm.WithConfig(config))
-```
-
-### 3. Custom (Manual)
-
-```go
-customConfig := config.Swarm{
-    CouplingStrength:      0.8,
-    MinNeighbors:          3,
-    MaxNeighbors:          10,
-    ConnectionProbability: 0.15,
-    UpdateInterval:        50 * time.Millisecond,
-    UseBatchProcessing:    true,    // Enable for large swarms
-    MaxConcurrentAgents:   100,     // Limit concurrent updates
-}
-swarm, _ := swarm.New(500, targetState, swarm.WithConfig(customConfig))
+swarm.Run(ctx)
 ```
 
 ## Core Concepts
@@ -101,13 +100,14 @@ agent.SetMinEnergyThreshold(20)     // Minimum to act
 
 ```go
 // Goal: Minimize API calls through coordinated batching
-config := swarm.For(goal.MinimizeAPICalls)
-s, _ := swarm.New(50, core.State{
-    Phase:     0,
-    Frequency: 200 * time.Millisecond,
-    Coherence: 0.9,  // High synchronization for batching
-}, swarm.WithGoalConfig(config))
-s.Run(ctx)
+client := emerge.MinimizeAPICalls(scale.Small)  // 50 agents
+err := client.Start(ctx)
+
+// Monitor synchronization
+for !client.IsConverged() {
+    time.Sleep(100 * time.Millisecond)
+    fmt.Printf("Coherence: %.2f%%\n", client.Coherence() * 100)
+}
 // Result: 80% reduction in API calls
 ```
 
@@ -115,13 +115,10 @@ s.Run(ctx)
 
 ```go
 // Goal: Spread work evenly (anti-synchronization)
-config := swarm.For(goal.DistributeLoad)
-s, _ := swarm.New(100, core.State{
-    Phase:     0,
-    Frequency: 1 * time.Hour,
-    Coherence: 0.1,  // Low coherence for distribution
-}, swarm.WithGoalConfig(config))
-s.Run(ctx)
+client := emerge.DistributeLoad(scale.Medium)  // 200 agents
+err := client.Start(ctx)
+
+// The system automatically targets low coherence for distribution
 // Result: Even load distribution without central scheduler
 ```
 
@@ -129,13 +126,13 @@ s.Run(ctx)
 
 ```go
 // Goal: Balance connection reuse and distribution
-config := swarm.For(goal.OptimizeConnections)
-s, _ := swarm.New(200, core.State{
-    Phase:     0,
-    Frequency: 50 * time.Millisecond,
-    Coherence: 0.7,  // Moderate clustering
-}, swarm.WithGoalConfig(config))
-s.Run(ctx)
+client := emerge.Custom().
+    WithGoal(goal.MinimizeAPICalls).  // Similar to connection pooling
+    WithScale(scale.Medium).
+    WithTargetCoherence(0.7).  // Moderate clustering
+    Build()
+
+err := client.Start(ctx)
 // Result: Adaptive connection management under varying load
 ```
 
@@ -230,7 +227,7 @@ Please check our [development guide](../../docs/development.md) and open an issu
 
 - [Architecture](architecture.md) - Detailed design documentation
 - [Optimization Guide](optimization.md) - Performance benchmarks and tuning
-- [Examples](../../examples/emerge/) - Complete working examples
+- [Simulations](../../simulations/emerge/) - Interactive demonstrations
 - [API Reference](https://pkg.go.dev/github.com/carlisia/bio-adapt/emerge) - Full API documentation
 - [Main README](../../README.md) - Project overview
 - [Primitives Overview](../primitives.md) - Compare all coordination primitives

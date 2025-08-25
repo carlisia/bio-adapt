@@ -142,11 +142,12 @@ The optimizations are transparent to users:
 
 ```go
 // Automatically uses optimized storage for large swarms
-swarm, err := emerge.NewSwarm(1000, goalState)
+client := emerge.MinimizeAPICalls(scale.Large)  // 1000 agents
 
 // All API methods work identically
-coherence := swarm.MeasureCoherence()
-agent, found := swarm.Agent("agent-500")
+coherence := client.Coherence()
+agents := client.Agents()
+agent := agents["agent-500"]
 
 // The system automatically selects the best storage strategy
 ```

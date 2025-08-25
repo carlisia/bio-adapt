@@ -2,6 +2,12 @@
 
 The bio-adapt library provides three composable packages that solve orthogonal coordination problems. This document describes how to compose them effectively.
 
+> **Current Status**:
+>
+> - ✅ **emerge** - Production-ready for temporal synchronization
+> - 🚧 **navigate** - Coming soon for resource allocation
+> - 📋 **glue** - Planned for schema discovery
+
 ## The Three Primitives
 
 ### Overview
@@ -11,12 +17,12 @@ The bio-adapt library provides three composable packages that solve orthogonal c
 │          bio-adapt library          │
 ├─────────────────────────────────────┤
 │                                     │
-│  ┌─────────┐  ┌─────────┐  ┌──────┐│
-│  │ emerge  │  │navigate │  │ glue ││
-│  └────┬────┘  └────┬────┘  └──┬───┘│
+│  ┌─────────┐  ┌─────────┐  ┌──────┐ │
+│  │ emerge  │  │navigate │  │ glue │ │
+│  └────┬────┘  └────┬────┘  └──┬───┘ │
 │       │            │           │    │
-│    Timing      Resources   Schemas │
-│     (When)      (What)      (How)  │
+│    Timing      Resources   Schemas  │
+│     (When)      (What)      (How)   │
 │                                     │
 └─────────────────────────────────────┘
 ```
@@ -34,38 +40,43 @@ The bio-adapt library provides three composable packages that solve orthogonal c
 Each package can be used independently:
 
 ```go
-// Just synchronization
-import "github.com/carlisia/bio-adapt/emerge"
-swarm := emerge.NewSwarm()
-swarm.Synchronize(ctx, targetState)
+// Just synchronization (currently implemented)
+import "github.com/carlisia/bio-adapt/client/emerge"
+import "github.com/carlisia/bio-adapt/emerge/scale"
 
-// Just resource allocation
+client := emerge.MinimizeAPICalls(scale.Medium)
+err := client.Start(ctx)
+
+// Just resource allocation (coming soon)
 import "github.com/carlisia/bio-adapt/navigate"
 navigator := navigate.NewNavigator()
 navigator.AllocateResources(ctx, resourceTarget)
 
-// Just schema discovery
+// Just schema discovery (planned)
 import "github.com/carlisia/bio-adapt/glue"
 network := glue.NewNetwork()
 schema := network.SolveSchema(ctx, observations)
 ```
 
-## Composition Strategies
+## Composition Patterns
 
-### 1. Synchronized Resource Allocation
+### 1. Synchronized Resource Allocation (Future)
 
 Combine `emerge` + `navigate` for coordinated resource changes:
 
 ```go
 type SynchronizedAllocator struct {
-    Timing    *emerge.Swarm
-    Resources *navigate.Navigator
+    Timing    *emerge.Client      // Using emerge client
+    Resources *navigate.Navigator // Coming soon
 }
 
 func (sa *SynchronizedAllocator) CoordinatedReallocation(ctx context.Context) error {
     // First: Synchronize all agents
-    if err := sa.Timing.Synchronize(ctx, emerge.PerfectSync()); err != nil {
-        return err
+    go sa.Timing.Start(ctx)
+
+    // Wait for convergence
+    for !sa.Timing.IsConverged() {
+        time.Sleep(100 * time.Millisecond)
     }
 
     // Then: Navigate to new resource allocation together
@@ -77,14 +88,14 @@ func (sa *SynchronizedAllocator) CoordinatedReallocation(ctx context.Context) er
 }
 ```
 
-### 2. Adaptive API Integration
+### 2. Adaptive API Integration (Future)
 
 Combine `glue` + `emerge` for zero-downtime API migrations:
 
 ```go
 type AdaptiveIntegrator struct {
-    Discovery *glue.Network
-    Timing    *emerge.Swarm
+    Discovery *glue.Network    // Planned
+    Timing    *emerge.Client   // Using emerge client
 }
 
 func (ai *AdaptiveIntegrator) MigrateAPI(ctx context.Context, observations []Observation) error {
@@ -95,23 +106,20 @@ func (ai *AdaptiveIntegrator) MigrateAPI(ctx context.Context, observations []Obs
     }
 
     // Then: Synchronize switchover to new schema
-    switchState := &emerge.State{
-        Phase:     0,
-        Frequency: 100 * time.Millisecond,
-    }
-    return ai.Timing.Synchronize(ctx, switchState)
+    // All agents switch at the same synchronized moment
+    return ai.Timing.Start(ctx)
 }
 ```
 
-### 3. Full Stack Composition
+### 3. Full Stack Composition (Future)
 
 Combine all three for complete adaptive systems:
 
 ```go
 type AdaptiveSystem struct {
-    Timing    *emerge.Swarm           // When to act
-    Resources *navigate.Navigator     // What resources
-    Contracts *glue.Network          // How to integrate
+    Timing    *emerge.Client         // When to act (implemented)
+    Resources *navigate.Navigator    // What resources (coming soon)
+    Contracts *glue.Network          // How to integrate (planned)
 }
 
 func (as *AdaptiveSystem) HandleAPIChange(ctx context.Context) error {
@@ -131,12 +139,8 @@ func (as *AdaptiveSystem) HandleAPIChange(ctx context.Context) error {
     }
 
     // 4. Synchronize all agents to switch at same time
-    switchState := &emerge.State{
-        Phase:     0,
-        Frequency: 50 * time.Millisecond,
-        Coherence: 0.95,
-    }
-    return as.Timing.Synchronize(ctx, switchState)
+    // The emerge client handles the synchronization details
+    return as.Timing.Start(ctx)
 }
 
 func (as *AdaptiveSystem) calculateResourcesForSchema(schema *glue.Schema) *navigate.ResourceState {
@@ -157,7 +161,7 @@ func (as *AdaptiveSystem) calculateResourcesForSchema(schema *glue.Schema) *navi
 }
 ```
 
-## Composition Strategies
+## Implementation Strategies
 
 ### Sequential Composition
 
@@ -165,14 +169,15 @@ Execute primitives in sequence when order matters:
 
 ```go
 func SequentialComposition(ctx context.Context) error {
-    // 1. First discover what we're dealing with
+    // 1. First discover what we're dealing with (planned)
     schema := glueNetwork.Discover(ctx)
 
-    // 2. Then allocate appropriate resources
+    // 2. Then allocate appropriate resources (coming soon)
     resources := navigator.AllocateForSchema(ctx, schema)
 
-    // 3. Finally synchronize the change
-    return swarm.Synchronize(ctx)
+    // 3. Finally synchronize the change (implemented)
+    client := emerge.MinimizeAPICalls(scale.Medium)
+    return client.Start(ctx)
 }
 ```
 
@@ -198,8 +203,9 @@ func ParallelComposition(ctx context.Context) error {
         return err
     }
 
-    // Then synchronize
-    return swarm.Synchronize(ctx)
+    // Then synchronize using emerge client
+    client := emerge.MinimizeAPICalls(scale.Medium)
+    return client.Start(ctx)
 }
 ```
 
@@ -208,24 +214,23 @@ func ParallelComposition(ctx context.Context) error {
 Use output from one primitive to drive another:
 
 ```go
-func FeedbackComposition(ctx context.Context) {
+func FeedbackComposition(ctx context.Context, client *emerge.Client) {
     for {
         // Measure synchronization quality
-        coherence := swarm.MeasureCoherence()
+        coherence := client.Coherence()
 
-        // Adjust resources based on coherence
+        // Adjust resources based on coherence (coming soon)
         if coherence < 0.8 {
             // Need more CPU for better sync
-            navigator.AdjustResources(ctx, navigate.BoostCPU())
+            // navigator.AdjustResources(ctx, navigate.BoostCPU())
         }
 
-        // Check if schema assumptions still hold
-        if !glueNetwork.ValidateSchema(ctx) {
-            // Schema changed, re-discover
-            newSchema := glueNetwork.Discover(ctx)
-            // Trigger re-synchronization
-            swarm.Reset()
-        }
+        // Check if schema assumptions still hold (planned)
+        // if !glueNetwork.ValidateSchema(ctx) {
+        //     // Schema changed, re-discover
+        //     newSchema := glueNetwork.Discover(ctx)
+        //     // Trigger re-synchronization
+        // }
 
         select {
         case <-ctx.Done():
@@ -253,16 +258,16 @@ Each primitive provides health metrics:
 
 ```go
 type SystemHealth struct {
-    Synchronization float64  // emerge: coherence metric
-    // ResourceUsage   float64  // (not yet implemented) navigate: allocation efficiency
-    // SchemaAccuracy  float64  // (not yet implemented) glue: consensus strength
+    Synchronization float64  // emerge: coherence metric (implemented)
+    ResourceUsage   float64  // navigate: allocation efficiency (coming soon)
+    SchemaAccuracy  float64  // glue: consensus strength (planned)
 }
 
 func (as *AdaptiveSystem) GetHealth() SystemHealth {
     return SystemHealth{
-        Synchronization: as.Timing.MeasureCoherence(),
-        // ResourceUsage:   as.Resources.GetEfficiency(), // (not yet implemented)
-        // SchemaAccuracy:  as.Contracts.GetConsensusStrength(), //(not yet implemented)
+        Synchronization: as.Timing.Coherence(),  // Using emerge client
+        ResourceUsage:   0.0, // Coming soon with navigate
+        SchemaAccuracy:  0.0, // Planned with glue
     }
 }
 ```
@@ -279,7 +284,7 @@ func ResilientComposition(ctx context.Context) error {
         log.Printf("Primary composition failed: %v, trying fallback", err)
 
         // Just synchronize without resource changes
-        return as.Timing.Synchronize(ctx, emerge.DefaultState())
+        return as.Timing.Start(ctx)
     }
     return nil
 }
@@ -290,61 +295,73 @@ func ResilientComposition(ctx context.Context) error {
 Each primitive has its own tuning parameters:
 
 ```go
-// emerge: Focus on timing
-emergeConfig := emerge.Config{
-    SwarmSize:        100,
-    CouplingStrength: 0.5,
-    UpdateInterval:   50 * time.Millisecond,
-}
+// emerge: Focus on timing (implemented)
+client := emerge.Custom().
+    WithGoal(goal.MinimizeAPICalls).
+    WithScale(scale.Large).
+    WithTargetCoherence(0.85).
+    Build()
 
-// navigate: Focus on resource limits
-navigateConfig := navigate.Config{
-    MaxCPU:          0.8,
-    MaxMemory:       0.7,
-    ExplorationRate: 0.2,
-}
+// navigate: Focus on resource limits (coming soon)
+// navigateConfig := navigate.Config{
+//     MaxCPU:          0.8,
+//     MaxMemory:       0.7,
+//     ExplorationRate: 0.2,
+// }
 
-// glue: Focus on consensus
-glueConfig := glue.Config{
-    ConsensusThreshold: 0.6,
-    HypothesisTimeout:  5 * time.Second,
-    MaxAgents:         50,
-}
+// glue: Focus on consensus (planned)
+// glueConfig := glue.Config{
+//     ConsensusThreshold: 0.6,
+//     HypothesisTimeout:  5 * time.Second,
+//     MaxAgents:         50,
+// }
 ```
 
 ## Common Use Cases
 
-### Load Balancer Coordination
+### Currently Available (emerge only)
+
+#### API Batching
 
 ```go
-// emerge: Synchronize request distribution timing
-// navigate: Allocate backend resources
-// glue: Discover backend API changes
+// Minimize API calls through synchronized batching
+client := emerge.MinimizeAPICalls(scale.Large)
+client.Start(ctx)
 ```
 
-### Database Migration
+#### Load Distribution
 
 ```go
-// glue: Discover schema differences
-// navigate: Allocate migration resources
-// emerge: Coordinate cutover timing
+// Distribute load through anti-phase synchronization
+client := emerge.DistributeLoad(scale.Medium)
+client.Start(ctx)
 ```
 
-### Microservice Mesh
+### Future Use Cases (with all three primitives)
 
-```go
-// emerge: Synchronize circuit breaker states
-// navigate: Manage resource quotas
-// glue: Track service contract evolution
-```
+#### Load Balancer Coordination
 
-### Stream Processing Pipeline
+- **emerge**: Synchronize request distribution timing (available now)
+- **navigate**: Allocate backend resources (coming soon)
+- **glue**: Discover backend API changes (planned)
 
-```go
-// emerge: Coordinate checkpoint timing
-// navigate: Balance processing resources
-// glue: Adapt to schema changes in stream
-```
+#### Database Migration
+
+- **glue**: Discover schema differences (planned)
+- **navigate**: Allocate migration resources (coming soon)
+- **emerge**: Coordinate cutover timing (available now)
+
+#### Microservice Mesh
+
+- **emerge**: Synchronize circuit breaker states (available now)
+- **navigate**: Manage resource quotas (coming soon)
+- **glue**: Track service contract evolution (planned)
+
+#### Stream Processing Pipeline
+
+- **emerge**: Coordinate checkpoint timing (available now)
+- **navigate**: Balance processing resources (coming soon)
+- **glue**: Adapt to schema changes in stream (planned)
 
 ## Conclusion
 

@@ -13,17 +13,31 @@ Drawing from [Dr. Michael Levin](https://grokkingtech.io/people/michael-levin)'s
 - Navigate: Finding what resources to use (resource allocation)
 - Glue: Finding how things work (collective understanding)
 
-## Getting started
+## Installation
 
 ```bash
 go get github.com/carlisia/bio-adapt
 ```
 
-Each coordination primitive has its own quick start guide with code examples:
+### Quick Start - Use the Emerge Client
 
-- **[Emerge Quick Start](docs/emerge/primitive.md#quick-start)** - Goal-directed synchronization
-- **[Navigate Quick Start](docs/navigate/primitive.md#quick-start)** - Goal-directed resource allocation (coming soon)
-- **[Glue Quick Start](docs/glue/primitive.md#quick-start)** - Goal-directed collective intelligence (planned)
+```go
+import (
+    "github.com/carlisia/bio-adapt/client/emerge"
+    "github.com/carlisia/bio-adapt/emerge/scale"
+)
+
+// One-liner for API batching optimization
+client := emerge.MinimizeAPICalls(scale.Medium)
+err := client.Start(ctx)
+
+// Check synchronization
+if client.IsConverged() {
+    // System is synchronized - safe to batch operations
+}
+```
+
+📖 **[See more examples](docs/client/emerge.md)** | 🎮 **[Try the interactive demo](#quick-start-with-interactive-simulation)**
 
 ## Features
 
@@ -45,6 +59,7 @@ Systems (concurrent or distributed) that converge on target coordination states 
 - Temporal coordination (when agents act)
 - Self-organizing synchronization
 - Adaptive strategy switching
+- Optimized for 20-2000+ agents
 
 ### ⚡ [Navigate](docs/navigate/primitive.md) - Goal-directed resource allocation
 
@@ -68,57 +83,88 @@ Collective goal-seeking enables independent agents to converge on shared underst
 
 See [primitives overview](docs/primitives.md) for detailed comparison.
 
-## Use cases
+## Real-World Use Case Examples
 
-- **API batching** - Goal: minimize API calls; emerge finds optimal coordination timing
-- **Multi-agent synchronization** - Goal: achieve coherence; multiple strategies ensure convergence
-- **Self-healing systems** - Goal: maintain service levels; alternative paths when failures occur
-- **Load balancing** - Goal: optimal resource usage; navigate finds best allocation paths
+### Emerge
 
-Perfect for systems that need to maintain goals despite disruptions, with 100+ agents requiring coordination.
+- **API batching** - Reduce API costs by 80% through synchronized batching
+- **Load distribution** - Balance work across servers without central control
+- **Distributed cron** - Prevent thundering herd in scheduled tasks
+- **Connection pooling** - Optimize database connections adaptively
+- **Rate limiting** - Coordinate request rates across services
+
+### Coming Soon (Navigate & Glue)
+
+- **Dynamic resource allocation** - Navigate to optimal resource distributions
+- **Failure recovery** - Find alternative resource paths when failures occur
+- **Schema discovery** - Collectively understand API contracts
+- **Distributed consensus** - Achieve agreement without voting
+
+Perfect for systems with 20-2000+ concurrent agents requiring coordination.
 
 ## Documentation
 
-### Getting started
+📚 **[Full documentation index](docs/README.md)** - Complete documentation guide
+
+### Quick Links
 
 - [Primitives overview](docs/primitives.md) - Choose the right primitive
+- [Client libraries](docs/client/overview.md) - Simple APIs for common use cases
+- [Interactive simulation](docs/simulations/overview.md) - Try it yourself
 - [Architecture](docs/architecture.md) - System design and principles
-- [Examples](examples/) - Production-ready code samples
 
-### Guides
+### For Developers
 
-- [Development](docs/development.md) - Build, test, contribute
-- [Deployment](docs/deployment.md) - Production guidelines
+- [Development guide](docs/development.md) - Build, test, contribute
+- [Deployment guide](docs/deployment.md) - Production guidelines
+- [Testing guide](docs/testing/e2e.md) - End-to-end testing
 - [API reference](https://pkg.go.dev/github.com/carlisia/bio-adapt) - Complete API docs
 
-### Primitive-specific docs
+## Quick Start with Interactive Simulation
 
-- [Emerge documentation](docs/emerge/primitive.md) - Goal-directed synchronization
-- [Navigate documentation](docs/navigate/primitive.md) - Goal-directed resource allocation (coming soon)
-- [Glue documentation](docs/glue/primitive.md) - Goal-directed collective intelligence (planned)
-- [Composition guide](docs/composition.md) - Composing primitives for complex systems
+```bash
+# Clone and run the interactive demo
+git clone https://github.com/carlisia/bio-adapt
+cd bio-adapt
+go run ./simulations/emerge
 
-## Examples
+# Try different scales
+go run ./simulations/emerge -scale=large  # 1000 agents
 
-🔄 [Basic synchronization](examples/emerge/basic_sync) - Learn the fundamentals  
-📦 [LLM batching](examples/emerge/llm_batching) - Reduce API calls by 80%  
-🌐 [Network swarm](examples/emerge/distributed_swarm) - Multi-node coordination  
-💪 [Disruption recovery](examples/emerge/disruption_recovery) - Self-healing demos
+# See all options
+go run ./simulations/emerge -list
+```
 
-## Development
+🎮 **[Learn more about the simulation](docs/simulations/emerge.md)** - 8 optimization goals to explore interactively!
 
-See [development guide](docs/development.md) for setup, building, testing, and contributing.
+## Contributing
+
+We welcome contributions! See our [development guide](docs/development.md) for:
+
+- Setting up your environment
+- Running tests and benchmarks
+- Submitting pull requests
+- Code style guidelines
 
 ## Performance
 
-The emerge primitive is optimized for production with 1000+ agents:
+The emerge primitive is production-optimized:
 
-- **Sub-linear convergence** - Better performance at scale
-- **~2KB memory per agent** - Efficient resource usage
-- **<1ms convergence latency** - Fast coordination
-- **Automatic optimization** - Adapts storage strategy by swarm size
+| Scale  | Agents | Convergence Time | Memory/Agent |
+| ------ | ------ | ---------------- | ------------ |
+| Tiny   | 20     | ~800ms           | ~5KB         |
+| Small  | 50     | ~1s              | ~4KB         |
+| Medium | 200    | ~2s              | ~3KB         |
+| Large  | 1000   | ~5s              | ~3KB         |
+| Huge   | 2000   | ~10s             | ~2KB         |
 
-See [emerge optimization guide](docs/emerge/optimization.md) for details.
+**Key optimizations:**
+
+- Automatic storage strategy selection based on swarm size
+- Grouped atomic fields for 62% faster access
+- Fixed-size arrays for 45% faster neighbor iteration
+
+See [optimization guide](docs/emerge/optimization.md) for benchmarks and details.
 
 ## Research foundation
 

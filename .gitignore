@@ -1,5 +1,5 @@
-# Built binaries
-/bin/
+# Simulation binaries
+simulations/*/bin/
 
 .task/
 

@@ -74,5 +74,6 @@ Please open an issue to discuss your ideas.
 ## Documentation
 
 - [Primitives overview](../primitives.md) - Compare with other primitives
-- [Main project](../) - Bio-adapt overview
-- [Examples](../examples/) - Will include navigate examples when ready
+- [Documentation index](../README.md) - Complete documentation guide
+- [Simulations](../simulations/overview.md) - Will include navigate simulations when ready
+

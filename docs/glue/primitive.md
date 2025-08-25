@@ -68,6 +68,5 @@ Please open an issue to share your ideas!
 ## Documentation
 
 - [Primitives overview](../primitives.md) - Compare with other primitives
-- [Main project](../) - Bio-adapt overview
-- [Examples](../examples/) - Will include glue examples when ready
-
+- [Documentation index](../README.md) - Complete documentation guide
+- [Simulations](../simulations/overview.md) - Will include glue simulations when ready

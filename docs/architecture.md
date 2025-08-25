@@ -5,6 +5,7 @@
 Bio-adapt implements goal-directed coordination for concurrent and distributed systems, inspired by Michael Levin's research on how biological systems achieve reliable outcomes through multiple pathways. The architecture enables systems to maintain target states as invariants, finding alternative routes when defaults fail.
 
 The library provides three complementary primitives for goal-directed behavior:
+
 - **Emerge**: When should agents act? (temporal coordination)
 - **Navigate**: What resources to use? (resource allocation)
 - **Glue**: How does the API work? (collective understanding)
@@ -31,36 +32,36 @@ Agents have limited energy for actions, creating realistic constraints that prev
 
 ## System architecture
 
-```
+```text
 ┌─────────────────────────────────────────────┐
 │                Application Layer             │
 │         (Your workloads/services)            │
 └─────────────────┬───────────────────────────┘
                   │
 ┌─────────────────▼───────────────────────────┐
-│              Bio-Adapt Library               │
-│                                              │
+│              Bio-Adapt Library              │
+│                                             │
 │  ┌─────────────────────────────────────┐    │
-│  │       Goal-Directed Coordination      │    │
-│  │   - Target state maintenance         │    │
-│  │   - Strategy adaptation              │    │
-│  │   - Multi-pathway exploration        │    │
+│  │       Goal-Directed Coordination    │    │
+│  │   - Target state maintenance        │    │
+│  │   - Strategy adaptation             │    │
+│  │   - Multi-pathway exploration       │    │
 │  └─────────────┬───────────────────────┘    │
-│                │                             │
+│                │                            │
 │  ┌─────────────▼───────────────────────┐    │
-│  │         Agent Coordination           │    │
-│  │   - Neighbor discovery               │    │
-│  │   - State synchronization            │    │
-│  │   - Decision making                  │    │
+│  │         Agent Coordination          │    │
+│  │   - Neighbor discovery              │    │
+│  │   - State synchronization           │    │
+│  │   - Decision making                 │    │
 │  └─────────────┬───────────────────────┘    │
-│                │                             │
+│                │                            │
 │  ┌─────────────▼───────────────────────┐    │
-│  │          Core Primitives             │    │
-│  │   - Phase dynamics                   │    │
-│  │   - Energy management                │    │
-│  │   - Attractor calculations           │    │
+│  │          Core Primitives            │    │
+│  │   - Phase dynamics                  │    │
+│  │   - Energy management               │    │
+│  │   - Attractor calculations          │    │
 │  └─────────────────────────────────────┘    │
-└──────────────────────────────────────────────┘
+└─────────────────────────────────────────────┘
 ```
 
 ## Package structure
@@ -204,12 +205,13 @@ Each pattern excels at different integration scenarios:
 
 ```go
 // Goal: Minimize API calls through coordinated batching
-swarm := emerge.NewSwarm(100)
-target := emerge.Pattern{
-    Frequency: 200*time.Millisecond,
-    Coherence: 0.9,  // Goal: 90% synchronization
-}
-swarm.AchieveSynchronization(ctx, target)
+import (
+    "github.com/carlisia/bio-adapt/client/emerge"
+    "github.com/carlisia/bio-adapt/emerge/scale"
+)
+
+client := emerge.MinimizeAPICalls(scale.Small)  // 50 agents
+err := client.Start(ctx)  // Achieves synchronization goal
 ```
 
 ### Navigate - Goal: Optimal resource allocation (future)
@@ -253,4 +255,3 @@ schema := network.SolveSchema(ctx, observations)
 - Hardware acceleration (SIMD, GPU)
 - Enhanced multi-node network deployments
 - Real-time visualization tools
-

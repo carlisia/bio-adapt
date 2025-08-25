@@ -22,12 +22,11 @@ This guide covers deploying bio-adapt in production environments, including conf
 
 ### Resource planning
 
-| Swarm size | Memory | CPU cores | Network   |
-| ---------- | ------ | --------- | --------- |
-| 10-100     | 256MB  | 2         | Minimal   |
-| 100-1000   | 1GB    | 4         | Moderate  |
-| 1000-5000  | 4GB    | 8         | High      |
-| 5000+      | 8GB+   | 16+       | Very high |
+See [Scale Definitions](emerge/scales.md) for detailed resource requirements for each scale. Quick reference:
+
+- **Tiny-Small** (20-50 agents): 256MB-512MB RAM, 2 CPU cores
+- **Medium** (200 agents): 1GB RAM, 4 CPU cores
+- **Large-Huge** (1000-2000 agents): 2-4GB RAM, 8-16 CPU cores
 
 ## Configuration
 
@@ -272,8 +271,15 @@ func (s *Service) CollectMetrics() {
     go func() {
         ticker := time.NewTicker(10 * time.Second)
         for range ticker.C {
-            coherence := s.swarm.MeasureCoherence()
+            coherence := s.client.Coherence()
             swarmCoherence.WithLabelValues(s.swarmID).Set(coherence)
+
+            // Track convergence status
+            if s.client.IsConverged() {
+                convergenceStatus.WithLabelValues(s.swarmID).Set(1)
+            } else {
+                convergenceStatus.WithLabelValues(s.swarmID).Set(0)
+            }
         }
     }()
 }
@@ -513,4 +519,3 @@ func ValidateConfig(config SwarmConfig) error {
 5. **Test disruptions**: Regularly test failure scenarios
 6. **Document thresholds**: Record optimal settings for your use case
 7. **Version carefully**: Test thoroughly before upgrading
-

@@ -45,8 +45,8 @@ task check
 # Run tests
 task test
 
-# Build examples
-task build:examples
+# Build simulations
+task build:simulations
 ```
 
 ## Project structure
@@ -56,7 +56,7 @@ bio-adapt/
 ├── docs/            # Documentation
 ├── e2e/             # End-to-end integration tests
 ├── emerge/          # Goal-directed synchronization primitive
-├── examples/        # Usage examples and demos
+├── simulations/     # Interactive demonstrations
 ├── glue/            # Goal-directed collective intelligence (planned)
 ├── internal/        # Internal utilities and helpers
 ├── navigate/        # Goal-directed resource allocation (coming soon)
@@ -304,14 +304,20 @@ go doc github.com/carlisia/bio-adapt/emerge/swarm
 1. Create new file in `emerge/strategy/`
 2. Implement the strategy interface
 3. Add tests in the same package
-4. Update examples to demonstrate usage
+4. Update simulations to demonstrate usage
 
-### Adding a new example
+### Running the simulation
 
-1. Create directory in `examples/emerge/`
-2. Add `main.go` with example code
-3. Update `examples/README.md`
-4. Test with `task run:example EXAMPLE=your_example`
+```bash
+# Run the interactive simulation
+task run:sim -- emerge
+
+# With different scales
+task run:sim -- emerge -scale=medium
+
+# List available scales
+task run:sim -- emerge -list
+```
 
 ### Performance optimization
 

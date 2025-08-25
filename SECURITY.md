@@ -39,24 +39,31 @@ When using bio-adapt in production:
 ### Configuration hardening
 
 ```go
-// Example: Safe swarm creation with limits
-const maxSwarmSize = 5000
+// Example: Safe client creation with limits
+import (
+    "github.com/carlisia/bio-adapt/client/emerge"
+    "github.com/carlisia/bio-adapt/emerge/scale"
+)
 
-func CreateSwarm(size int, goal emerge.State) (*emerge.Swarm, error) {
-    if size > maxSwarmSize {
-        return nil, fmt.Errorf("swarm size %d exceeds limit %d", size, maxSwarmSize)
+const maxAgentCount = 5000
+
+func CreateClient(desiredScale scale.Size) (*emerge.Client, error) {
+    // Validate scale
+    agentCount := desiredScale.DefaultAgentCount()
+    if agentCount > maxAgentCount {
+        return nil, fmt.Errorf("scale %s has %d agents, exceeds limit %d",
+            desiredScale, agentCount, maxAgentCount)
     }
 
+    // Create client with safe configuration
+    client := emerge.MinimizeAPICalls(desiredScale)
+
+    // Use context with timeout
     ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
     defer cancel()
 
-    swarm, err := emerge.NewSwarm(size, goal)
-    if err != nil {
-        return nil, err
-    }
-
-    go swarm.Run(ctx)
-    return swarm, nil
+    go client.Start(ctx)
+    return client, nil
 }
 ```
 
@@ -88,4 +95,3 @@ task vuln
 3. **Resource monitoring**: Implement metrics collection for production deployments
 4. **Graceful degradation**: Handle partial swarm failures gracefully
 5. **Audit logging**: Log significant events for security analysis
-

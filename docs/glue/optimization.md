@@ -306,4 +306,3 @@ benchmark_assembly_formation_rate
 | Memory access      | Sequential     | Sparse            | Graph traversal   |
 | Optimization focus | Cache locality | Vectorization     | Graph algorithms  |
 | Complexity         | O(n)           | O(n log n)        | O(n × k²)         |
-

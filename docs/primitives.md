@@ -79,11 +79,11 @@ Collective goal-seeking enables independent agents to converge on shared underst
 
 ## Choosing a primitive
 
-| Primitive    | Core Question              | Goal Type           | Maturity       |
-| ------------ | -------------------------- | ------------------- | -------------- |
-| **Emerge**   | When should agents act?    | Temporal coordination | Production     |
-| **Navigate** | What resources to use?     | Resource allocation | In development |
-| **Glue**     | How does the API work?     | Collective understanding | Planned        |
+| Primitive    | Core Question           | Goal Type                | Maturity       |
+| ------------ | ----------------------- | ------------------------ | -------------- |
+| **Emerge**   | When should agents act? | Temporal coordination    | Production     |
+| **Navigate** | What resources to use?  | Resource allocation      | In development |
+| **Glue**     | How does the API work?  | Collective understanding | Planned        |
 
 ## Combining patterns
 
@@ -92,22 +92,24 @@ These patterns can work together:
 ```go
 // Example: Composing goal-directed patterns
 import (
-    "github.com/carlisia/bio-adapt/emerge"
-    "github.com/carlisia/bio-adapt/navigate"
-    "github.com/carlisia/bio-adapt/glue"
+    "github.com/carlisia/bio-adapt/client/emerge"
+    "github.com/carlisia/bio-adapt/emerge/scale"
+    // Future imports:
+    // "github.com/carlisia/bio-adapt/navigate"
+    // "github.com/carlisia/bio-adapt/glue"
 )
 
-// Goal: Minimize API calls through synchronized batching
-batcher := emerge.NewSwarm(100)
-batcher.AchieveSynchronization(ctx, batchingGoal)
+// Goal: Minimize API calls through synchronized batching (available now)
+client := emerge.MinimizeAPICalls(scale.Medium)
+err := client.Start(ctx)
 
-// Goal: Optimal resource allocation despite constraints (future)
-allocator := navigate.NewNavigator()
-allocator.NavigateToTarget(ctx, resourceGoal)
+// Goal: Optimal resource allocation despite constraints (coming soon)
+// allocator := navigate.NewNavigator()
+// allocator.NavigateToTarget(ctx, resourceGoal)
 
-// Goal: Discover API schema through collective intelligence (future)
-network := glue.NewNetwork()
-schema := network.SolveSchema(ctx, observations)
+// Goal: Discover API schema through collective intelligence (planned)
+// network := glue.NewNetwork()
+// schema := network.SolveSchema(ctx, observations)
 ```
 
 ## Research foundation
@@ -127,9 +129,8 @@ Start with the production-ready emerge pattern:
 ```bash
 go get github.com/carlisia/bio-adapt
 
-# Run an example
-go run github.com/carlisia/bio-adapt/examples/emerge/basic_sync
+# Run the simulation
+go run github.com/carlisia/bio-adapt/simulations/emerge
 ```
 
-Then explore the examples for each pattern as they become available.
-
+Then explore the simulations for each pattern as they become available.

@@ -46,7 +46,7 @@ Concurrent exploration of multiple paths.
 
 **Optimization targets:**
 
-- Parallel tree expansion (RRT*)
+- Parallel tree expansion (RRT\*)
 - Distributed gradient descent
 - Concurrent constraint checking
 
@@ -86,11 +86,11 @@ type Navigator struct {
     // Hot data (64 bytes - one cache line)
     position    [8]float32  // Current resource vector (8D)
     velocity    [8]float32  // Movement direction
-    
+
     // Path memory (separate cache line)
     recentPaths []Path      // LRU cache
     pathIndex   map[uint64]int // Hash index
-    
+
     // Constraints (cold data)
     constraints []Constraint
     goals       []Goal
@@ -104,10 +104,10 @@ type ConfigurationSpace struct {
     // Dimension management
     dimensions   int
     bounds       []Bound
-    
+
     // Efficient constraint representation
     constraints  ConstraintTree // Spatial indexing
-    
+
     // Path cache
     pathCache    *LRUCache
     similarity   SimilarityIndex
@@ -116,7 +116,7 @@ type ConfigurationSpace struct {
 
 ## Navigation optimization
 
-### A* with adaptive heuristics
+### A\* with adaptive heuristics
 
 Intelligent path planning:
 
@@ -124,7 +124,7 @@ Intelligent path planning:
 - Constraint-aware cost functions
 - Early termination on good-enough solutions
 
-### Rapidly-exploring Random Trees (RRT*)
+### Rapidly-exploring Random Trees (RRT\*)
 
 For high-dimensional spaces:
 
@@ -198,7 +198,7 @@ benchmark_path_optimality_ratio
 ### Performance targets
 
 - Path planning: <100ms for 50 dimensions
-- First solution: <10ms for feasible problems  
+- First solution: <10ms for feasible problems
 - Memory overhead: <1KB per dimension
 - Path efficiency: Within 1.5x optimal
 
@@ -224,12 +224,12 @@ benchmark_path_optimality_ratio
 
 ## Comparison with other primitives
 
-| Aspect            | Emerge       | Navigate      | Glue           |
-| ----------------- | ------------ | ------------- | -------------- |
-| State size        | 32 bytes     | 64-256 bytes  | 128 bytes      |
-| Update complexity | O(k)         | O(d log n)    | O(k²)          |
-| Parallelism       | Natural      | Task-based    | Hierarchical   |
-| Memory pattern    | Sequential   | Tree/Graph    | Graph          |
+| Aspect            | Emerge     | Navigate     | Glue         |
+| ----------------- | ---------- | ------------ | ------------ |
+| State size        | 32 bytes   | 64-256 bytes | 128 bytes    |
+| Update complexity | O(k)       | O(d log n)   | O(k²)        |
+| Parallelism       | Natural    | Task-based   | Hierarchical |
+| Memory pattern    | Sequential | Tree/Graph   | Graph        |
 
 Where d = dimensions, n = constraints, k = neighbors
 
@@ -248,3 +248,4 @@ Where d = dimensions, n = constraints, k = neighbors
 - Adaptive space representations
 - Energy-aware navigation
 - Self-organizing resource markets
+
