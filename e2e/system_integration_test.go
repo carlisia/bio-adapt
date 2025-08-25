@@ -399,7 +399,7 @@ func testRealWorldScenarios(t *testing.T) {
 
 		// Use distribute load configuration for better load balancing
 		cfg := swarmconfig.For(swarmgoal.DistributeLoad).
-			With(scale.Small)
+			WithSize(scale.Small.DefaultAgentCount())
 
 		s, err := swarm.New(numServers, goal, swarm.WithGoalConfig(cfg))
 		require.NoError(t, err)
@@ -522,7 +522,7 @@ func testRealWorldScenarios(t *testing.T) {
 
 		// Use consensus configuration for better phase convergence
 		cfg := swarmconfig.For(swarmgoal.ReachConsensus).
-			With(scale.Small)
+			WithSize(scale.Small.DefaultAgentCount())
 
 		s, err := swarm.New(numNodes, goal, swarm.WithGoalConfig(cfg))
 		require.NoError(t, err)
