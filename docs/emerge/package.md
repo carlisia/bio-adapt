@@ -51,11 +51,11 @@ s.Run(ctx)
 
 ### Agents
 
-Individual units that maintain phase, frequency, and energy. Agents interact with neighbors to achieve synchronization.
+Individual units that maintain phase, frequency, and energy. Agents interact with neighbors to achieve synchronization. See [Agents](../concepts/agents.md) for detailed concepts.
 
 ### Swarms
 
-Collections of agents that work together to achieve target states. Swarms automatically optimize based on size.
+Collections of agents that work together to achieve target states. Swarms automatically optimize based on size. See [Swarm](../concepts/swarm.md) for more details.
 
 ### Scales
 
@@ -63,7 +63,7 @@ Predefined configurations optimized for different swarm sizes. See [Scale Defini
 
 ### Goals
 
-High-level objectives that determine swarm behavior:
+High-level objectives that determine swarm behavior. See [Goals](../concepts/goals.md) for detailed descriptions and [Goal-Directed](goal-directed.md) for how emerge pursues these goals:
 
 - **MinimizeAPICalls** - Batch operations to reduce costs
 - **DistributeLoad** - Spread work evenly across agents
@@ -76,7 +76,7 @@ High-level objectives that determine swarm behavior:
 
 ### Strategies
 
-Multiple pathways to achieve synchronization goals:
+Multiple pathways to achieve synchronization goals. See [Strategies](../concepts/strategies.md) for detailed descriptions and [Protocol](protocol.md) for how strategies are applied:
 
 - **PhaseNudge** - Gentle phase adjustments
 - **FrequencyLock** - Align oscillation speeds
@@ -86,7 +86,7 @@ Multiple pathways to achieve synchronization goals:
 
 ## Performance Optimizations
 
-The emerge package includes several performance optimizations that activate automatically:
+The emerge package includes several performance optimizations that activate automatically. See [Optimization](optimization.md) for detailed benchmarks:
 
 ### For swarms >100 agents:
 

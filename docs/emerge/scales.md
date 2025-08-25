@@ -84,6 +84,7 @@ client := emerge.Custom().
 
 ## See Also
 
-- [Performance Optimization](emerge/optimization.md)
-- [Deployment Guide](deployment.md)
-- [E2E Testing](testing/e2e.md)
+- [Optimization](optimization.md) - Performance details
+- [Architecture](architecture.md) - System design
+- [FAQ](faq.md) - How to choose scales
+- [Use Cases](use_cases.md) - Real-world applications

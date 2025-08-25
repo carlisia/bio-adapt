@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document compares emerge with alternative approaches for coordination and synchronization. Some are genuine alternatives with different trade-offs, while others might seem similar but fundamentally differ in their approach or capabilities.
+This document compares emerge with alternative approaches for coordination and [synchronization](../concepts/synchronization.md). Some are genuine alternatives with different trade-offs, while others might seem similar but fundamentally differ in their approach or capabilities. See also [Algorithm](emerge_algorithm.md) for emerge's specific approach.
 
 ## True Alternatives
 
@@ -45,10 +45,10 @@ func (m *Master) Distribute() {
 
 **Why emerge is different**:
 
-- Emerge has no master - all agents are equal
+- Emerge has no master - all [agents](../concepts/agents.md) are equal (see [Decentralization](decentralization.md))
 - Emerge handles coordination, not just distribution
-- Emerge survives master failure (no SPOF)
-- Emerge scales without bottleneck
+- Emerge survives master failure (no SPOF) - see [Disruption](disruption.md)
+- Emerge scales without bottleneck (see [Scales](scales.md))
 
 ### 2. Consensus Algorithms (Raft/Paxos)
 
@@ -103,10 +103,10 @@ func (r *RaftNode) RequestVote(term int, candidateId string) bool {
 
 **Why emerge is different**:
 
-- Emerge does continuous synchronization, not discrete consensus
-- Emerge needs no leader election
+- Emerge does continuous [synchronization](../concepts/synchronization.md), not discrete consensus
+- Emerge needs no leader election (see [Decentralization](decentralization.md))
 - Emerge handles dynamic values, not fixed decisions
-- Emerge optimizes for coordination, not consistency
+- Emerge optimizes for coordination, not consistency (see [Goals](../concepts/goals.md))
 
 ### 3. Message Queues (RabbitMQ/Kafka)
 
@@ -145,10 +145,10 @@ func (mq *MessageQueue) PublishBatch(messages []Message) {
 
 **Why emerge is different**:
 
-- Emerge coordinates timing, not message passing
-- Emerge agents interact directly, no broker needed
+- Emerge coordinates timing, not message passing (see [Protocol](protocol.md))
+- Emerge [agents](../concepts/agents.md) interact directly, no broker needed
 - Emerge focuses on when to act, not what to communicate
-- Emerge provides synchronization, not messaging
+- Emerge provides [synchronization](../concepts/synchronization.md), not messaging
 
 ### 4. Distributed Locks (Redis/Zookeeper)
 
@@ -194,9 +194,9 @@ func (dl *DistributedLock) TryBatch() error {
 
 **Why emerge is different**:
 
-- Emerge needs no locks - agents coordinate naturally
-- Emerge allows parallel action when synchronized
-- Emerge is lock-free and wait-free
+- Emerge needs no locks - agents coordinate naturally through the [protocol](protocol.md)
+- Emerge allows parallel action when synchronized (see [Concurrency](concurrency.md))
+- Emerge is lock-free and wait-free (using [atomic operations](concurrency.md))
 - Emerge handles timing, not exclusion
 
 ## Apparent Alternatives (But Not Really)
@@ -231,15 +231,15 @@ gantt
 cronJob := "0 * * * *"  // Every hour, exactly
 
 // Emerge: Dynamic, emergent
-emerge.MinimizeAPICalls()  // Synchronize when ready
+emerge.MinimizeAPICalls()  // Synchronize when ready - see [Goals](../concepts/goals.md)
 ```
 
 **Why it's not an alternative**:
 
-- ❌ Cron is static scheduling, emerge is dynamic
+- ❌ Cron is static scheduling, emerge is [goal-directed](goal-directed.md) and dynamic
 - ❌ Cron can't adapt to system conditions
 - ❌ Cron can't handle distributed coordination
-- ❌ Cron causes thundering herd, emerge prevents it
+- ❌ Cron causes thundering herd, emerge prevents it (see [Use Cases](use_cases.md))
 
 ### 2. Load Balancers
 
@@ -268,13 +268,13 @@ graph TD
 lb.Route(request) // Balancer decides
 
 // Emerge: Self-organizing distribution
-emerge.DistributeLoad() // Agents coordinate themselves
+emerge.DistributeLoad() // Agents coordinate themselves - see [Goals](../concepts/goals.md)
 ```
 
 **Why it's not an alternative**:
 
-- ❌ Load balancers route requests, emerge coordinates agents
-- ❌ Load balancers are centralized, emerge is decentralized
+- ❌ Load balancers route requests, emerge coordinates [agents](../concepts/agents.md)
+- ❌ Load balancers are centralized, emerge is [decentralized](decentralization.md)
 - ❌ Load balancers don't synchronize, they distribute
 - ❌ Load balancers need external configuration
 
@@ -408,10 +408,10 @@ sequenceDiagram
 
 ```go
 // First synchronize with emerge
-emerge.ReachConsensus()
+emerge.ReachConsensus()  // See [Goals](../concepts/goals.md)
 
 // Then make decision with Raft
-if emerge.IsConverged() {
+if emerge.IsConverged() {  // See [Coherence](../concepts/coherence.md)
     raft.ProposeValue(value)
 }
 ```
@@ -420,14 +420,14 @@ if emerge.IsConverged() {
 
 | Need                                        | Best Choice          | Why                                      |
 | ------------------------------------------- | -------------------- | ---------------------------------------- |
-| Coordinate timing across distributed agents | **Emerge**           | Designed for distributed synchronization |
+| Coordinate timing across distributed agents | **Emerge**           | Designed for distributed [synchronization](../concepts/synchronization.md) |
 | Distribute independent tasks                | **Master-Worker**    | Simple, effective for independent work   |
 | Agree on discrete values                    | **Raft/Paxos**       | Proven consensus algorithms              |
 | Pass messages between services              | **Message Queue**    | Reliable, persistent messaging           |
 | Protect shared resources                    | **Distributed Lock** | Simple mutual exclusion                  |
 | Schedule at fixed times                     | **Cron**             | Simple, predictable                      |
 | Route HTTP requests                         | **Load Balancer**    | Purpose-built for request routing        |
-| Batch operations dynamically                | **Emerge**           | Adaptive, emergent batching              |
+| Batch operations dynamically                | **Emerge**           | Adaptive, [goal-directed](goal-directed.md) batching |
 | Prevent cascade failures                    | **Circuit Breaker**  | Fail-fast protection                     |
 | Broadcast events                            | **Event Bus**        | Decoupled event propagation              |
 
@@ -451,9 +451,9 @@ emerge.Synchronize()
 
 **Why emerge is better for coordination**:
 
-- Allows parallel execution when synchronized
+- Allows parallel execution when synchronized (see [Concurrency](concurrency.md))
 - No lock contention or deadlocks
-- Scales without database bottleneck
+- Scales without database bottleneck (see [Scales](scales.md))
 
 ### "Kubernetes can handle this"
 
@@ -477,7 +477,7 @@ graph TD
 **Why they're complementary**:
 
 - K8s handles deployment and scaling
-- Emerge handles runtime coordination
+- Emerge handles runtime coordination (see [Protocol](protocol.md))
 - K8s is infrastructure, emerge is application logic
 
 ### "Just use webhooks"
@@ -500,9 +500,9 @@ beforeAction := func() {
 
 **Why emerge is different**:
 
-- Webhooks notify, emerge coordinates
-- Webhooks are reactive, emerge is proactive
-- Webhooks need endpoints, emerge is peer-to-peer
+- Webhooks notify, emerge coordinates (see [Synchronization](../concepts/synchronization.md))
+- Webhooks are reactive, emerge is proactive (see [Goal-Directed](goal-directed.md))
+- Webhooks need endpoints, emerge is peer-to-peer (see [Decentralization](decentralization.md))
 
 ## Performance Comparison
 
@@ -530,7 +530,9 @@ Be honest about emerge's limitations:
 
 ## See Also
 
-- [Algorithm](algorithm.md) - How emerge works
+- [Algorithm](emerge_algorithm.md) - How emerge works
 - [Decentralization](decentralization.md) - Why emerge has no center
-- [Use Cases](primitive.md) - When to use emerge
+- [Use Cases](use_cases.md) - When to use emerge
 - [Architecture](architecture.md) - System design
+- [FAQ](faq.md) - Common questions
+- [Glossary](glossary.md) - Term definitions

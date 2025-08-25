@@ -2,7 +2,7 @@
 
 ## Overview
 
-Our bio-adaptive swarm system achieves production-grade reliability through three key optimizations. While the system works efficiently with any number of agents, these optimizations particularly shine when handling 1000+ concurrent agents.
+Our bio-adaptive swarm system achieves production-grade reliability through three key optimizations. While the system works efficiently with any number of agents, these optimizations particularly shine when handling 1000+ concurrent agents. See [Scales](scales.md) for standard configurations and [Concurrency](concurrency.md) for implementation patterns.
 
 ## Key optimizations
 
@@ -160,3 +160,10 @@ Planned optimizations:
 2. Memory pooling for agent recycling
 3. Lock-free data structures for extreme scale
 4. Built-in metrics collection for monitoring
+
+## See Also
+
+- [Architecture](architecture.md) - System design
+- [Concurrency](concurrency.md) - Concurrent implementation patterns
+- [Algorithm](emerge_algorithm.md) - Mathematical foundation
+- [Scales](scales.md) - Agent count configurations

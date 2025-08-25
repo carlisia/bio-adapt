@@ -11,7 +11,7 @@ While emerge is designed for coordination, not security, it's important to under
 Emerge operates on a **cooperative trust model**:
 
 - Agents are assumed to be cooperative (not malicious)
-- Agents follow the synchronization protocol
+- Agents follow the [synchronization protocol](protocol.md)
 - Network communication is reliable (when distributed)
 - Agent failures are due to crashes, not attacks
 
@@ -452,6 +452,8 @@ Key takeaways:
 ## See Also
 
 - [Decentralization](decentralization.md) - Understanding the trust model
+- [Disruption](disruption.md) - Handling non-malicious failures
+- [Protocol](protocol.md) - The synchronization protocol
 - [Architecture](architecture.md) - System design considerations
 - [Deployment](../deployment.md) - Production deployment guide
 - [Monitoring](../concepts/coherence.md) - Tracking system behavior

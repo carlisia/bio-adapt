@@ -1,6 +1,6 @@
 # Emerge: Goal-Directed Synchronization
 
-**Temporal coordination through adaptive strategies** - Systems that pursue synchronization targets via multiple pathways, switching strategies when defaults fail to achieve coordination goals.
+**Temporal coordination through adaptive strategies** - Systems that pursue synchronization targets via multiple pathways, switching strategies when defaults fail to achieve coordination goals. See [Goal-Directed](goal-directed.md) for how this works.
 
 ## Why Emerge?
 
@@ -13,6 +13,8 @@ Traditional synchronization requires explicit coordination logic. Emerge lets yo
 - **Connection Pooling** - Optimize database connections adaptively
 - **Task Scheduling** - Coordinate concurrent tasks without explicit locks
 - **Self-Healing Systems** - Maintain service levels despite failures
+
+See [Use Cases](use_cases.md) for detailed examples.
 
 ## Quick Start
 
@@ -226,8 +228,9 @@ Please check our [development guide](../../docs/development.md) and open an issu
 ## Learn More
 
 - [Architecture](architecture.md) - Detailed design documentation
+- [Algorithm](emerge_algorithm.md) - Mathematical foundation
+- [Goal-Directed](goal-directed.md) - How emerge pursues goals
 - [Optimization Guide](optimization.md) - Performance benchmarks and tuning
-- [Simulations](../../simulations/emerge/) - Interactive demonstrations
+- [Use Cases](use_cases.md) - Real-world applications
+- [FAQ](faq.md) - Common questions answered
 - [API Reference](https://pkg.go.dev/github.com/carlisia/bio-adapt/emerge) - Full API documentation
-- [Main README](../../README.md) - Project overview
-- [Primitives Overview](../primitives.md) - Compare all coordination primitives

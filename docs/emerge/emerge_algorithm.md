@@ -2,7 +2,7 @@
 
 ## Overview
 
-Emerge is a decentralized synchronization algorithm based on the Kuramoto model from physics. It enables independent agents to achieve coordinated behavior through local interactions, without central control. The algorithm is inspired by natural synchronization phenomena like firefly flashing, cardiac pacemaker cells, and circadian rhythms.
+Emerge is a decentralized synchronization algorithm based on the Kuramoto model from physics. It enables independent [agents](../concepts/agents.md) to achieve coordinated behavior through local interactions, without [central control](decentralization.md). The algorithm is inspired by natural synchronization phenomena like firefly flashing, cardiac pacemaker cells, and circadian rhythms.
 
 ## Theoretical Foundation
 
@@ -16,8 +16,8 @@ dθᵢ/dt = ωᵢ + (K/N) × Σⱼ sin(θⱼ - θᵢ)
 
 Where:
 
-- **θᵢ** = phase of oscillator i (0 to 2π)
-- **ωᵢ** = natural frequency of oscillator i
+- **θᵢ** = [phase](../concepts/phase.md) of oscillator i (0 to 2π)
+- **ωᵢ** = natural [frequency](../concepts/frequency.md) of oscillator i
 - **K** = coupling strength
 - **N** = number of neighbors
 - **Σⱼ** = sum over all neighbors j
@@ -34,9 +34,9 @@ Each agent maintains:
 
 ```
 Agent {
-    Phase:      float64  // Position in cycle (0 to 2π)
-    Frequency:  float64  // Rate of phase change
-    Energy:     float64  // Resource for adjustments
+    Phase:      float64  // Position in cycle (0 to 2π) - see [Phase](../concepts/phase.md)
+    Frequency:  float64  // Rate of phase change - see [Frequency](../concepts/frequency.md)
+    Energy:     float64  // Resource for adjustments - see [Energy](../concepts/energy.md)
     Neighbors:  []Agent  // Observable agents
 }
 ```
@@ -77,7 +77,7 @@ agent.Energy -= abs(adjustment) * energyCost
 
 ## Algorithmic Strategies
 
-Emerge extends the basic Kuramoto model with multiple strategies that agents can switch between:
+Emerge extends the basic Kuramoto model with multiple [strategies](../concepts/strategies.md) that agents can switch between according to the [protocol](protocol.md):
 
 ### PhaseNudge Strategy
 
@@ -134,7 +134,7 @@ else:
 
 ### Order Parameter
 
-The algorithm's convergence is measured by the Kuramoto order parameter (coherence):
+The algorithm's convergence is measured by the Kuramoto order parameter ([coherence](../concepts/coherence.md)):
 
 ```
 r × e^(iψ) = (1/N) × Σⱼ e^(iθⱼ)
@@ -215,7 +215,7 @@ else:
 
 ## Goal-Directed Behavior
 
-The algorithm adapts its parameters based on goals:
+The algorithm adapts its parameters based on [goals](../concepts/goals.md) - see [Goal-Directed Synchronization](goal-directed.md) for details:
 
 ### For Synchronization (MinimizeAPICalls)
 
@@ -263,7 +263,7 @@ The algorithm adapts its parameters based on goals:
 
 ### Fault Tolerance
 
-The algorithm continues functioning despite:
+The algorithm continues functioning despite [disruptions](disruption.md):
 
 - Agent failures (up to 50% loss)
 - Communication delays
@@ -334,6 +334,8 @@ if swarm.AverageEnergy() < critical_threshold {
 
 ## Comparison with Other Algorithms
 
+For detailed comparisons with diagrams, see [Alternatives](alternatives.md).
+
 ### vs. Consensus Algorithms (Raft, Paxos)
 
 - **Emerge**: Continuous synchronization, no voting
@@ -396,6 +398,8 @@ Where λmax is the largest eigenvalue of the linearized system Jacobian.
 | 2000   | ~30 seconds      | 10MB   | 20%       |
 | 20000  | ~3 minutes       | 100MB  | 80%       |
 
+For detailed scale configurations, see [Scales](scales.md).
+
 ### Efficiency Metrics
 
 - Message efficiency: O(log N) rounds to convergence
@@ -410,6 +414,8 @@ Where λmax is the largest eigenvalue of the linearized system Jacobian.
 - Load balancing
 - Distributed scheduling
 - Cache coordination
+
+For real-world examples, see [Use Cases](use_cases.md).
 
 ### IoT and Embedded
 
@@ -450,7 +456,33 @@ Where λmax is the largest eigenvalue of the linearized system Jacobian.
 
 ## See Also
 
+### Core Concepts
+- [Agents](../concepts/agents.md) - The fundamental units
+- [Swarm](../concepts/swarm.md) - Collections of agents
+- [Synchronization](../concepts/synchronization.md) - How coordination emerges
+- [Coherence](../concepts/coherence.md) - Measuring synchronization
+- [Phase](../concepts/phase.md) - Agent oscillation position
+- [Frequency](../concepts/frequency.md) - Rate of phase change
+- [Energy](../concepts/energy.md) - Resource constraints
+- [Goals](../concepts/goals.md) - Optimization objectives
+- [Strategies](../concepts/strategies.md) - Synchronization approaches
+
+### Emerge-Specific
+- [Protocol](protocol.md) - The synchronization protocol
+- [Goal-Directed](goal-directed.md) - How emerge pursues goals
+- [Disruption](disruption.md) - Handling failures
+- [Decentralization](decentralization.md) - No central control
+- [Alternatives](alternatives.md) - Comparison with other approaches
+- [Concurrency](concurrency.md) - Go implementation patterns
+- [Security](security.md) - Security considerations
+
+### Implementation
 - [Architecture](architecture.md) - System design details
 - [Optimization](optimization.md) - Performance improvements
 - [Package](package.md) - API documentation
 - [Scales](scales.md) - Configuration parameters
+
+### Practical Guides
+- [Use Cases](use_cases.md) - Real-world applications
+- [FAQ](faq.md) - Common questions
+- [Glossary](glossary.md) - Term definitions

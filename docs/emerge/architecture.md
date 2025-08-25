@@ -2,17 +2,17 @@
 
 ## Overview
 
-The emerge package implements goal-directed synchronization - distributed systems that pursue target coordination states through adaptive strategies. Inspired by how biological systems achieve morphological goals through multiple pathways, emerge maintains synchronization targets as invariants and switches strategies when convergence stalls.
+The emerge package implements [goal-directed](goal-directed.md) synchronization - distributed systems that pursue target coordination states through adaptive [strategies](../concepts/strategies.md). Inspired by how biological systems achieve morphological goals through multiple pathways, emerge maintains synchronization targets as invariants and switches strategies when convergence stalls.
 
 ## Core concepts
 
 ### Goal-directed phase synchronization
 
-Agents maintain a phase (0 to 2π) representing their position in an oscillation cycle. The system pursues target phase alignment through multiple strategies, adapting when the default approach fails to achieve the synchronization goal.
+[Agents](../concepts/agents.md) maintain a [phase](../concepts/phase.md) (0 to 2π) representing their position in an oscillation cycle. The system pursues target phase alignment through multiple strategies, adapting when the default approach fails to achieve the [synchronization](../concepts/synchronization.md) goal.
 
 ### Dynamics and adaptation
 
-The Kuramoto model provides the synchronization dynamics:
+The Kuramoto model provides the synchronization dynamics (see [Algorithm](emerge_algorithm.md) for details):
 
 ```text
 dθᵢ/dt = ωᵢ + (K/N) × Σⱼ sin(θⱼ - θᵢ)
@@ -25,11 +25,11 @@ Where:
 - K = coupling strength (adaptively adjusted)
 - N = number of neighbors
 
-Goal-directedness adds adaptive strategy switching when this default dynamics fails to achieve targets.
+Goal-directedness adds adaptive strategy switching when this default dynamics fails to achieve targets (see [Goal-Directed](goal-directed.md)).
 
 ### Energy constraints
 
-Agents have limited energy for adjustments, preventing oscillation and ensuring stable convergence. Energy depletes with actions and recovers over time.
+Agents have limited [energy](../concepts/energy.md) for adjustments, preventing oscillation and ensuring stable convergence. Energy depletes with actions and recovers over time.
 
 ## Package structure
 
@@ -55,10 +55,10 @@ emerge/
 
 Each agent maintains:
 
-- **Phase** (0 to 2π) - Position in oscillation cycle
-- **Frequency** - Oscillation speed
-- **Energy** - Available action resources
-- **LocalGoal** - Individual preferences
+- **[Phase](../concepts/phase.md)** (0 to 2π) - Position in oscillation cycle
+- **[Frequency](../concepts/frequency.md)** - Oscillation speed
+- **[Energy](../concepts/energy.md)** - Available action resources
+- **LocalGoal** - Individual preferences (see [Goals](../concepts/goals.md))
 
 ### Behavioral parameters
 
@@ -96,7 +96,7 @@ Agents automatically optimize based on swarm size:
 
 ### Coherence measurement
 
-Coherence measures synchronization using the Kuramoto order parameter:
+[Coherence](../concepts/coherence.md) measures synchronization using the Kuramoto order parameter:
 
 ```go
 R = |Σ(e^(iθ))| / N
@@ -108,7 +108,7 @@ R = |Σ(e^(iθ))| / N
 
 ### Goal management
 
-Swarms maintain target states as invariants, finding alternative paths when blocked:
+[Swarms](../concepts/swarm.md) maintain target states as invariants, finding alternative paths when blocked (see [Disruption](disruption.md)):
 
 - **Phase** - Target alignment point (maintained despite disruptions)
 - **Frequency** - Goal oscillation rate (achieved through multiple strategies)
@@ -117,6 +117,8 @@ Swarms maintain target states as invariants, finding alternative paths when bloc
 ## Decision strategies
 
 ### Multiple pathways to goals
+
+See [Strategies](../concepts/strategies.md) for detailed descriptions.
 
 **PhaseNudge** (Gentle approach)
 
@@ -200,7 +202,7 @@ swarm.Run(ctx)
 
 ### Distributed cron
 
-Prevent thundering herd in scheduled tasks:
+Prevent thundering herd in scheduled tasks (see [Use Cases](use_cases.md)):
 
 ```go
 // Use load distribution for anti-synchronization
@@ -227,6 +229,8 @@ client.Start(ctx)
 
 ### Resilience mechanisms
 
+See [Disruption](disruption.md) for detailed coverage.
+
 **Agent failures**
 
 - Neighbors detect missing agents
@@ -244,3 +248,34 @@ client.Start(ctx)
 - Energy limits prevent unlimited disruption
 - Stubbornness limits influence spread
 - Statistical convergence despite bad actors
+
+See [Security](security.md) for security considerations.
+
+## See Also
+
+### Core Documentation
+- [Algorithm](emerge_algorithm.md) - Mathematical foundation
+- [Protocol](protocol.md) - Synchronization protocol
+- [Goal-Directed](goal-directed.md) - Goal pursuit mechanisms
+- [Disruption](disruption.md) - Failure handling
+- [Decentralization](decentralization.md) - No central control
+- [Concurrency](concurrency.md) - Go implementation patterns
+- [Optimization](optimization.md) - Performance enhancements
+- [Security](security.md) - Security considerations
+
+### Concepts
+- [Agents](../concepts/agents.md) - Fundamental units
+- [Swarm](../concepts/swarm.md) - Agent collections
+- [Synchronization](../concepts/synchronization.md) - Coordination
+- [Coherence](../concepts/coherence.md) - Measurement
+- [Phase](../concepts/phase.md) - Oscillation position
+- [Frequency](../concepts/frequency.md) - Rate of change
+- [Energy](../concepts/energy.md) - Resource constraints
+- [Goals](../concepts/goals.md) - Objectives
+- [Strategies](../concepts/strategies.md) - Approaches
+
+### Practical Guides
+- [Use Cases](use_cases.md) - Real-world applications
+- [Scales](scales.md) - Configuration sizes
+- [FAQ](faq.md) - Common questions
+- [Glossary](glossary.md) - Term definitions

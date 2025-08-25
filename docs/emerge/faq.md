@@ -31,6 +31,8 @@ No. Consensus algorithms help you agree on a single value (like "who is the lead
 - **Raft**: "Let's vote on value X"
 - **Emerge**: "Let's coordinate our timing"
 
+See [Alternatives](alternatives.md) for detailed comparisons.
+
 ## Getting Started
 
 ### How do I choose the right scale?
@@ -40,6 +42,8 @@ Start small and scale up:
 - **Testing**: Use Tiny (20 agents)
 - **Production start**: Use Small (50 agents) or Medium (200 agents)
 - **Scale as needed**: Move to Large (1000) or Huge (2000+) when ready
+
+See [Scales](scales.md) for detailed configurations and resource requirements.
 
 ```go
 // Start small
@@ -58,6 +62,8 @@ Ask yourself what you're trying to optimize:
 - **Want agreement?** → `ReachConsensus`
 - **Want speed?** → `MinimizeLatency`
 - **Want to save resources?** → `SaveEnergy`
+
+See [Goals](../concepts/goals.md) for detailed descriptions and [Use Cases](use_cases.md) for real-world examples.
 
 ### How long does synchronization take?
 
@@ -408,7 +414,8 @@ Always test with your specific use case and scale before production deployment.
 ## See Also
 
 - [Getting Started](primitive.md) - Quick start guide
-- [Algorithm](algorithm.md) - How emerge works
-- [Troubleshooting](../concepts/synchronization.md#common-synchronization-challenges) - Detailed debugging
-- [Use Cases](use-cases.md) - Real-world applications
+- [Algorithm](emerge_algorithm.md) - How emerge works
+- [Goal-Directed](goal-directed.md) - How emerge pursues goals
+- [Disruption](disruption.md) - Handling failures
+- [Use Cases](use_cases.md) - Real-world applications
 - [Glossary](glossary.md) - Term definitions

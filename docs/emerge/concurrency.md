@@ -2,13 +2,13 @@
 
 ## Overview
 
-Emerge leverages Go's concurrency primitives to enable thousands of agents to synchronize efficiently. This document explains the concurrency patterns used, how they support the emerge algorithm, and the design decisions that enable scalable, lock-free synchronization.
+Emerge leverages Go's concurrency primitives to enable thousands of [agents](../concepts/agents.md) to synchronize efficiently. This document explains the concurrency patterns used, how they support the [emerge algorithm](emerge_algorithm.md), and the design decisions that enable scalable, lock-free [synchronization](../concepts/synchronization.md).
 
 ## Core Concurrency Model
 
 ### Agent Independence
 
-Each agent operates as an independent entity:
+Each [agent](../concepts/agents.md) operates as an independent entity:
 
 - No shared mutable state between agents
 - All inter-agent communication through atomic operations
@@ -25,7 +25,7 @@ type Agent struct {
 
 ### Swarm Orchestration
 
-The swarm coordinates agents without central locking:
+The [swarm](../concepts/swarm.md) coordinates agents without central locking (see [Decentralization](decentralization.md)):
 
 ```go
 type Swarm struct {
@@ -622,9 +622,24 @@ Measured overhead for different patterns:
 | 1000-10000  | 8-16            | <100ms      |
 | 10000+      | 16-32           | <1s         |
 
+See [Scales](scales.md) for standard agent count configurations.
+
 ## See Also
 
-- [Algorithm](algorithm.md) - How emerge algorithm works
+### Core Documentation
+- [Algorithm](emerge_algorithm.md) - How emerge algorithm works
 - [Architecture](architecture.md) - System design
+- [Protocol](protocol.md) - Synchronization protocol
 - [Optimization](optimization.md) - Performance tuning
+- [Decentralization](decentralization.md) - No central control
+
+### Concepts
+- [Agents](../concepts/agents.md) - Fundamental units
+- [Swarm](../concepts/swarm.md) - Agent collections
+- [Synchronization](../concepts/synchronization.md) - Coordination
+
+### Related Topics
+- [Disruption](disruption.md) - Handling failures
+- [Security](security.md) - Security considerations
+- [Scales](scales.md) - Configuration sizes
 - [Testing](../testing/e2e.md) - Testing strategies

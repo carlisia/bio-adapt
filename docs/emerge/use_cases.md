@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document presents real-world scenarios where emerge excels, complete with problem descriptions, solutions, code examples, and expected outcomes. Each use case shows how emerge's decentralized synchronization solves actual problems better than traditional approaches.
+This document presents real-world scenarios where emerge excels, complete with problem descriptions, solutions, code examples, and expected outcomes. Each use case shows how emerge's [decentralized](decentralization.md) [synchronization](../concepts/synchronization.md) solves actual problems better than traditional approaches. See [Alternatives](alternatives.md) for comparisons with other solutions.
 
 ## 1. 🌐 API Rate Limit Optimization
 
@@ -20,7 +20,7 @@ Your SaaS platform has 200 microservices making calls to an expensive third-part
 
 ```go
 // Each microservice runs this
-client := emerge.MinimizeAPICalls(scale.Medium)
+client := emerge.MinimizeAPICalls(scale.Medium)  // See [Goals](../concepts/goals.md)
 client.Start(ctx)
 
 func (s *Service) CallExpensiveAPI(data []Request) {
@@ -677,5 +677,7 @@ Result: Harmonious, ensemble playing
 - [FAQ](faq.md) - Common questions answered
 - [Getting Started](primitive.md) - Quick start guide
 - [Goals](../concepts/goals.md) - Detailed goal descriptions
+- [Goal-Directed](goal-directed.md) - How emerge pursues goals
+- [Scales](scales.md) - Configuration sizes
+- [Alternatives](alternatives.md) - Comparison with other approaches
 - [Examples](../../simulations/emerge) - Interactive simulation
-

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Emerge achieves coordination without any central authority, coordinator, or single point of control. This document explains how decentralization works in emerge, why it matters, and how it enables robust, scalable synchronization.
+Emerge achieves coordination without any central authority, coordinator, or single point of control. This document explains how decentralization works in emerge, why it matters, and how it enables robust, scalable [synchronization](../concepts/synchronization.md).
 
 ## What Makes Emerge Decentralized?
 
@@ -15,7 +15,7 @@ Traditional systems often rely on:
 - **Coordinators** that schedule and assign tasks
 - **Controllers** that maintain global state
 
-Emerge has none of these. Every agent is equal and autonomous.
+Emerge has none of these. Every [agent](../concepts/agents.md) is equal and autonomous.
 
 ### Local Interactions Only
 
@@ -33,7 +33,7 @@ Emerge (Decentralized):
 
 ### Emergent Global Behavior
 
-Global synchronization emerges from local interactions:
+Global [synchronization](../concepts/synchronization.md) emerges from local interactions (see [Algorithm](emerge_algorithm.md)):
 
 1. **Local**: Agent A adjusts slightly toward neighbor B
 2. **Regional**: Clusters of agents begin aligning
