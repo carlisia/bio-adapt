@@ -1,4 +1,4 @@
-package swarm
+package swarm_test
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/carlisia/bio-adapt/emerge/core"
+	"github.com/carlisia/bio-adapt/emerge/swarm"
 )
 
 // TestSwarmConvergence tests that swarms actually achieve synchronization.
@@ -50,7 +51,7 @@ func TestSwarmConvergence(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			// Create swarm with target coherence
-			swarm, err := New(tt.size, core.State{
+			s, err := swarm.New(tt.size, core.State{
 				Phase:     0,
 				Frequency: 200 * time.Millisecond,
 				Coherence: tt.targetCoherence,
@@ -58,7 +59,7 @@ func TestSwarmConvergence(t *testing.T) {
 			require.NoError(t, err, "Failed to create swarm")
 
 			// Measure initial coherence
-			initialCoherence := swarm.MeasureCoherence()
+			initialCoherence := s.MeasureCoherence()
 			t.Logf("Initial coherence: %.3f", initialCoherence)
 
 			// Initial coherence should be low (random phases), but small swarms may vary more
@@ -76,13 +77,13 @@ func TestSwarmConvergence(t *testing.T) {
 			defer cancel()
 
 			// Run swarm (this should now work with goal-directed pattern completion)
-			err = swarm.Run(ctx)
+			err = s.Run(ctx)
 			if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 				t.Fatalf("Swarm run failed: %v", err)
 			}
 
 			// Measure final coherence
-			finalCoherence := swarm.MeasureCoherence()
+			finalCoherence := s.MeasureCoherence()
 			t.Logf("Final coherence: %.3f (target: %.3f)", finalCoherence, tt.targetCoherence)
 
 			// Test 1: Coherence should improve significantly
@@ -118,24 +119,24 @@ func TestSwarmConvergenceConsistency(t *testing.T) {
 	for i := range runs {
 		t.Logf("Run %d/%d", i+1, runs)
 
-		swarm, err := New(swarmSize, core.State{
+		s, err := swarm.New(swarmSize, core.State{
 			Phase:     0,
 			Frequency: 200 * time.Millisecond,
 			Coherence: targetCoherence,
 		})
 		require.NoError(t, err, "Run %d: Failed to create swarm", i)
 
-		initialCoherence := swarm.MeasureCoherence()
+		initialCoherence := s.MeasureCoherence()
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		err = swarm.Run(ctx)
+		err = s.Run(ctx)
 		cancel()
 
 		if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 			t.Fatalf("Run %d: Swarm run failed: %v", i, err)
 		}
 
-		finalCoherence := swarm.MeasureCoherence()
+		finalCoherence := s.MeasureCoherence()
 		finalCoherences = append(finalCoherences, finalCoherence)
 
 		t.Logf("Run %d: %.3f -> %.3f (improvement: %.3f)",
@@ -184,7 +185,7 @@ func TestSwarmNonRegression(t *testing.T) {
 	// This test ensures we never go back to the old broken synchronization
 	// where swarms would get stuck at very low coherence (~7%)
 
-	swarm, err := New(30, core.State{
+	s, err := swarm.New(30, core.State{
 		Phase:     0,
 		Frequency: 200 * time.Millisecond,
 		Coherence: 0.65,
@@ -193,18 +194,18 @@ func TestSwarmNonRegression(t *testing.T) {
 		t.Fatalf("Failed to create swarm: %v", err)
 	}
 
-	initialCoherence := swarm.MeasureCoherence()
+	initialCoherence := s.MeasureCoherence()
 
 	// Run for a reasonable amount of time
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err = swarm.Run(ctx)
+	err = s.Run(ctx)
 	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("Swarm run failed: %v", err)
 	}
 
-	finalCoherence := swarm.MeasureCoherence()
+	finalCoherence := s.MeasureCoherence()
 
 	t.Logf("Non-regression test: %.3f -> %.3f", initialCoherence, finalCoherence)
 
@@ -233,7 +234,7 @@ func TestSwarmTargetAchievement(t *testing.T) {
 	for _, target := range targets {
 		t.Run(fmt.Sprintf("target_%.1f", target), func(t *testing.T) {
 			t.Parallel()
-			swarm, err := New(25, core.State{
+			s, err := swarm.New(25, core.State{
 				Phase:     0,
 				Frequency: 200 * time.Millisecond,
 				Coherence: target,
@@ -243,12 +244,12 @@ func TestSwarmTargetAchievement(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 			defer cancel()
 
-			err = swarm.Run(ctx)
+			err = s.Run(ctx)
 			if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 				t.Fatalf("Swarm run failed: %v", err)
 			}
 
-			finalCoherence := swarm.MeasureCoherence()
+			finalCoherence := s.MeasureCoherence()
 
 			// Should get reasonably close to target (within 20%)
 			tolerance := 0.2

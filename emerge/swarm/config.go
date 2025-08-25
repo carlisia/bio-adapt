@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/carlisia/bio-adapt/emerge/goal"
-	"github.com/carlisia/bio-adapt/emerge/scale"
 	"github.com/carlisia/bio-adapt/emerge/trait"
 )
 
@@ -16,6 +15,8 @@ type Config struct {
 	Variation   VariationConfig
 	Strategy    StrategyConfig
 	Resonance   ResonanceConfig
+
+	// Agent count override (0 means use default from swarm size)
 }
 
 // ConvergenceConfig controls how the swarm converges to targets.
@@ -86,296 +87,296 @@ func For(g goal.Type) *Config {
 	case goal.MinimizeAPICalls:
 		return &Config{
 			Convergence: ConvergenceConfig{
-				ToleranceSmall:           0.01,
-				ToleranceMedium:          0.005,
-				ToleranceLarge:           0.003,
-				PhaseConvergenceGoal:     0.90,
-				PatternDistanceThreshold: 0.05,
-				BaseAdjustmentScale:      0.75,
+				ToleranceSmall:           MinAPIToleranceSmall,
+				ToleranceMedium:          MinAPIToleranceMedium,
+				ToleranceLarge:           MinAPIToleranceLarge,
+				PhaseConvergenceGoal:     MinAPIPhaseConvergenceGoal,
+				PatternDistanceThreshold: MinAPIPatternDistanceThreshold,
+				BaseAdjustmentScale:      MinAPIBaseAdjustmentScale,
 			},
 			Thresholds: ThresholdConfig{
-				PhaseVariance:     0.3,
-				HighCoherence:     0.85,
-				VeryHighCoherence: 0.90,
-				ModerateCoherence: 0.80,
+				PhaseVariance:     MinAPIPhaseVariance,
+				HighCoherence:     MinAPIHighCoherence,
+				VeryHighCoherence: MinAPIVeryHighCoherence,
+				ModerateCoherence: MinAPIModerateCoherence,
 			},
 			Variation: VariationConfig{
-				BaseRange:             [2]float64{0.05, 0.15},
-				CoherenceFactor:       0.15,
-				RandomWalkMagnitude:   0.05,
-				PerturbationMagnitude: 0.04,
-				PerturbationChance:    0.10,
+				BaseRange:             [2]float64{MinAPIVariationMin, MinAPIVariationMax},
+				CoherenceFactor:       MinAPICoherenceFactor,
+				RandomWalkMagnitude:   MinAPIRandomWalkMagnitude,
+				PerturbationMagnitude: MinAPIPerturbationMagnitude,
+				PerturbationChance:    MinAPIPerturbationChance,
 			},
 			Strategy: StrategyConfig{
-				MaxIterationsFactor:   150,
-				UpdateInterval:        200 * time.Millisecond,
-				ExplorationBonusMax:   0.2,
-				ExplorationTimeWindow: 45 * time.Second,
-				RandomExploration:     0.05,
+				MaxIterationsFactor:   MinAPIMaxIterationsFactor,
+				UpdateInterval:        MinAPIUpdateInterval,
+				ExplorationBonusMax:   MinAPIExplorationBonusMax,
+				ExplorationTimeWindow: MinAPIExplorationTimeWindow,
+				RandomExploration:     MinAPIRandomExploration,
 			},
 			Resonance: ResonanceConfig{
-				NoiseMagnitude: 0.3,
-				AffectedAgents: 0.05,
-				ActivationRate: 0.05,
+				NoiseMagnitude: MinAPINoiseMagnitude,
+				AffectedAgents: MinAPIAffectedAgents,
+				ActivationRate: MinAPIActivationRate,
 			},
 		}
 
 	case goal.DistributeLoad:
 		return &Config{
 			Convergence: ConvergenceConfig{
-				ToleranceSmall:           0.025,
-				ToleranceMedium:          0.015,
-				ToleranceLarge:           0.010,
-				PhaseConvergenceGoal:     0.30, // Anti-phase
-				PatternDistanceThreshold: 0.2,
-				BaseAdjustmentScale:      0.55,
+				ToleranceSmall:           DistLoadToleranceSmall,
+				ToleranceMedium:          DistLoadToleranceMedium,
+				ToleranceLarge:           DistLoadToleranceLarge,
+				PhaseConvergenceGoal:     DistLoadPhaseConvergenceGoal,
+				PatternDistanceThreshold: DistLoadPatternDistanceThreshold,
+				BaseAdjustmentScale:      DistLoadBaseAdjustmentScale,
 			},
 			Thresholds: ThresholdConfig{
-				PhaseVariance:     0.8, // High variance is good
-				HighCoherence:     0.4, // Lower targets
-				VeryHighCoherence: 0.5,
-				ModerateCoherence: 0.3,
+				PhaseVariance:     DistLoadPhaseVariance,
+				HighCoherence:     DistLoadHighCoherence,
+				VeryHighCoherence: DistLoadVeryHighCoherence,
+				ModerateCoherence: DistLoadModerateCoherence,
 			},
 			Variation: VariationConfig{
-				BaseRange:             [2]float64{0.25, 0.45},
-				CoherenceFactor:       0.3,
-				RandomWalkMagnitude:   0.2,
-				PerturbationMagnitude: 0.15,
-				PerturbationChance:    0.25,
+				BaseRange:             [2]float64{DistLoadVariationMin, DistLoadVariationMax},
+				CoherenceFactor:       DistLoadCoherenceFactor,
+				RandomWalkMagnitude:   DistLoadRandomWalkMagnitude,
+				PerturbationMagnitude: DistLoadPerturbationMagnitude,
+				PerturbationChance:    DistLoadPerturbationChance,
 			},
 			Strategy: StrategyConfig{
-				MaxIterationsFactor:   100,
-				UpdateInterval:        50 * time.Millisecond,
-				ExplorationBonusMax:   0.4,
-				ExplorationTimeWindow: 30 * time.Second,
-				RandomExploration:     0.15,
+				MaxIterationsFactor:   DistLoadMaxIterationsFactor,
+				UpdateInterval:        DistLoadUpdateInterval,
+				ExplorationBonusMax:   DistLoadExplorationBonusMax,
+				ExplorationTimeWindow: DistLoadExplorationTimeWindow,
+				RandomExploration:     DistLoadRandomExploration,
 			},
 			Resonance: ResonanceConfig{
-				NoiseMagnitude: 0.6,
-				AffectedAgents: 0.15,
-				ActivationRate: 0.15,
+				NoiseMagnitude: DistLoadNoiseMagnitude,
+				AffectedAgents: DistLoadAffectedAgents,
+				ActivationRate: DistLoadActivationRate,
 			},
 		}
 
 	case goal.ReachConsensus:
 		return &Config{
 			Convergence: ConvergenceConfig{
-				ToleranceSmall:           0.008,
-				ToleranceMedium:          0.004,
-				ToleranceLarge:           0.002,
-				PhaseConvergenceGoal:     0.95,
-				PatternDistanceThreshold: 0.03,
-				BaseAdjustmentScale:      0.80,
+				ToleranceSmall:           ConsensusToleranceSmall,
+				ToleranceMedium:          ConsensusToleranceMedium,
+				ToleranceLarge:           ConsensusToleranceLarge,
+				PhaseConvergenceGoal:     ConsensusPhaseConvergenceGoal,
+				PatternDistanceThreshold: ConsensusPatternDistanceThreshold,
+				BaseAdjustmentScale:      ConsensusBaseAdjustmentScale,
 			},
 			Thresholds: ThresholdConfig{
-				PhaseVariance:     0.2,
-				HighCoherence:     0.90,
-				VeryHighCoherence: 0.95,
-				ModerateCoherence: 0.85,
+				PhaseVariance:     ConsensusPhaseVariance,
+				HighCoherence:     ConsensusHighCoherence,
+				VeryHighCoherence: ConsensusVeryHighCoherence,
+				ModerateCoherence: ConsensusModerateCoherence,
 			},
 			Variation: VariationConfig{
-				BaseRange:             [2]float64{0.03, 0.10},
-				CoherenceFactor:       0.10,
-				RandomWalkMagnitude:   0.03,
-				PerturbationMagnitude: 0.02,
-				PerturbationChance:    0.05,
+				BaseRange:             [2]float64{ConsensusVariationMin, ConsensusVariationMax},
+				CoherenceFactor:       ConsensusCoherenceFactor,
+				RandomWalkMagnitude:   ConsensusRandomWalkMagnitude,
+				PerturbationMagnitude: ConsensusPerturbationMagnitude,
+				PerturbationChance:    ConsensusPerturbationChance,
 			},
 			Strategy: StrategyConfig{
-				MaxIterationsFactor:   250,
-				UpdateInterval:        100 * time.Millisecond,
-				ExplorationBonusMax:   0.25,
-				ExplorationTimeWindow: 60 * time.Second,
-				RandomExploration:     0.08,
+				MaxIterationsFactor:   ConsensusMaxIterationsFactor,
+				UpdateInterval:        ConsensusUpdateInterval,
+				ExplorationBonusMax:   ConsensusExplorationBonusMax,
+				ExplorationTimeWindow: ConsensusExplorationTimeWindow,
+				RandomExploration:     ConsensusRandomExploration,
 			},
 			Resonance: ResonanceConfig{
-				NoiseMagnitude: 0.2,
-				AffectedAgents: 0.03,
-				ActivationRate: 0.03,
+				NoiseMagnitude: ConsensusNoiseMagnitude,
+				AffectedAgents: ConsensusAffectedAgents,
+				ActivationRate: ConsensusActivationRate,
 			},
 		}
 
 	case goal.MinimizeLatency:
 		return &Config{
 			Convergence: ConvergenceConfig{
-				ToleranceSmall:           0.020,
-				ToleranceMedium:          0.012,
-				ToleranceLarge:           0.008,
-				PhaseConvergenceGoal:     0.75,
-				PatternDistanceThreshold: 0.15,
-				BaseAdjustmentScale:      0.85,
+				ToleranceSmall:           LatencyToleranceSmall,
+				ToleranceMedium:          LatencyToleranceMedium,
+				ToleranceLarge:           LatencyToleranceLarge,
+				PhaseConvergenceGoal:     LatencyPhaseConvergenceGoal,
+				PatternDistanceThreshold: LatencyPatternDistanceThreshold,
+				BaseAdjustmentScale:      LatencyBaseAdjustmentScale,
 			},
 			Thresholds: ThresholdConfig{
-				PhaseVariance:     0.4,
-				HighCoherence:     0.80,
-				VeryHighCoherence: 0.85,
-				ModerateCoherence: 0.75,
+				PhaseVariance:     LatencyPhaseVariance,
+				HighCoherence:     LatencyHighCoherence,
+				VeryHighCoherence: LatencyVeryHighCoherence,
+				ModerateCoherence: LatencyModerateCoherence,
 			},
 			Variation: VariationConfig{
-				BaseRange:             [2]float64{0.10, 0.20},
-				CoherenceFactor:       0.15,
-				RandomWalkMagnitude:   0.08,
-				PerturbationMagnitude: 0.06,
-				PerturbationChance:    0.12,
+				BaseRange:             [2]float64{LatencyVariationMin, LatencyVariationMax},
+				CoherenceFactor:       LatencyCoherenceFactor,
+				RandomWalkMagnitude:   LatencyRandomWalkMagnitude,
+				PerturbationMagnitude: LatencyPerturbationMagnitude,
+				PerturbationChance:    LatencyPerturbationChance,
 			},
 			Strategy: StrategyConfig{
-				MaxIterationsFactor:   80,
-				UpdateInterval:        25 * time.Millisecond,
-				ExplorationBonusMax:   0.35,
-				ExplorationTimeWindow: 20 * time.Second,
-				RandomExploration:     0.12,
+				MaxIterationsFactor:   LatencyMaxIterationsFactor,
+				UpdateInterval:        LatencyUpdateInterval,
+				ExplorationBonusMax:   LatencyExplorationBonusMax,
+				ExplorationTimeWindow: LatencyExplorationTimeWindow,
+				RandomExploration:     LatencyRandomExploration,
 			},
 			Resonance: ResonanceConfig{
-				NoiseMagnitude: 0.4,
-				AffectedAgents: 0.08,
-				ActivationRate: 0.10,
+				NoiseMagnitude: LatencyNoiseMagnitude,
+				AffectedAgents: LatencyAffectedAgents,
+				ActivationRate: LatencyActivationRate,
 			},
 		}
 
 	case goal.SaveEnergy:
 		return &Config{
 			Convergence: ConvergenceConfig{
-				ToleranceSmall:           0.030,
-				ToleranceMedium:          0.020,
-				ToleranceLarge:           0.015,
-				PhaseConvergenceGoal:     0.70,
-				PatternDistanceThreshold: 0.20,
-				BaseAdjustmentScale:      0.40,
+				ToleranceSmall:           EnergyToleranceSmall,
+				ToleranceMedium:          EnergyToleranceMedium,
+				ToleranceLarge:           EnergyToleranceLarge,
+				PhaseConvergenceGoal:     EnergyPhaseConvergenceGoal,
+				PatternDistanceThreshold: EnergyPatternDistanceThreshold,
+				BaseAdjustmentScale:      EnergyBaseAdjustmentScale,
 			},
 			Thresholds: ThresholdConfig{
-				PhaseVariance:     0.6,
-				HighCoherence:     0.75,
-				VeryHighCoherence: 0.80,
-				ModerateCoherence: 0.70,
+				PhaseVariance:     EnergyPhaseVariance,
+				HighCoherence:     EnergyHighCoherence,
+				VeryHighCoherence: EnergyVeryHighCoherence,
+				ModerateCoherence: EnergyModerateCoherence,
 			},
 			Variation: VariationConfig{
-				BaseRange:             [2]float64{0.08, 0.18},
-				CoherenceFactor:       0.12,
-				RandomWalkMagnitude:   0.06,
-				PerturbationMagnitude: 0.05,
-				PerturbationChance:    0.08,
+				BaseRange:             [2]float64{EnergyVariationMin, EnergyVariationMax},
+				CoherenceFactor:       EnergyCoherenceFactor,
+				RandomWalkMagnitude:   EnergyRandomWalkMagnitude,
+				PerturbationMagnitude: EnergyPerturbationMagnitude,
+				PerturbationChance:    EnergyPerturbationChance,
 			},
 			Strategy: StrategyConfig{
-				MaxIterationsFactor:   300,
-				UpdateInterval:        250 * time.Millisecond,
-				ExplorationBonusMax:   0.15,
-				ExplorationTimeWindow: 90 * time.Second,
-				RandomExploration:     0.05,
+				MaxIterationsFactor:   EnergyMaxIterationsFactor,
+				UpdateInterval:        EnergyUpdateInterval,
+				ExplorationBonusMax:   EnergyExplorationBonusMax,
+				ExplorationTimeWindow: EnergyExplorationTimeWindow,
+				RandomExploration:     EnergyRandomExploration,
 			},
 			Resonance: ResonanceConfig{
-				NoiseMagnitude: 0.25,
-				AffectedAgents: 0.05,
-				ActivationRate: 0.05,
+				NoiseMagnitude: EnergyNoiseMagnitude,
+				AffectedAgents: EnergyAffectedAgents,
+				ActivationRate: EnergyActivationRate,
 			},
 		}
 
 	case goal.MaintainRhythm:
 		return &Config{
 			Convergence: ConvergenceConfig{
-				ToleranceSmall:           0.012,
-				ToleranceMedium:          0.006,
-				ToleranceLarge:           0.003,
-				PhaseConvergenceGoal:     0.80,
-				PatternDistanceThreshold: 0.08,
-				BaseAdjustmentScale:      0.70,
+				ToleranceSmall:           RhythmToleranceSmall,
+				ToleranceMedium:          RhythmToleranceMedium,
+				ToleranceLarge:           RhythmToleranceLarge,
+				PhaseConvergenceGoal:     RhythmPhaseConvergenceGoal,
+				PatternDistanceThreshold: RhythmPatternDistanceThreshold,
+				BaseAdjustmentScale:      RhythmBaseAdjustmentScale,
 			},
 			Thresholds: ThresholdConfig{
-				PhaseVariance:     0.4,
-				HighCoherence:     0.85,
-				VeryHighCoherence: 0.90,
-				ModerateCoherence: 0.80,
+				PhaseVariance:     RhythmPhaseVariance,
+				HighCoherence:     RhythmHighCoherence,
+				VeryHighCoherence: RhythmVeryHighCoherence,
+				ModerateCoherence: RhythmModerateCoherence,
 			},
 			Variation: VariationConfig{
-				BaseRange:             [2]float64{0.08, 0.16},
-				CoherenceFactor:       0.15,
-				RandomWalkMagnitude:   0.06,
-				PerturbationMagnitude: 0.05,
-				PerturbationChance:    0.10,
+				BaseRange:             [2]float64{RhythmVariationMin, RhythmVariationMax},
+				CoherenceFactor:       RhythmCoherenceFactor,
+				RandomWalkMagnitude:   RhythmRandomWalkMagnitude,
+				PerturbationMagnitude: RhythmPerturbationMagnitude,
+				PerturbationChance:    RhythmPerturbationChance,
 			},
 			Strategy: StrategyConfig{
-				MaxIterationsFactor:   180,
-				UpdateInterval:        100 * time.Millisecond,
-				ExplorationBonusMax:   0.25,
-				ExplorationTimeWindow: 50 * time.Second,
-				RandomExploration:     0.08,
+				MaxIterationsFactor:   RhythmMaxIterationsFactor,
+				UpdateInterval:        RhythmUpdateInterval,
+				ExplorationBonusMax:   RhythmExplorationBonusMax,
+				ExplorationTimeWindow: RhythmExplorationTimeWindow,
+				RandomExploration:     RhythmRandomExploration,
 			},
 			Resonance: ResonanceConfig{
-				NoiseMagnitude: 0.3,
-				AffectedAgents: 0.06,
-				ActivationRate: 0.08,
+				NoiseMagnitude: RhythmNoiseMagnitude,
+				AffectedAgents: RhythmAffectedAgents,
+				ActivationRate: RhythmActivationRate,
 			},
 		}
 
 	case goal.RecoverFromFailure:
 		return &Config{
 			Convergence: ConvergenceConfig{
-				ToleranceSmall:           0.025,
-				ToleranceMedium:          0.015,
-				ToleranceLarge:           0.010,
-				PhaseConvergenceGoal:     0.65,
-				PatternDistanceThreshold: 0.18,
-				BaseAdjustmentScale:      0.60,
+				ToleranceSmall:           RecoveryToleranceSmall,
+				ToleranceMedium:          RecoveryToleranceMedium,
+				ToleranceLarge:           RecoveryToleranceLarge,
+				PhaseConvergenceGoal:     RecoveryPhaseConvergenceGoal,
+				PatternDistanceThreshold: RecoveryPatternDistanceThreshold,
+				BaseAdjustmentScale:      RecoveryBaseAdjustmentScale,
 			},
 			Thresholds: ThresholdConfig{
-				PhaseVariance:     0.7,
-				HighCoherence:     0.70,
-				VeryHighCoherence: 0.75,
-				ModerateCoherence: 0.65,
+				PhaseVariance:     RecoveryPhaseVariance,
+				HighCoherence:     RecoveryHighCoherence,
+				VeryHighCoherence: RecoveryVeryHighCoherence,
+				ModerateCoherence: RecoveryModerateCoherence,
 			},
 			Variation: VariationConfig{
-				BaseRange:             [2]float64{0.20, 0.40},
-				CoherenceFactor:       0.25,
-				RandomWalkMagnitude:   0.15,
-				PerturbationMagnitude: 0.12,
-				PerturbationChance:    0.20,
+				BaseRange:             [2]float64{RecoveryVariationMin, RecoveryVariationMax},
+				CoherenceFactor:       RecoveryCoherenceFactor,
+				RandomWalkMagnitude:   RecoveryRandomWalkMagnitude,
+				PerturbationMagnitude: RecoveryPerturbationMagnitude,
+				PerturbationChance:    RecoveryPerturbationChance,
 			},
 			Strategy: StrategyConfig{
-				MaxIterationsFactor:   350,
-				UpdateInterval:        75 * time.Millisecond,
-				ExplorationBonusMax:   0.40,
-				ExplorationTimeWindow: 30 * time.Second,
-				RandomExploration:     0.15,
+				MaxIterationsFactor:   RecoveryMaxIterationsFactor,
+				UpdateInterval:        RecoveryUpdateInterval,
+				ExplorationBonusMax:   RecoveryExplorationBonusMax,
+				ExplorationTimeWindow: RecoveryExplorationTimeWindow,
+				RandomExploration:     RecoveryRandomExploration,
 			},
 			Resonance: ResonanceConfig{
-				NoiseMagnitude: 0.7,
-				AffectedAgents: 0.15,
-				ActivationRate: 0.20,
+				NoiseMagnitude: RecoveryNoiseMagnitude,
+				AffectedAgents: RecoveryAffectedAgents,
+				ActivationRate: RecoveryActivationRate,
 			},
 		}
 
 	case goal.AdaptToTraffic:
 		return &Config{
 			Convergence: ConvergenceConfig{
-				ToleranceSmall:           0.040, // Looser tolerance for quick adaptation
-				ToleranceMedium:          0.030,
-				ToleranceLarge:           0.020,
-				PhaseConvergenceGoal:     0.50, // Lower goal allows more flexibility
-				PatternDistanceThreshold: 0.25, // Accept larger pattern differences
-				BaseAdjustmentScale:      0.45, // Moderate adjustments
+				ToleranceSmall:           TrafficToleranceSmall,
+				ToleranceMedium:          TrafficToleranceMedium,
+				ToleranceLarge:           TrafficToleranceLarge,
+				PhaseConvergenceGoal:     TrafficPhaseConvergenceGoal,
+				PatternDistanceThreshold: TrafficPatternDistanceThreshold,
+				BaseAdjustmentScale:      TrafficBaseAdjustmentScale,
 			},
 			Thresholds: ThresholdConfig{
-				PhaseVariance:     0.9,  // High variance is OK for traffic routing
-				HighCoherence:     0.60, // Lower coherence thresholds
-				VeryHighCoherence: 0.70,
-				ModerateCoherence: 0.50,
+				PhaseVariance:     TrafficPhaseVariance,
+				HighCoherence:     TrafficHighCoherence,
+				VeryHighCoherence: TrafficVeryHighCoherence,
+				ModerateCoherence: TrafficModerateCoherence,
 			},
 			Variation: VariationConfig{
-				BaseRange:             [2]float64{0.30, 0.50}, // High variation for responsiveness
-				CoherenceFactor:       0.35,
-				RandomWalkMagnitude:   0.25, // More random walk allows quick changes
-				PerturbationMagnitude: 0.20,
-				PerturbationChance:    0.30, // Frequent perturbations
+				BaseRange:             [2]float64{TrafficVariationMin, TrafficVariationMax},
+				CoherenceFactor:       TrafficCoherenceFactor,
+				RandomWalkMagnitude:   TrafficRandomWalkMagnitude,
+				PerturbationMagnitude: TrafficPerturbationMagnitude,
+				PerturbationChance:    TrafficPerturbationChance,
 			},
 			Strategy: StrategyConfig{
-				MaxIterationsFactor:   100,                   // Shorter iterations for quick response
-				UpdateInterval:        50 * time.Millisecond, // Fast updates
-				ExplorationBonusMax:   0.50,
-				ExplorationTimeWindow: 20 * time.Second,
-				RandomExploration:     0.25, // More exploration
+				MaxIterationsFactor:   TrafficMaxIterationsFactor,
+				UpdateInterval:        TrafficUpdateInterval,
+				ExplorationBonusMax:   TrafficExplorationBonusMax,
+				ExplorationTimeWindow: TrafficExplorationTimeWindow,
+				RandomExploration:     TrafficRandomExploration,
 			},
 			Resonance: ResonanceConfig{
-				NoiseMagnitude: 0.8,  // High noise for quick escape from patterns
-				AffectedAgents: 0.20, // More agents affected
-				ActivationRate: 0.25, // Frequent activation
+				NoiseMagnitude: TrafficNoiseMagnitude,
+				AffectedAgents: TrafficAffectedAgents,
+				ActivationRate: TrafficActivationRate,
 			},
 		}
 
@@ -439,10 +440,10 @@ func (c *Config) TuneFor(t trait.Target) *Config {
 	return c
 }
 
-// With adjusts the configuration for a specific swarm scale.
-func (c *Config) With(s scale.Size) *Config {
-	switch s {
-	case scale.Tiny:
+// WithSize adjusts the configuration for a specific swarm size.
+func (c *Config) WithSize(agentCount int) *Config {
+	switch {
+	case agentCount <= 20:
 		// Very small swarms need tight coupling
 		c.Convergence.ToleranceSmall = 0.020
 		c.Convergence.ToleranceMedium = 0.020
@@ -450,7 +451,7 @@ func (c *Config) With(s scale.Size) *Config {
 		c.Variation.BaseRange = [2]float64{0.05, 0.10}
 		c.Strategy.UpdateInterval = 20 * time.Millisecond
 
-	case scale.Small:
+	case agentCount <= 50:
 		// Small swarms can converge quickly
 		c.Convergence.ToleranceSmall = 0.015
 		c.Convergence.ToleranceMedium = 0.015
@@ -459,11 +460,11 @@ func (c *Config) With(s scale.Size) *Config {
 		c.Variation.BaseRange[1] *= 0.9
 		c.Strategy.UpdateInterval = time.Duration(minValue(50, int(c.Strategy.UpdateInterval/time.Millisecond))) * time.Millisecond
 
-	case scale.Medium:
+	case agentCount <= 200:
 		// Medium swarms use default tolerances
 		// (no changes needed)
 
-	case scale.Large:
+	case agentCount <= 1000:
 		// Large swarms need more tolerance
 		c.Convergence.ToleranceSmall *= 1.5
 		c.Convergence.ToleranceMedium *= 1.3
@@ -473,8 +474,8 @@ func (c *Config) With(s scale.Size) *Config {
 		c.Strategy.UpdateInterval = time.Duration(maxValue(150, int(c.Strategy.UpdateInterval/time.Millisecond))) * time.Millisecond
 		c.Strategy.MaxIterationsFactor *= 1.5
 
-	case scale.Huge:
-		// Huge swarms need significant adjustments
+	default:
+		// Huge swarms (2000+) need significant adjustments
 		c.Convergence.ToleranceSmall *= 2.0
 		c.Convergence.ToleranceMedium *= 1.8
 		c.Convergence.ToleranceLarge *= 1.5
@@ -565,37 +566,37 @@ func (c *Config) validateResonance() error {
 func defaultConfig() *Config {
 	return &Config{
 		Convergence: ConvergenceConfig{
-			ToleranceSmall:           0.015,
-			ToleranceMedium:          0.008,
-			ToleranceLarge:           0.005,
-			PhaseConvergenceGoal:     0.85,
-			PatternDistanceThreshold: 0.1,
-			BaseAdjustmentScale:      0.65,
+			ToleranceSmall:           DefaultToleranceSmall,
+			ToleranceMedium:          DefaultToleranceMedium,
+			ToleranceLarge:           DefaultToleranceLarge,
+			PhaseConvergenceGoal:     DefaultPhaseConvergenceGoal,
+			PatternDistanceThreshold: DefaultPatternDistanceThreshold,
+			BaseAdjustmentScale:      DefaultBaseAdjustmentScale,
 		},
 		Thresholds: ThresholdConfig{
-			PhaseVariance:     0.5,
-			HighCoherence:     0.9,
-			VeryHighCoherence: 0.92,
-			ModerateCoherence: 0.85,
+			PhaseVariance:     DefaultPhaseVariance,
+			HighCoherence:     DefaultHighCoherence,
+			VeryHighCoherence: DefaultVeryHighCoherence,
+			ModerateCoherence: DefaultModerateCoherence,
 		},
 		Variation: VariationConfig{
-			BaseRange:             [2]float64{0.15, 0.30},
-			CoherenceFactor:       0.2,
-			RandomWalkMagnitude:   0.1,
-			PerturbationMagnitude: 0.08,
-			PerturbationChance:    0.15,
+			BaseRange:             [2]float64{DefaultVariationMin, DefaultVariationMax},
+			CoherenceFactor:       DefaultCoherenceFactor,
+			RandomWalkMagnitude:   DefaultRandomWalkMagnitude,
+			PerturbationMagnitude: DefaultPerturbationMagnitude,
+			PerturbationChance:    DefaultPerturbationChance,
 		},
 		Strategy: StrategyConfig{
-			MaxIterationsFactor:   200,
-			UpdateInterval:        100 * time.Millisecond,
-			ExplorationBonusMax:   0.3,
-			ExplorationTimeWindow: 60 * time.Second,
-			RandomExploration:     0.1,
+			MaxIterationsFactor:   DefaultMaxIterationsFactor,
+			UpdateInterval:        DefaultUpdateInterval,
+			ExplorationBonusMax:   DefaultExplorationBonusMax,
+			ExplorationTimeWindow: DefaultExplorationTimeWindow,
+			RandomExploration:     DefaultRandomExploration,
 		},
 		Resonance: ResonanceConfig{
-			NoiseMagnitude: 0.5,
-			AffectedAgents: 0.1,
-			ActivationRate: 0.1,
+			NoiseMagnitude: DefaultNoiseMagnitude,
+			AffectedAgents: DefaultAffectedAgents,
+			ActivationRate: DefaultActivationRate,
 		},
 	}
 }

@@ -165,7 +165,7 @@ func TestConfigWith(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := For(goal.MinimizeAPICalls).With(tt.scale)
+			cfg := For(goal.MinimizeAPICalls).WithSize(tt.scale.DefaultAgentCount())
 			require.NotNil(t, cfg)
 			tt.check(t, cfg)
 
@@ -180,7 +180,7 @@ func TestConfigChaining(t *testing.T) {
 	// Test the full fluent API
 	cfg := For(goal.MinimizeAPICalls).
 		TuneFor(trait.Stability).
-		With(scale.Large)
+		WithSize(scale.Large.DefaultAgentCount())
 
 	require.NotNil(t, cfg)
 
@@ -279,7 +279,7 @@ func TestConfigUsageExamples(t *testing.T) {
 		// Fast convergence for small swarm
 		cfg := For(goal.MinimizeAPICalls).
 			TuneFor(trait.Speed).
-			With(scale.Small)
+			WithSize(scale.Small.DefaultAgentCount())
 
 		assert.Less(t, cfg.Strategy.UpdateInterval, 100*time.Millisecond)
 		assert.NoError(t, cfg.Validate())
@@ -289,7 +289,7 @@ func TestConfigUsageExamples(t *testing.T) {
 		// Large swarm with robustness
 		cfg := For(goal.DistributeLoad).
 			TuneFor(trait.Resilience).
-			With(scale.Large)
+			WithSize(scale.Large.DefaultAgentCount())
 
 		assert.Greater(t, cfg.Resonance.NoiseMagnitude, 0.5)
 		assert.NoError(t, cfg.Validate())

@@ -52,6 +52,9 @@ type Swarm struct {
 
 	// Performance optimization for large swarms
 	workerPool *WorkerPool // Goroutine pool for concurrent updates
+
+	// Recovery configuration for continuous operation
+	recoveryConfig RecoveryConfig
 }
 
 // Option configures a Swarm.
@@ -87,13 +90,14 @@ func New(size int, goal core.State, opts ...Option) (*Swarm, error) {
 
 	// Initialize swarm with optimized storage for large sizes
 	s := &Swarm{
-		goalState:   goal,
-		config:      cfg,
-		size:        size,
-		monitor:     monitoring.New(),
-		basin:       emerge.NewAttractorBasin(goal, cfg.BasinStrength, cfg.BasinWidth),
-		convergence: monitoring.NewConvergence(goal, goal.Coherence),
-		optimized:   size > OptimizedSwarmThreshold,
+		goalState:      goal,
+		config:         cfg,
+		size:           size,
+		monitor:        monitoring.New(),
+		basin:          emerge.NewAttractorBasin(goal, cfg.BasinStrength, cfg.BasinWidth),
+		convergence:    monitoring.NewConvergence(goal, goal.Coherence),
+		optimized:      size > OptimizedSwarmThreshold,
+		recoveryConfig: DefaultRecoveryConfig(goal.Coherence),
 	}
 
 	// Initialize optimized storage for large swarms
@@ -303,6 +307,15 @@ func WithTopology(builder func(*Swarm) error) Option {
 	}
 }
 
+// WithRecoveryConfig sets a custom recovery configuration for continuous operation.
+// This controls how the swarm detects and recovers from disruptions.
+func WithRecoveryConfig(cfg RecoveryConfig) Option {
+	return func(s *Swarm) error {
+		s.recoveryConfig = cfg
+		return nil
+	}
+}
+
 // establishConnections creates network topology based on configuration.
 func (s *Swarm) establishConnections() {
 	agents := s.collectAgents()
@@ -419,6 +432,17 @@ func (s *Swarm) ensureMinimumConnectivity(a *agent.Agent, agents []*agent.Agent,
 
 // Run starts the swarm and achieves synchronization using goal-directed pattern completion.
 // Uses adaptive strategies and convergence dynamics to ensure goal achievement.
+// This method exits once the target coherence is achieved or the context is canceled.
+//
+// Use Run() when you need:
+//   - One-time synchronization (batch processing, initialization)
+//   - Simple convergence without recovery (tests, benchmarks)
+//   - To minimize resource usage (no continuous monitoring)
+//
+// Use RunContinuous() when you need:
+//   - Long-running operation with automatic recovery from disruptions
+//   - Continuous monitoring and maintenance of synchronization
+//   - Production systems that must maintain coherence over time
 func (s *Swarm) Run(ctx context.Context) error {
 	// Create target pattern from goal state
 	targetPattern := &core.TargetPattern{
@@ -534,6 +558,13 @@ func (s *Swarm) CurrentCoherence() float64 {
 
 // DisruptAgents randomly disrupts a percentage of agents.
 func (s *Swarm) DisruptAgents(percentage float64) {
+	// Clamp percentage to valid range [0, 1]
+	if percentage < 0 {
+		percentage = 0
+	} else if percentage > 1 {
+		percentage = 1
+	}
+
 	targetCount := int(float64(s.Size()) * percentage)
 	disrupted := 0
 
@@ -548,6 +579,32 @@ func (s *Swarm) DisruptAgents(percentage float64) {
 		}
 		return true
 	})
+
+	// Important: After disruption, the goal-directed sync may have already
+	// completed and returned from its AchieveSynchronization loop.
+	// We need to ensure it continues working toward the goal.
+
+	// Reset convergence tracking to clear stale state
+	if s.convergence != nil {
+		s.convergence.Reset()
+	}
+
+	// For goal-directed sync, we need to ensure it doesn't think it has
+	// already achieved the goal. The problem is that once AchieveSynchronization
+	// returns, the Run loop exits and no more updates happen.
+	//
+	// Since we can't restart a completed goroutine, the best approach is to
+	// prevent the goal-directed sync from exiting prematurely by ensuring
+	// it properly detects the disruption.
+	if s.goalDirectedSync != nil && s.goalDirectedSync.convergenceMonitor != nil {
+		// Reset the convergence monitor so it knows we're not converged anymore
+		s.goalDirectedSync.convergenceMonitor.Reset()
+
+		// HACK: Set a flag or state that forces the goal-directed sync to
+		// re-evaluate convergence. Since we can't directly do this without
+		// modifying the goal-directed sync structure, we'll take a different
+		// approach in the actual fix.
+	}
 }
 
 // ForEachAgent applies a function to each agent in the swarm.

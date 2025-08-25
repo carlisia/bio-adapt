@@ -6,24 +6,29 @@ package scale
 type Size int
 
 const (
-	// Tiny represents swarms with fewer than 10 agents.
-	// Fully connected topology, very strong coupling.
+	// Tiny represents a tiny swarm with 20 agents.
+	// Use for tightly coupled systems requiring strong synchronization.
+	// Fully connected topology allows rapid consensus.
 	Tiny Size = iota
 
-	// Small represents swarms with 10-50 agents.
-	// Dense connectivity, strong coupling.
+	// Small represents a small swarm with 50 agents.
+	// Use for team-sized coordination with dense connectivity.
+	// Balances coordination overhead with effectiveness.
 	Small
 
-	// Medium represents swarms with 50-200 agents.
-	// Moderate connectivity, balanced coupling.
+	// Medium represents a medium swarm with 200 agents.
+	// Use for department-scale systems with moderate connectivity.
+	// Optimal for most production workloads.
 	Medium
 
-	// Large represents swarms with 200-1000 agents.
-	// Sparse connectivity, weaker coupling.
+	// Large represents a large swarm with 1000 agents.
+	// Use for enterprise-scale distributed systems.
+	// Sparse connectivity reduces coordination overhead.
 	Large
 
-	// Huge represents swarms with 1000+ agents.
-	// Minimal connectivity, very weak coupling.
+	// Huge represents a huge swarm with 2000 agents.
+	// Use for massive distributed systems with minimal coupling.
+	// Designed for cloud-scale deployments.
 	Huge
 )
 
@@ -48,16 +53,91 @@ func (s Size) String() string {
 // FromCount returns the appropriate Size for a given agent count.
 func FromCount(count int) Size {
 	switch {
-	case count < 10:
+	case count <= 20:
 		return Tiny
-	case count < 50:
+	case count <= 50:
 		return Small
-	case count < 200:
+	case count <= 200:
 		return Medium
-	case count < 1000:
+	case count <= 1000:
 		return Large
 	default:
 		return Huge
+	}
+}
+
+// DefaultAgentCount returns the default number of agents for this size.
+func (s Size) DefaultAgentCount() int {
+	switch s {
+	case Tiny:
+		return 20
+	case Small:
+		return 50
+	case Medium:
+		return 200
+	case Large:
+		return 1000
+	case Huge:
+		return 2000
+	default:
+		return 50 // Reasonable default
+	}
+}
+
+// DefaultTargetCoherence returns the recommended target coherence for this size.
+// Larger swarms have lower achievable coherence due to coordination overhead.
+func (s Size) DefaultTargetCoherence() float64 {
+	switch s {
+	case Tiny:
+		return 0.90 // Very high coherence possible with few agents
+	case Small:
+		return 0.85 // High coherence still achievable
+	case Medium:
+		return 0.75 // Good balance of scale and coherence
+	case Large:
+		return 0.65 // Lower coherence due to coordination overhead
+	case Huge:
+		return 0.55 // Minimal coherence in massive swarms
+	default:
+		return 0.75 // Reasonable default
+	}
+}
+
+// DefaultUpdateIntervalMs returns the recommended update interval in milliseconds.
+// Smaller swarms can update more frequently without overhead.
+func (s Size) DefaultUpdateIntervalMs() int {
+	switch s {
+	case Tiny:
+		return 20 // Very fast updates for tiny swarms
+	case Small:
+		return 50 // Fast updates
+	case Medium:
+		return 100 // Standard update rate
+	case Large:
+		return 150 // Slower to reduce overhead
+	case Huge:
+		return 200 // Minimal update frequency
+	default:
+		return 100 // Standard default
+	}
+}
+
+// DefaultConvergenceTimeFactor returns the expected convergence time factor.
+// Larger swarms need more iterations to converge.
+func (s Size) DefaultConvergenceTimeFactor() float64 {
+	switch s {
+	case Tiny:
+		return 1.0 // Baseline convergence time
+	case Small:
+		return 1.2 // Slightly longer
+	case Medium:
+		return 1.5 // Moderate increase
+	case Large:
+		return 2.0 // Double the baseline
+	case Huge:
+		return 3.0 // Triple for massive swarms
+	default:
+		return 1.5 // Moderate default
 	}
 }
 
